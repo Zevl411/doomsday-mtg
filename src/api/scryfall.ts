@@ -11,7 +11,10 @@ interface ScryfallSearchResponse {
 
 // `async` functions return a Promise. The type inside Promise describes the
 // value callers receive after awaiting the request.
-export async function searchCards(query: string): Promise<ScryfallCard[]> {
+export async function searchCards(
+  query: string,
+  signal?: AbortSignal,
+): Promise<ScryfallCard[]> {
   const trimmedQuery = query.trim()
 
   if (!trimmedQuery) {
@@ -19,9 +22,9 @@ export async function searchCards(query: string): Promise<ScryfallCard[]> {
   }
 
   const encodedQuery = encodeURIComponent(trimmedQuery)
-  const response = await fetch(
-    `${BASE_URL}/cards/search?q=${encodedQuery}`,
-  )
+  const response = await fetch(`${BASE_URL}/cards/search?q=${encodedQuery}`, {
+    signal,
+  })
 
   if (!response.ok) {
     throw new Error(

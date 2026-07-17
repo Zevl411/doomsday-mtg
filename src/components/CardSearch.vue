@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { searchCards } from '../api/scryfall'
 import type { ScryfallCard } from '../types/card'
 
@@ -56,10 +56,14 @@ const cards = ref<ScryfallCard[]>([])
 const errorMessage = ref('')
 const isLoading = ref(false)
 let searchTimer: number | undefined
+// AbortController lets us intentionally cancel a fetch that is no longer needed.
+let activeController: AbortController | null = null
 
 // watch() runs this function whenever the search query changes.
 watch(query, (newQuery) => {
   window.clearTimeout(searchTimer)
+  activeController?.abort()
+  activeController = null
   errorMessage.value = ''
 
   if (!newQuery.trim()) {
@@ -69,6 +73,8 @@ watch(query, (newQuery) => {
   }
 
   searchTimer = window.setTimeout(async () => {
+    const controller = new AbortController()
+    activeController = controller
     isLoading.value = true
 
     try {
@@ -77,15 +83,28 @@ watch(query, (newQuery) => {
         ? `${newQuery} ${commanderFilter}`
         : newQuery
 
-      cards.value = await searchCards(scryfallQuery)
+      cards.value = await searchCards(scryfallQuery, controller.signal)
     } catch (error) {
+      if (controller.signal.aborted) {
+        return
+      }
+
       cards.value = []
       errorMessage.value =
         error instanceof Error ? error.message : 'Card search failed.'
     } finally {
-      isLoading.value = false
+      if (activeController === controller) {
+        activeController = null
+        isLoading.value = false
+      }
     }
   }, 250)
+})
+
+// onUnmounted() runs cleanup when Vue removes this component from the page.
+onUnmounted(() => {
+  window.clearTimeout(searchTimer)
+  activeController?.abort()
 })
 
 function getCardImage(card: ScryfallCard): string | undefined {
