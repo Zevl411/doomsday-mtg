@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Deck } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
-import { isUsableDeck, loadDeck } from './deckStorage'
+import {
+  clearSavedDeck,
+  isUsableDeck,
+  loadDeck,
+  saveDeck,
+} from './deckStorage'
 
 const card: ScryfallCard = {
   id: 'card-printing',
@@ -24,6 +29,13 @@ afterEach(() => {
 })
 
 describe('stored deck validation', () => {
+  it('saves and loads a valid deck', () => {
+    const deck = createStoredDeck(2)
+
+    expect(saveDeck(deck)).toBe(true)
+    expect(loadDeck()).toEqual(deck)
+  })
+
   it('accepts a positive integer quantity', () => {
     expect(isUsableDeck(createStoredDeck(2))).toBe(true)
   })
@@ -46,5 +58,21 @@ describe('stored deck validation', () => {
 
     expect(loadDeck()).toBeNull()
     expect(removeItem).toHaveBeenCalled()
+  })
+
+  it('clears saved deck data', () => {
+    saveDeck(createStoredDeck(1))
+
+    expect(clearSavedDeck()).toBe(true)
+    expect(loadDeck()).toBeNull()
+  })
+
+  it('reports storage failures without throwing', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable')
+    })
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    expect(saveDeck(createStoredDeck(1))).toBe(false)
   })
 })

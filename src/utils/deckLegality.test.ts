@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { Deck } from '../models/deck'
 import { useDeckStore } from '../stores/deck'
@@ -22,15 +22,43 @@ function createCard(
 }
 
 beforeEach(() => {
-  vi.stubGlobal('localStorage', {
-    getItem: vi.fn(() => null),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-  })
   setActivePinia(createPinia())
 })
 
 describe('deck legality identity checks', () => {
+  it('requires a commander before adding a card', () => {
+    const card = createCard('card-printing', 'Card', 'card-oracle')
+    const deck: Deck = {
+      name: 'Test Deck',
+      commander: null,
+      cards: [],
+    }
+
+    expect(validateCardAddition(card, deck).allowed).toBe(false)
+  })
+
+  it('does not allow the commander in the main deck', () => {
+    const commander = createCard(
+      'commander-printing-1',
+      'Commander',
+      'commander-oracle',
+      'Legendary Creature',
+    )
+    const otherPrinting = createCard(
+      'commander-printing-2',
+      'Commander',
+      'commander-oracle',
+      'Legendary Creature',
+    )
+    const deck: Deck = {
+      name: 'Test Deck',
+      commander,
+      cards: [],
+    }
+
+    expect(validateCardAddition(otherPrinting, deck).allowed).toBe(false)
+  })
+
   it('rejects a different printing of the same non-basic card', () => {
     const commander = createCard(
       'commander-printing',
@@ -115,5 +143,29 @@ describe('deck legality identity checks', () => {
       allowed: false,
       overridable: true,
     })
+  })
+
+  it('accepts a legal card inside the commander color identity', () => {
+    const commander = createCard(
+      'commander-printing',
+      'Commander',
+      'commander-oracle',
+      'Legendary Creature',
+      ['U'],
+    )
+    const blueCard = createCard(
+      'blue-printing',
+      'Blue Card',
+      'blue-card-oracle',
+      'Instant',
+      ['U'],
+    )
+    const deck: Deck = {
+      name: 'Test Deck',
+      commander,
+      cards: [],
+    }
+
+    expect(validateCardAddition(blueCard, deck).allowed).toBe(true)
   })
 })

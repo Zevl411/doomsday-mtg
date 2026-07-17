@@ -166,9 +166,30 @@ Run the focused unit tests:
 npm run test
 ```
 
+Run tests continuously while developing:
+
+```bash
+npm run test:watch
+```
+
+Create a production build:
+
+```bash
+npm run build
+```
+
 GitHub Pages deployment is configured at
 `https://zevl411.github.io/doomsday-mtg/`. Pushes to `main` automatically build
 and deploy the application.
+
+GitHub Actions runs tests before building and deploying. The optional GitHub
+CLI can be used to inspect those runs; it is not an npm dependency:
+
+```bash
+gh run list
+gh run watch
+gh run view --log-failed
+```
 
 Planned Backend
 
