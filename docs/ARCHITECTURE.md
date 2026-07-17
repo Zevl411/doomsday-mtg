@@ -1,0 +1,153 @@
+# DoomsdayMTG Architecture
+
+This document explains how the current MVP is divided, how data moves through
+the application, and where future work should live. Keep it updated when a
+change moves ownership or introduces a new architectural boundary.
+
+## Runtime overview
+
+```text
+Vue route-level view
+        │
+        ├── reusable Vuetify components
+        │       ├── emit user intentions
+        │       └── read shared Pinia state
+        │
+        ├── Pinia deck store
+        │       ├── owns the active Deck
+        │       ├── performs mutations
+        │       └── saves meaningful mutations
+        │
+        ├── domain utilities
+        │       ├── legality and size validation
+        │       ├── card identity
+        │       └── decklist parsing/formatting
+        │
+        └── API layer
+                └── Scryfall HTTP requests and rate limiting
+```
+
+`App.vue` only provides the shared layout and `RouterView`. Page composition
+belongs in `src/views`; reusable interface pieces belong in `src/components`.
+
+## Deck ownership
+
+`src/models/deck.ts` defines the application-owned `Deck` and `DeckCard`
+shapes. A Deck contains:
+
+- one optional Commander;
+- `cards`, the mainboard retained under its legacy property name;
+- sideboard, maybeboard, and considering boards;
+- a user-facing deck name.
+
+Pinia's `useDeckStore` is the single source of truth for the active Deck.
+Components may read the store and call actions, but they should not introduce
+a second copy of deck state. Import previews are temporary and intentionally
+remain inside the import component until the user confirms replacement.
+
+Card equality uses `oracle_id` when available so different printings still
+represent one game card. The printed `id` is only a fallback/display identity.
+
+## Board rules
+
+Only the mainboard participates in Commander legality and the 100-card count.
+It requires a Commander, follows color identity, and applies singleton rules.
+Basic lands are the only current quantity exception.
+
+Sideboard, maybeboard, and considering are planning boards. They preserve
+quantities and stable identity but do not affect deck-size or color-identity
+validation. Companion, tokens, and acquireboard are recognized during import
+but are not stored yet.
+
+## Search request lifecycle
+
+`CardSearch.vue` owns only local search state:
+
+1. Vue watches the query and optional parent filter.
+2. A 250 ms debounce avoids a request for every keystroke.
+3. Changing the query aborts any request that is no longer relevant.
+4. Unmounting clears the timer and aborts active work.
+5. The component emits selected and hovered cards; it never mutates a Deck.
+
+`src/api/scryfall.ts` owns URLs, request headers, response handling, batching,
+rate pacing, and network error messages. Regular search uses Scryfall search.
+Deck import uses the collection endpoint in groups of at most 75 normalized
+names to avoid per-card traffic and HTTP 429 responses.
+
+## Import pipeline
+
+```text
+raw pasted text
+    ↓
+format detection / manual format override
+    ↓
+heading and card-line normalization
+    ↓
+normalized ParsedDecklist (no network access)
+    ↓
+batched Scryfall resolution
+    ↓
+Commander selection or cautious inference
+    ↓
+mainboard legality and auxiliary-board assembly
+    ↓
+PreparedDeckImport preview
+    ↓
+confirmed Pinia replacement and localStorage save
+```
+
+The parser never calls Scryfall. It recognizes known and decorative headings,
+tracks the active board across blank lines, strips only unambiguous printing
+metadata, and records malformed input with original line numbers.
+
+Commander inference is deliberately conservative. A first card is considered
+only when the text resembles a Commander list, its quantity is one, it resolves
+successfully, and Scryfall confirms `is:commander legal:commander`.
+
+Clean imports replace the Deck immediately and close the dialog. Imports with
+errors remain previews until the user proceeds or cancels. Network failure
+never partially mutates the active Deck.
+
+## Persistence and migration
+
+`src/utils/deckStorage.ts` is the only localStorage adapter. Stored JSON is
+untrusted: loading validates the Commander, every card shape, and every
+positive integer quantity. Older saves without auxiliary boards are migrated
+by supplying empty arrays. Invalid data is discarded rather than allowed into
+Pinia.
+
+Temporary UI state—search text, previews, dialogs, and import issues—is never
+stored with the Deck.
+
+## Routing and deployment
+
+Vue Router uses hash history because GitHub Pages cannot provide server-side
+fallback routing. Route-level views are lazy-loaded. Vite's base path is
+`/doomsday-mtg/`, so static document links must use `%BASE_URL%` or imported
+assets instead of root-relative URLs.
+
+Both CI and the Pages deployment workflow run tests before the production
+build. There are intentionally no local Git hooks.
+
+## Testing standard
+
+Tests should focus on observable behavior and architectural boundaries:
+
+- parser tests never perform network calls;
+- service tests mock every Scryfall function;
+- store tests verify both mutation and persistence;
+- component tests verify emitted intentions and visible state;
+- routing tests verify named paths and the fallback route.
+
+Run:
+
+```bash
+npm run test
+npm run build
+```
+
+## Future data sources
+
+EDHTop16 and tournament data do not belong in the plaintext parser. A future
+structured adapter should fetch structured data in `src/api`, normalize it in a
+dedicated service, and return the same application-owned Deck model.

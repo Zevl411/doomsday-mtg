@@ -48,13 +48,13 @@
         @focus="emit('card-hovered', card)"
         @mouseenter="emit('card-hovered', card)"
       >
-        <template v-if="getCardImage(card)" #prepend>
+        <template v-if="getCardImage(card, 'small')" #prepend>
           <v-img
             :alt="`${card.name} card art`"
             class="card-result-image mr-4 rounded"
             cover
             height="100"
-            :src="getCardImage(card)"
+            :src="getCardImage(card, 'small')"
             width="72"
           />
         </template>
@@ -72,9 +72,13 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, ref, useId, watch } from 'vue'
+import { computed, onUnmounted, ref, useId, watch } from 'vue'
 import { searchCards } from '../api/scryfall'
 import type { ScryfallCard } from '../types/card'
+import {
+  formatColorIdentity,
+  getCardImage,
+} from '../utils/cardDisplay'
 
 // Props are values a parent component can pass into this component.
 const props = withDefaults(
@@ -105,6 +109,8 @@ const query = ref('')
 const cards = ref<ScryfallCard[]>([])
 const errorMessage = ref('')
 const isLoading = ref(false)
+// A Set provides constant-time selection checks for every rendered result.
+const selectedCardIdSet = computed(() => new Set(props.selectedCardIds))
 let searchTimer: number | undefined
 // AbortController lets us intentionally cancel a fetch that is no longer needed.
 let activeController: AbortController | null = null
@@ -157,15 +163,7 @@ onUnmounted(() => {
   activeController?.abort()
 })
 
-function getCardImage(card: ScryfallCard): string | undefined {
-  return card.image_uris?.small ?? card.card_faces?.[0]?.image_uris?.small
-}
-
-function formatColorIdentity(card: ScryfallCard): string {
-  return card.color_identity.join(', ') || 'Colorless'
-}
-
 function isCardSelected(card: ScryfallCard): boolean {
-  return props.selectedCardIds.includes(card.id)
+  return selectedCardIdSet.value.has(card.id)
 }
 </script>

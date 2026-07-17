@@ -2,7 +2,9 @@
 import type { ScryfallCard } from '../types/card'
 
 const BASE_URL = 'https://api.scryfall.com'
+// Scryfall asks clients to stay below ten requests per second.
 const LOOKUP_INTERVAL_MS = 100
+const COLLECTION_BATCH_SIZE = 75
 let lastLookupStartedAt = 0
 
 // An interface describes the shape of the JSON returned by Scryfall search.
@@ -27,89 +29,50 @@ export async function searchCards(
   }
 
   const encodedQuery = encodeURIComponent(trimmedQuery)
-  const response = await fetch(`${BASE_URL}/cards/search?q=${encodedQuery}`, {
+  const response = await fetchFromScryfall(
+    `${BASE_URL}/cards/search?q=${encodedQuery}`,
+    {
+      headers: { Accept: 'application/json' },
+      signal,
+    },
     signal,
-  })
+  )
 
   if (response.status === 404) {
     throw new Error('No matching cards found.')
   }
 
   if (!response.ok) {
-    throw new Error(
-      `Scryfall search failed (${response.status} ${response.statusText}).`,
-    )
+    throw createScryfallResponseError('search', response)
   }
 
   const result: ScryfallSearchResponse = await response.json()
   return result.data
 }
 
-export async function getCardByExactName(
-  name: string,
-  signal?: AbortSignal,
-): Promise<ScryfallCard | null> {
-  const trimmedName = name.trim()
-
-  if (!trimmedName) {
-    return null
-  }
-
-  let response: Response
-
-  try {
-    // Imports can resolve many cards in succession. Spacing exact-name
-    // requests avoids overwhelming Scryfall while still keeping imports quick.
-    await waitForLookupTurn(signal)
-
-    const encodedName = encodeURIComponent(trimmedName)
-    response = await fetch(`${BASE_URL}/cards/named?exact=${encodedName}`, {
-      signal,
-    })
-  } catch (error) {
-    if (signal?.aborted) {
-      throw error
-    }
-
-    throw new Error('Unable to reach Scryfall. Please try again.')
-  }
-
-  if (response.status === 404) {
-    return null
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      `Scryfall card lookup failed (${response.status} ${response.statusText}).`,
-    )
-  }
-
-  return await response.json()
-}
-
+/**
+ * Resolves normalized names through Scryfall's collection endpoint. Importing
+ * a Commander deck therefore needs two requests instead of roughly one hundred.
+ */
 export async function getCardsByExactNames(
   names: string[],
   signal?: AbortSignal,
 ): Promise<ScryfallCard[]> {
-  const uniqueNames = Array.from(
-    new Map(
-      names
-        .map((name) => name.trim())
-        .filter(Boolean)
-        .map((name) => [name.toLowerCase(), name]),
-    ).values(),
-  )
+  const uniqueNames = getUniqueCardNames(names)
   const cards: ScryfallCard[] = []
 
   // Scryfall accepts at most 75 identifiers in one collection request.
-  for (let index = 0; index < uniqueNames.length; index += 75) {
-    const batch = uniqueNames.slice(index, index + 75)
+  for (
+    let index = 0;
+    index < uniqueNames.length;
+    index += COLLECTION_BATCH_SIZE
+  ) {
+    const batch = uniqueNames.slice(index, index + COLLECTION_BATCH_SIZE)
     await waitForLookupTurn(signal)
 
-    let response: Response
-
-    try {
-      response = await fetch(`${BASE_URL}/cards/collection`, {
+    const response = await fetchFromScryfall(
+      `${BASE_URL}/cards/collection`,
+      {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -119,19 +82,12 @@ export async function getCardsByExactNames(
           identifiers: batch.map((name) => ({ name })),
         }),
         signal,
-      })
-    } catch (error) {
-      if (signal?.aborted) {
-        throw error
-      }
-
-      throw new Error('Unable to reach Scryfall. Please try again.')
-    }
+      },
+      signal,
+    )
 
     if (!response.ok) {
-      throw new Error(
-        `Scryfall collection lookup failed (${response.status} ${response.statusText}).`,
-      )
+      throw createScryfallResponseError('collection lookup', response)
     }
 
     const result: ScryfallCollectionResponse = await response.json()
@@ -139,6 +95,23 @@ export async function getCardsByExactNames(
   }
 
   return cards
+}
+
+function getUniqueCardNames(names: string[]): string[] {
+  const namesByLowercaseValue = new Map<string, string>()
+
+  for (const name of names) {
+    const trimmedName = name.trim()
+    const lookupKey = trimmedName.toLowerCase()
+
+    // Preserve the first spelling for readable request debugging while using a
+    // case-insensitive key to avoid redundant identifiers.
+    if (trimmedName && !namesByLowercaseValue.has(lookupKey)) {
+      namesByLowercaseValue.set(lookupKey, trimmedName)
+    }
+  }
+
+  return Array.from(namesByLowercaseValue.values())
 }
 
 export async function isCommanderEligible(
@@ -161,6 +134,10 @@ export async function isCommanderEligible(
   }
 }
 
+/**
+ * Enforces the shared request cadence. The abort listener clears the pending
+ * timer so closing an import dialog does not leave background work behind.
+ */
 async function waitForLookupTurn(signal?: AbortSignal): Promise<void> {
   const elapsed = Date.now() - lastLookupStartedAt
   const delay = Math.max(0, LOOKUP_INTERVAL_MS - elapsed)
@@ -189,4 +166,37 @@ async function waitForLookupTurn(signal?: AbortSignal): Promise<void> {
   }
 
   lastLookupStartedAt = Date.now()
+}
+
+async function fetchFromScryfall(
+  url: string,
+  options: RequestInit,
+  signal?: AbortSignal,
+): Promise<Response> {
+  try {
+    return await fetch(url, options)
+  } catch (error) {
+    // AbortError is intentional lifecycle cleanup and must remain distinguishable
+    // from a real network outage to callers.
+    if (signal?.aborted) {
+      throw error
+    }
+
+    throw new Error('Unable to reach Scryfall. Please try again.')
+  }
+}
+
+function createScryfallResponseError(
+  operation: string,
+  response: Response,
+): Error {
+  if (response.status === 429) {
+    return new Error(
+      'Scryfall is temporarily rate-limiting requests. Please wait and try again.',
+    )
+  }
+
+  return new Error(
+    `Scryfall ${operation} failed (${response.status} ${response.statusText}).`,
+  )
 }

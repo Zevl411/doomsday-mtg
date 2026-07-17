@@ -104,10 +104,10 @@ describe('deck store', () => {
 
     expect(store.deck.cards[0]?.quantity).toBe(2)
 
-    store.increaseQuantity(0)
+    store.increaseBoardQuantity('island-oracle', 'mainboard')
     expect(store.deck.cards[0]?.quantity).toBe(3)
 
-    store.decreaseQuantity(0)
+    store.decreaseBoardQuantity('island-oracle', 'mainboard')
     expect(store.deck.cards[0]?.quantity).toBe(2)
   })
 
@@ -116,7 +116,7 @@ describe('deck store', () => {
     store.setCommander(commander)
     store.addCard(island)
 
-    store.decreaseQuantity(0)
+    store.decreaseBoardQuantity('island-oracle', 'mainboard')
 
     expect(store.deck.cards).toHaveLength(0)
   })
@@ -126,7 +126,7 @@ describe('deck store', () => {
     store.setCommander(commander)
     store.addCard(artifact)
 
-    store.removeCard(0)
+    store.removeCardFromBoard('artifact-oracle', 'mainboard')
 
     expect(store.deck.cards).toHaveLength(0)
   })

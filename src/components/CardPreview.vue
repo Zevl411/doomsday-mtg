@@ -10,12 +10,12 @@
 
     <template v-if="card">
       <v-img
-        v-if="getCardImage(card)"
+        v-if="getCardImage(card, 'large')"
         :alt="`${card.name} card art`"
         aspect-ratio="0.716"
         class="mx-5 mt-4 rounded-lg"
         cover
-        :src="getCardImage(card)"
+        :src="getCardImage(card, 'large')"
       />
 
       <v-card-title class="px-5 pt-5 text-wrap">
@@ -85,17 +85,14 @@
 
 <script setup lang="ts">
 import type { ScryfallCard } from '../types/card'
+import {
+  getCardImage,
+  getColorIdentityLabels,
+} from '../utils/cardDisplay'
 
 defineProps<{
   card: ScryfallCard | null
 }>()
 
-function getCardImage(card: ScryfallCard): string | undefined {
-  const images = card.image_uris ?? card.card_faces?.[0]?.image_uris
-  return images?.large ?? images?.normal ?? images?.small
-}
-
-function getColorIdentity(card: ScryfallCard): string[] {
-  return card.color_identity.length ? card.color_identity : ['Colorless']
-}
+const getColorIdentity = getColorIdentityLabels
 </script>

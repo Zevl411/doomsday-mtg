@@ -62,16 +62,12 @@
 import { computed } from 'vue'
 import CardSearch from './CardSearch.vue'
 import { useDeckStore } from '../stores/deck'
-import type { ScryfallCard } from '../types/card'
+import {
+  formatColorIdentity,
+  getCardImage,
+} from '../utils/cardDisplay'
 
 const deckStore = useDeckStore()
 const commander = computed(() => deckStore.deck.commander)
 
-function getCardImage(card: ScryfallCard): string | undefined {
-  return card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal
-}
-
-function formatColorIdentity(card: ScryfallCard): string {
-  return card.color_identity.join(', ') || 'Colorless'
-}
 </script>

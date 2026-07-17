@@ -27,6 +27,12 @@ interface CombinedCard {
   firstLine: ParsedDeckLine
 }
 
+/**
+ * Builds a complete candidate Deck without mutating the active Pinia store.
+ *
+ * Pipeline: parse -> batch resolve -> choose Commander -> group each board ->
+ * validate only the mainboard -> return a reviewable result.
+ */
 export async function prepareDeckImport(
   text: string,
   currentDeck: Deck,
@@ -56,6 +62,8 @@ export async function prepareDeckImport(
     ).values(),
   )
 
+  // All tracked boards share one deduplicated lookup set. This both reduces API
+  // load and guarantees that the same name resolves consistently everywhere.
   const resolvedBatch = await getCardsByExactNames(lookupNames, signal)
   const resolvedCards = createResolvedCardMap(resolvedBatch)
   let commander = parsed.hasCommanderSection
@@ -150,6 +158,8 @@ export async function prepareDeckImport(
     considering: parsed.lines.filter((line) => line.section === 'considering'),
   }
 
+  // Object.keys() returns string[] in TypeScript. The assertion is safe because
+  // boardLines was created immediately above with every ImportCardBoard key.
   for (const board of Object.keys(boardLines) as ImportCardBoard[]) {
     const combinedCards = combineBoardCards(
       boardLines[board],

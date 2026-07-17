@@ -65,7 +65,7 @@ import CommanderPanel from '../components/CommanderPanel.vue'
 import DeckImportExport from '../components/DeckImportExport.vue'
 import DeckPanel from '../components/DeckPanel.vue'
 import { useDeckStore } from '../stores/deck'
-import type { TrackedCardBoard } from '../stores/deck'
+import type { TrackedDeckBoard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 
 const deckStore = useDeckStore()
@@ -74,7 +74,7 @@ const pendingIllegalReason = ref('')
 const showIllegalCardDialog = ref(false)
 const validationCanBeOverridden = ref(false)
 
-function addDeckCard(card: ScryfallCard, board: TrackedCardBoard) {
+function addDeckCard(card: ScryfallCard, board: TrackedDeckBoard) {
   const result = deckStore.addCardToBoard(card, board)
 
   if (!result.allowed) {

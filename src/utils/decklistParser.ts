@@ -52,6 +52,8 @@ export function parseDecklist(
   text: string,
   selectedFormat?: DecklistFormat,
 ): ParsedDecklist {
+  // Parsing is deliberately synchronous and network-free. The service layer
+  // resolves these normalized names only after the entire text is understood.
   const originalLines = text.split(/\r?\n/)
   const format = selectedFormat ?? detectDecklistFormat(text)
   const lines: ParsedDeckLine[] = []
@@ -70,6 +72,8 @@ export function parseDecklist(
       return
     }
 
+    // Whole-line heading detection happens before card parsing so decoration
+    // such as `~~Mainboard~~` can never leak into a Scryfall request.
     const recognizedSection = getDecklistBoardHeading(input)
 
     if (recognizedSection) {

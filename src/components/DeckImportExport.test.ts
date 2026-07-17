@@ -56,7 +56,7 @@ describe('DeckImportExport', () => {
     await findButton(wrapper, 'Import Decklist')?.trigger('click')
 
     expect(wrapper.text()).toContain('Plaintext decklist')
-    expect(wrapper.text()).toContain('replaces the current main deck')
+    expect(wrapper.text()).toContain('replaces every tracked board')
     wrapper.unmount()
   })
 

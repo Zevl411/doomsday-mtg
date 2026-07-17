@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
-import type { Deck, DeckCard } from '../models/deck'
+import {
+  getDeckBoardEntries,
+  type Deck,
+  type DeckCard,
+  type TrackedDeckBoard,
+} from '../models/deck'
 import type { ScryfallCard } from '../types/card'
-import type { DeckBoard } from '../types/deckImport'
 import type { DeckLegalityResult } from '../utils/deckLegality'
 import { getCardIdentity } from '../utils/cardIdentity'
 import {
@@ -38,6 +42,7 @@ export const useDeckStore = defineStore('deck', {
 
   // Actions are the store's named methods for changing its state.
   actions: {
+    // Commander actions remain separate because the Commander is not a board.
     setCommander(card: ScryfallCard) {
       this.deck.commander = card
       this.saveSucceeded = saveDeck(this.deck)
@@ -83,7 +88,7 @@ export const useDeckStore = defineStore('deck', {
 
     addCardToBoard(
       card: ScryfallCard,
-      board: TrackedCardBoard,
+      board: TrackedDeckBoard,
       quantity = 1,
       allowColorIdentityViolation = false,
     ): DeckLegalityResult {
@@ -108,7 +113,7 @@ export const useDeckStore = defineStore('deck', {
         return result
       }
 
-      const entries = getBoardEntries(this.deck, board)
+      const entries = getDeckBoardEntries(this.deck, board)
       const existing = findBoardEntry(entries, card)
 
       if (existing) {
@@ -122,17 +127,25 @@ export const useDeckStore = defineStore('deck', {
       return { allowed: true }
     },
 
-    removeCardFromBoard(identity: string, board: TrackedCardBoard) {
-      const key = getDeckBoardKey(board)
-      this.deck[key] = this.deck[key].filter(
+    removeCardFromBoard(identity: string, board: TrackedDeckBoard) {
+      const entries = getDeckBoardEntries(this.deck, board)
+      const remainingEntries = entries.filter(
         (entry) => getCardIdentity(entry.card) !== identity,
       )
+
+      // Assigning the correct property keeps Pinia reactivity explicit.
+      if (board === 'mainboard') {
+        this.deck.cards = remainingEntries
+      } else {
+        this.deck[board] = remainingEntries
+      }
+
       this.rejectionMessage = ''
       this.saveSucceeded = saveDeck(this.deck)
     },
 
-    increaseBoardQuantity(identity: string, board: TrackedCardBoard) {
-      const entry = getBoardEntries(this.deck, board).find(
+    increaseBoardQuantity(identity: string, board: TrackedDeckBoard) {
+      const entry = getDeckBoardEntries(this.deck, board).find(
         (item) => getCardIdentity(item.card) === identity,
       )
 
@@ -144,8 +157,8 @@ export const useDeckStore = defineStore('deck', {
       this.saveSucceeded = saveDeck(this.deck)
     },
 
-    decreaseBoardQuantity(identity: string, board: TrackedCardBoard) {
-      const entry = getBoardEntries(this.deck, board).find(
+    decreaseBoardQuantity(identity: string, board: TrackedDeckBoard) {
+      const entry = getDeckBoardEntries(this.deck, board).find(
         (item) => getCardIdentity(item.card) === identity,
       )
 
@@ -164,10 +177,10 @@ export const useDeckStore = defineStore('deck', {
 
     moveCardBetweenBoards(
       identity: string,
-      fromBoard: TrackedCardBoard,
-      toBoard: TrackedCardBoard,
+      fromBoard: TrackedDeckBoard,
+      toBoard: TrackedDeckBoard,
     ): DeckLegalityResult {
-      const sourceEntry = getBoardEntries(this.deck, fromBoard).find(
+      const sourceEntry = getDeckBoardEntries(this.deck, fromBoard).find(
         (entry) => getCardIdentity(entry.card) === identity,
       )
 
@@ -193,7 +206,7 @@ export const useDeckStore = defineStore('deck', {
         }
       }
 
-      const destination = getBoardEntries(this.deck, toBoard)
+      const destination = getDeckBoardEntries(this.deck, toBoard)
       const existing = findBoardEntry(destination, sourceEntry.card)
 
       if (existing) {
@@ -204,43 +217,6 @@ export const useDeckStore = defineStore('deck', {
 
       this.removeCardFromBoard(identity, fromBoard)
       return { allowed: true }
-    },
-
-    removeCard(index: number) {
-      this.deck.cards = this.deck.cards.filter(
-        (_card, cardIndex) => cardIndex !== index,
-      )
-      this.rejectionMessage = ''
-      this.saveSucceeded = saveDeck(this.deck)
-    },
-
-    increaseQuantity(index: number) {
-      const deckCard = this.deck.cards[index]
-
-      if (!deckCard || !isBasicLand(deckCard.card)) {
-        return
-      }
-
-      deckCard.quantity += 1
-      this.rejectionMessage = ''
-      this.saveSucceeded = saveDeck(this.deck)
-    },
-
-    decreaseQuantity(index: number) {
-      const deckCard = this.deck.cards[index]
-
-      if (!deckCard) {
-        return
-      }
-
-      if (deckCard.quantity <= 1) {
-        this.removeCard(index)
-        return
-      }
-
-      deckCard.quantity -= 1
-      this.rejectionMessage = ''
-      this.saveSucceeded = saveDeck(this.deck)
     },
 
     removeIllegalCards() {
@@ -274,24 +250,6 @@ export const useDeckStore = defineStore('deck', {
     },
   },
 })
-
-export type TrackedCardBoard = Extract<
-  DeckBoard,
-  'mainboard' | 'sideboard' | 'maybeboard' | 'considering'
->
-
-function getDeckBoardKey(
-  board: TrackedCardBoard,
-): 'cards' | 'sideboard' | 'maybeboard' | 'considering' {
-  return board === 'mainboard' ? 'cards' : board
-}
-
-function getBoardEntries(
-  deck: Deck,
-  board: TrackedCardBoard,
-): DeckCard[] {
-  return deck[getDeckBoardKey(board)]
-}
 
 function findBoardEntry(
   entries: DeckCard[],

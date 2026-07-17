@@ -76,6 +76,10 @@ export function saveDeck(deck: Deck): boolean {
   }
 }
 
+/**
+ * Treats browser storage as untrusted input and performs the old-to-new board
+ * migration only after every present value passes runtime validation.
+ */
 export function loadDeck(): Deck | null {
   try {
     const savedText = localStorage.getItem(DECK_STORAGE_KEY)

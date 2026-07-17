@@ -242,11 +242,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import CardSearch from './CardSearch.vue'
-import type { Deck, DeckCard } from '../models/deck'
 import {
-  useDeckStore,
-  type TrackedCardBoard,
-} from '../stores/deck'
+  getDeckBoardEntries,
+  type Deck,
+  type DeckCard,
+  type TrackedDeckBoard,
+} from '../models/deck'
+import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 import { getCardIdentity } from '../utils/cardIdentity'
 import {
@@ -259,10 +261,10 @@ import {
 } from '../utils/deckValidation'
 
 const emit = defineEmits<{
-  'card-selected': [card: ScryfallCard, board: TrackedCardBoard]
+  'card-selected': [card: ScryfallCard, board: TrackedDeckBoard]
 }>()
 
-const boardOptions: Array<{ title: string; value: TrackedCardBoard }> = [
+const boardOptions: Array<{ title: string; value: TrackedDeckBoard }> = [
   { title: 'Mainboard', value: 'mainboard' },
   { title: 'Sideboard', value: 'sideboard' },
   { title: 'Maybeboard', value: 'maybeboard' },
@@ -271,8 +273,8 @@ const boardOptions: Array<{ title: string; value: TrackedCardBoard }> = [
 
 const deckStore = useDeckStore()
 const deck = computed<Deck>(() => deckStore.deck)
-const selectedBoard = ref<TrackedCardBoard>('mainboard')
-const searchDestination = ref<TrackedCardBoard>('mainboard')
+const selectedBoard = ref<TrackedDeckBoard>('mainboard')
+const searchDestination = ref<TrackedDeckBoard>('mainboard')
 const showResetDialog = ref(false)
 const limitToCommanderColors = ref(true)
 const mainDeckCardCount = computed(() => getMainDeckCardCount(deckStore.deck))
@@ -310,13 +312,11 @@ const progressValue = computed(() =>
   ),
 )
 
-function getBoardCards(board: TrackedCardBoard): DeckCard[] {
-  return board === 'mainboard'
-    ? deckStore.deck.cards
-    : deckStore.deck[board]
+function getBoardCards(board: TrackedDeckBoard): DeckCard[] {
+  return getDeckBoardEntries(deckStore.deck, board)
 }
 
-function getBoardCount(board: TrackedCardBoard): number {
+function getBoardCount(board: TrackedDeckBoard): number {
   return getBoardCards(board).reduce(
     (total, entry) => total + entry.quantity,
     0,
@@ -327,7 +327,7 @@ function isColorIdentityViolation(deckCard: DeckCard): boolean {
   return colorIdentityViolations.value.includes(deckCard)
 }
 
-function moveCard(identity: string, destination: TrackedCardBoard | null) {
+function moveCard(identity: string, destination: TrackedDeckBoard | null) {
   if (destination) {
     deckStore.moveCardBetweenBoards(
       identity,

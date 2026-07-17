@@ -68,8 +68,9 @@ when the list resembles a Commander deck and Scryfall confirms that its first
 card is Commander-eligible. Otherwise the current Commander is retained or the
 preview asks for a Commander.
 
-Import replaces the current deck only after confirmation. Partner Commanders
-and file-based import/export are not supported yet.
+Clean imports replace the current deck immediately after processing. Imports
+with errors remain open for an explicit proceed-or-cancel decision. Partner
+Commanders and file-based import/export are not supported yet.
 
 Future EDHTop16 tournament JSON will use a dedicated structured-data adapter
 that normalizes into the same Deck model; EDHTop16 is intentionally not a
@@ -180,6 +181,13 @@ Frontend
 - TypeScript
 - Vite
 - Vue Router
+- Vuetify
+- Pinia
+- Vitest
+
+For module boundaries, state ownership, the import pipeline, persistence
+migration, and testing conventions, see
+[Architecture](docs/ARCHITECTURE.md).
 
 Available routes:
 
@@ -252,10 +260,10 @@ Data Sources
 - [x] Commander selection
 - [x] Card search
 - [x] Add/remove cards
-- [ ] Commander legality filtering
+- [x] Commander legality filtering
 - [ ] Deck statistics
-- [ ] Import/Export decklists
-- [ ] Save decks locally
+- [x] Import/Export decklists
+- [x] Save decks locally
 
 ---
 

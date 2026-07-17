@@ -21,9 +21,9 @@
       <v-card-title class="px-5 pt-5">Import Decklist</v-card-title>
       <v-card-text class="px-5">
         <v-alert density="compact" type="warning" variant="tonal">
-          A confirmed import replaces the current main deck and replaces the
-          Commander when the decklist contains a Commander section. The new
-          deck will become the locally saved deck.
+          Import replaces every tracked board and replaces the Commander when
+          the decklist contains a Commander section. Clean imports complete
+          immediately; imports with errors ask before proceeding.
         </v-alert>
 
         <v-textarea
@@ -59,6 +59,7 @@
           {{ importError }}
         </v-alert>
 
+        <!-- A prepared import remains visible only when user review is needed. -->
         <template v-if="preparedImport">
           <v-alert
             class="mt-4"
@@ -150,7 +151,6 @@
               Line {{ item.lineNumber }}: {{ item.input }}
             </div>
           </v-alert>
-
         </template>
       </v-card-text>
       <v-card-actions class="px-5 pb-5">
@@ -227,6 +227,8 @@ import { getDecklistFormatLabel } from '../utils/decklistFormat'
 import { formatDecklist } from '../utils/decklistFormatter'
 
 const deckStore = useDeckStore()
+// Import and export dialogs intentionally own only temporary workflow state.
+// The confirmed Deck itself always belongs to Pinia.
 const showImportDialog = ref(false)
 const showExportDialog = ref(false)
 const importText = ref('')
@@ -349,6 +351,8 @@ async function processImport() {
       selectedFormat.value === 'auto' ? undefined : selectedFormat.value,
     )
 
+    // Clean imports need no second click. A lossy or ambiguous import remains
+    // visible so the user can inspect exactly what would be replaced.
     if (hasImportErrors(prepared)) {
       preparedImport.value = prepared
     } else {
