@@ -138,6 +138,15 @@ Frontend
 - Vue 3
 - TypeScript
 - Vite
+- Vue Router
+
+Available routes:
+
+- `#/` — Home
+- `#/deck-builder` — Deck Builder
+
+Hash-based routing is used so direct links and page refreshes work when the
+application is deployed to GitHub Pages.
 
 Planned Backend
 
