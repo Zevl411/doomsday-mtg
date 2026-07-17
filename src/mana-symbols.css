@@ -1,0 +1,92 @@
+/*
+ * Minimal local subset of mana-font.
+ *
+ * The upstream package contains hundreds of symbols, multiple legacy font
+ * formats, and an additional text font. DoomsdayMTG currently needs only the
+ * five colors and colorless, so loading one WOFF2 keeps the production bundle
+ * substantially smaller. Glyph code points and cost colors come from
+ * mana-font's MIT-licensed CSS.
+ */
+@font-face {
+  font-family: "Mana";
+  src: url("../node_modules/mana-font/fonts/mana.woff2") format("woff2");
+  font-style: normal;
+  font-weight: normal;
+  font-display: block;
+}
+
+.ms {
+  display: inline-block;
+  font-family: "Mana", sans-serif;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  text-align: center;
+  text-rendering: auto;
+  vertical-align: middle;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ms-w::before {
+  content: "\e600";
+}
+
+.ms-u::before {
+  content: "\e601";
+}
+
+.ms-b::before {
+  content: "\e602";
+}
+
+.ms-r::before {
+  content: "\e603";
+}
+
+.ms-g::before {
+  content: "\e604";
+}
+
+.ms-c::before {
+  content: "\e904";
+}
+
+.ms-cost {
+  /* Flex centers the glyph box; the font's baseline alone sits visibly high. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 50%;
+  background-color: #beb9b2;
+  color: #111;
+  font-size: 0.95em;
+  line-height: 1;
+}
+
+.ms-cost::before {
+  /* Mana's glyph bounds are top-heavy, so this is optical centering. */
+  transform: translateY(0.055em);
+}
+
+.ms-cost.ms-w {
+  background-color: #f0f2c0;
+}
+
+.ms-cost.ms-u {
+  background-color: #b5cde3;
+}
+
+.ms-cost.ms-b {
+  background-color: #aca29a;
+}
+
+.ms-cost.ms-r {
+  background-color: #db8664;
+}
+
+.ms-cost.ms-g {
+  background-color: #93b483;
+}

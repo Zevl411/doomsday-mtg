@@ -39,7 +39,11 @@
         {{ commander.type_line }}
       </v-card-subtitle>
       <v-card-text class="px-5 pb-2 text-medium-emphasis">
-        Color identity: {{ formatColorIdentity(commander) }}
+        <span class="mr-2">Color identity:</span>
+        <ColorIdentitySymbols
+          :colors="commander.color_identity"
+          size="medium"
+        />
       </v-card-text>
       <v-card-actions class="px-5 pb-5">
         <v-btn
@@ -61,11 +65,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import CardSearch from './CardSearch.vue'
+import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
 import { useDeckStore } from '../stores/deck'
-import {
-  formatColorIdentity,
-  getCardImage,
-} from '../utils/cardDisplay'
+import { getCardImage } from '../utils/cardDisplay'
 
 const deckStore = useDeckStore()
 const commander = computed(() => deckStore.deck.commander)

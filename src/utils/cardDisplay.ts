@@ -29,13 +29,3 @@ export function getCardImage(
     images.large
   )
 }
-
-/** Produces one consistent, human-readable color identity label. */
-export function formatColorIdentity(card: ScryfallCard): string {
-  return card.color_identity.join(', ') || 'Colorless'
-}
-
-/** Chips need an array even for a colorless card, so provide a display value. */
-export function getColorIdentityLabels(card: ScryfallCard): string[] {
-  return card.color_identity.length ? card.color_identity : ['Colorless']
-}

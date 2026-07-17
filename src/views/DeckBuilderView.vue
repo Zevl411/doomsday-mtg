@@ -12,7 +12,7 @@
       <DeckPanel @card-selected="addDeckCard" />
     </v-col>
 
-    <v-col cols="12" lg="4">
+    <v-col class="preview-column" cols="12" lg="4">
       <CardPreview :card="deckStore.previewCard" />
     </v-col>
   </v-row>

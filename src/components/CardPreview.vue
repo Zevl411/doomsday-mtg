@@ -1,7 +1,7 @@
 <template>
   <v-card
     border
-    class="preview-panel h-100"
+    class="preview-panel"
     color="surface"
     rounded="lg"
     variant="flat"
@@ -62,17 +62,7 @@
 
         <div class="mt-4">
           <p class="mb-2 text-caption text-medium-emphasis">Color identity</p>
-          <div class="d-flex flex-wrap ga-2">
-            <v-chip
-              v-for="color in getColorIdentity(card)"
-              :key="color"
-              color="secondary"
-              size="small"
-              variant="tonal"
-            >
-              {{ color }}
-            </v-chip>
-          </div>
+          <ColorIdentitySymbols :colors="card.color_identity" size="large" />
         </div>
       </v-card-text>
     </template>
@@ -85,14 +75,11 @@
 
 <script setup lang="ts">
 import type { ScryfallCard } from '../types/card'
-import {
-  getCardImage,
-  getColorIdentityLabels,
-} from '../utils/cardDisplay'
+import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
+import { getCardImage } from '../utils/cardDisplay'
 
 defineProps<{
   card: ScryfallCard | null
 }>()
 
-const getColorIdentity = getColorIdentityLabels
 </script>

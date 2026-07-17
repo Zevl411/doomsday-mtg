@@ -206,10 +206,26 @@ function createResolvedCardMap(
   const resolvedCards = new Map<string, ScryfallCard>()
 
   for (const card of cards) {
-    resolvedCards.set(card.name.trim().toLowerCase(), card)
-    const frontFaceName = card.name.split('//')[0]?.trim().toLowerCase()
+    const aliases = [
+      card.name,
+      card.flavor_name,
+      card.printed_name,
+      ...(card.card_faces?.flatMap((face) => [
+        face.name,
+        face.printed_name,
+      ]) ?? []),
+    ]
+
+    for (const alias of aliases) {
+      if (alias) {
+        resolvedCards.set(normalizeResolvedName(alias), card)
+      }
+    }
+
+    // A front-face-only input should resolve to the complete card object.
+    const frontFaceName = card.name.split('//')[0]
     if (frontFaceName) {
-      resolvedCards.set(frontFaceName, card)
+      resolvedCards.set(normalizeResolvedName(frontFaceName), card)
     }
   }
 
@@ -220,7 +236,14 @@ function getResolvedCard(
   line: ParsedDeckLine,
   cards: Map<string, ScryfallCard>,
 ): ScryfallCard | null {
-  return cards.get(line.cardName.trim().toLowerCase()) ?? null
+  return cards.get(normalizeResolvedName(line.cardName)) ?? null
+}
+
+function normalizeResolvedName(name: string): string {
+  return name
+    .replace(/\s*\/{1,2}\s*/g, ' // ')
+    .trim()
+    .toLowerCase()
 }
 
 function combineBoardCards(

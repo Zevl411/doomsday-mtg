@@ -30,6 +30,10 @@ Vue route-level view
 `App.vue` only provides the shared layout and `RouterView`. Page composition
 belongs in `src/views`; reusable interface pieces belong in `src/components`.
 
+Mana and color-identity symbols are local font glyphs from `mana-font`, wrapped
+by `ManaSymbol.vue` and `ColorIdentitySymbols.vue`. Feature templates should
+use those Vue components instead of remote symbol images or raw font classes.
+
 ## Deck ownership
 
 `src/models/deck.ts` defines the application-owned `Deck` and `DeckCard`
@@ -73,6 +77,13 @@ but are not stored yet.
 rate pacing, and network error messages. Regular search uses Scryfall search.
 Deck import uses the collection endpoint in groups of at most 75 normalized
 names to avoid per-card traffic and HTTP 429 responses.
+
+The collection endpoint is the primary resolver. Modal double-faced entries use
+their front face as the collection identifier. Names the batch cannot resolve
+receive a paced exact-name fallback, which covers Scryfall flavor-name variants
+without turning every import back into one request per card. Returned canonical,
+flavor, printed, and face names all map to the same `ScryfallCard` and stable
+oracle identity.
 
 ## Import pipeline
 

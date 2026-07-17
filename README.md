@@ -56,6 +56,11 @@ are supported through automatic detection or a manual format choice.
 headings are recognized case-insensitively, including decorative forms such as
 `~~Commanders~~`, `**Mainboard**`, and `-- Sideboard --`. Arena, Moxfield, and
 Archidekt printing annotations such as `(ONE) 196` are removed before lookup.
+Single- and double-slash face separators are normalized, so both
+`Sink into Stupor / Soporific Springs` and
+`Sink into Stupor // Soporific Springs` resolve consistently. Scryfall flavor
+names such as `Hope's Aero Magic` are mapped back to their canonical card
+(`Cyclonic Rift`) before legality and singleton checks.
 
 The deck stores mainboard, sideboard, maybeboard, and considering cards.
 Auxiliary boards are preserved through local storage, editing, import, and
@@ -184,6 +189,7 @@ Frontend
 - Vuetify
 - Pinia
 - Vitest
+- Mana font, exposed through local Vue mana-symbol components
 
 For module boundaries, state ownership, the import pipeline, persistence
 migration, and testing conventions, see

@@ -69,13 +69,19 @@ body {
   );
 }
 
-.preview-panel {
+/*
+ * The column, rather than the card inside it, must be sticky. The column's
+ * containing row grows with the taller deck panel and therefore provides the
+ * vertical space through which the preview can follow desktop scrolling.
+ */
+.preview-column {
   position: sticky;
   top: 100px;
+  align-self: flex-start;
 }
 
 @media (max-width: 1279px) {
-  .preview-panel {
+  .preview-column {
     position: static;
   }
 }

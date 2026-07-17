@@ -14,6 +14,7 @@ interface ScryfallSearchResponse {
 
 interface ScryfallCollectionResponse {
   data: ScryfallCard[]
+  not_found?: Array<{ name?: string }>
 }
 
 // `async` functions return a Promise. The type inside Promise describes the
@@ -68,6 +69,9 @@ export async function getCardsByExactNames(
     index += COLLECTION_BATCH_SIZE
   ) {
     const batch = uniqueNames.slice(index, index + COLLECTION_BATCH_SIZE)
+    const collectionNames = Array.from(
+      new Set(batch.map(getCollectionLookupName)),
+    )
     await waitForLookupTurn(signal)
 
     const response = await fetchFromScryfall(
@@ -79,7 +83,7 @@ export async function getCardsByExactNames(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          identifiers: batch.map((name) => ({ name })),
+          identifiers: collectionNames.map((name) => ({ name })),
         }),
         signal,
       },
@@ -92,9 +96,78 @@ export async function getCardsByExactNames(
 
     const result: ScryfallCollectionResponse = await response.json()
     cards.push(...result.data)
+
+    // The collection endpoint does not resolve flavor names and may not accept
+    // a full modal double-faced name. Retry only genuinely unresolved original
+    // names through the exact-name endpoint instead of reverting the whole
+    // import to one request per card.
+    const unresolvedNames = batch.filter((originalName) => {
+      const lookupName = getCollectionLookupName(originalName)
+      return !result.data.some((card) =>
+        getCardLookupNames(card).has(lookupName.toLowerCase()),
+      )
+    })
+
+    for (const unresolvedName of unresolvedNames) {
+      const fallbackCard = await getCardByExactName(unresolvedName, signal)
+      if (fallbackCard) {
+        cards.push(fallbackCard)
+      }
+    }
   }
 
   return cards
+}
+
+function getCollectionLookupName(name: string): string {
+  // Scryfall collection identifiers reliably accept the front face even when
+  // a source export supplied the complete modal double-faced name.
+  return name.split('//')[0]?.trim() ?? name
+}
+
+function getCardLookupNames(card: ScryfallCard): Set<string> {
+  const names = [
+    card.name,
+    card.flavor_name,
+    card.printed_name,
+    ...(card.card_faces?.flatMap((face) => [
+      face.name,
+      face.printed_name,
+    ]) ?? []),
+    card.name.split('//')[0],
+  ]
+
+  return new Set(
+    names
+      .filter((name): name is string => Boolean(name))
+      .map((name) => name.trim().toLowerCase()),
+  )
+}
+
+async function getCardByExactName(
+  name: string,
+  signal?: AbortSignal,
+): Promise<ScryfallCard | null> {
+  await waitForLookupTurn(signal)
+  const encodedName = encodeURIComponent(name.trim())
+  const response = await fetchFromScryfall(
+    `${BASE_URL}/cards/named?exact=${encodedName}`,
+    {
+      headers: { Accept: 'application/json' },
+      signal,
+    },
+    signal,
+  )
+
+  if (response.status === 404) {
+    return null
+  }
+
+  if (!response.ok) {
+    throw createScryfallResponseError('exact-name lookup', response)
+  }
+
+  return await response.json()
 }
 
 function getUniqueCardNames(names: string[]): string[] {

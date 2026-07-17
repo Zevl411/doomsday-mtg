@@ -64,7 +64,8 @@
         </v-list-item-title>
         <v-list-item-subtitle>{{ card.type_line }}</v-list-item-subtitle>
         <v-list-item-subtitle>
-          Color identity: {{ formatColorIdentity(card) }}
+          <span class="mr-2">Color identity:</span>
+          <ColorIdentitySymbols :colors="card.color_identity" size="small" />
         </v-list-item-subtitle>
       </v-list-item>
     </v-list>
@@ -75,10 +76,8 @@
 import { computed, onUnmounted, ref, useId, watch } from 'vue'
 import { searchCards } from '../api/scryfall'
 import type { ScryfallCard } from '../types/card'
-import {
-  formatColorIdentity,
-  getCardImage,
-} from '../utils/cardDisplay'
+import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
+import { getCardImage } from '../utils/cardDisplay'
 
 // Props are values a parent component can pass into this component.
 const props = withDefaults(

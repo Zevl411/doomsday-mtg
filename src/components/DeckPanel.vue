@@ -282,9 +282,14 @@ const deckSizeStatus = computed(() => getDeckSizeStatus(deckStore.deck))
 const colorIdentityViolations = computed(() =>
   getColorIdentityViolations(deckStore.deck),
 )
-const selectedBoardCards = computed(() =>
-  getBoardCards(selectedBoard.value),
-)
+const selectedBoardCards = computed(() => {
+  // Sort a copy so canonical names determine display order without mutating
+  // Pinia. This matters when an imported flavor name such as Hope's Aero Magic
+  // resolves to the canonical card name Cyclonic Rift.
+  return [...getBoardCards(selectedBoard.value)].sort((first, second) =>
+    first.card.name.localeCompare(second.card.name),
+  )
+})
 const selectedDestinationCards = computed(() =>
   getBoardCards(searchDestination.value),
 )

@@ -8,6 +8,8 @@ export interface ScryfallImageUris {
 
 export interface ScryfallCardFace {
   name: string
+  // Localized printings may expose the printed face name separately.
+  printed_name?: string
   mana_cost?: string
   type_line: string
 
@@ -22,6 +24,10 @@ export interface ScryfallCard {
   id: string
   oracle_id?: string
   name: string
+  // Secret Lair reskins can display a flavor name while retaining the
+  // canonical rules name, such as Hope's Aero Magic / Cyclonic Rift.
+  flavor_name?: string
+  printed_name?: string
   type_line: string
   color_identity: string[]
 

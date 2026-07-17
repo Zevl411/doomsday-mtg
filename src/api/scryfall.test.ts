@@ -65,4 +65,67 @@ describe('Scryfall client', () => {
       'Unable to reach Scryfall',
     )
   })
+
+  it('falls back to exact-name lookup for a flavor name', async () => {
+    const flavorPrinting = {
+      ...solRing,
+      name: 'Cyclonic Rift',
+      flavor_name: "Hope's Aero Magic",
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          data: [],
+          not_found: [{ name: "Hope's Aero Magic" }],
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => flavorPrinting,
+      } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    const cards = await getCardsByExactNames(["Hope's Aero Magic"])
+
+    expect(cards).toEqual([flavorPrinting])
+    const fallbackUrl = new URL(String(fetchMock.mock.calls[1]?.[0]))
+    expect(fallbackUrl.pathname).toBe('/cards/named')
+    expect(fallbackUrl.searchParams.get('exact')).toBe("Hope's Aero Magic")
+  })
+
+  it('uses the front face for collection lookup', async () => {
+    const modalCard: ScryfallCard = {
+      id: 'modal-card',
+      name: 'Sink into Stupor // Soporific Springs',
+      type_line: 'Instant // Land',
+      color_identity: ['U'],
+      card_faces: [
+        { name: 'Sink into Stupor', type_line: 'Instant' },
+        { name: 'Soporific Springs', type_line: 'Land' },
+      ],
+    }
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ data: [modalCard] }),
+    } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await getCardsByExactNames([
+      'Sink into Stupor // Soporific Springs',
+    ])
+
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit
+    expect(JSON.parse(String(request.body))).toEqual({
+      identifiers: [{ name: 'Sink into Stupor' }],
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 })

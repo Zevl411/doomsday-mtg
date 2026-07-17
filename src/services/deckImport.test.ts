@@ -61,7 +61,11 @@ function mockCards(cards: ScryfallCard[]) {
   vi.mocked(getCardsByExactNames).mockImplementation(async (names) => {
     return cards.filter((card) =>
       names.some(
-        (name) => card.name.toLowerCase() === name.trim().toLowerCase(),
+        (name) =>
+          [card.name, card.flavor_name, card.printed_name].some(
+            (cardName) =>
+              cardName?.toLowerCase() === name.trim().toLowerCase(),
+          ),
       ),
     )
   })
@@ -237,6 +241,26 @@ describe('prepareDeckImport', () => {
       ['Sol Ring'],
       undefined,
     )
+  })
+
+  it('maps a flavor-name variant to its canonical card', async () => {
+    const cyclonicRift = {
+      ...solRing,
+      id: 'cyclonic-rift-printing',
+      oracle_id: 'cyclonic-rift-oracle',
+      name: 'Cyclonic Rift',
+      flavor_name: "Hope's Aero Magic",
+      color_identity: ['U'],
+    }
+    mockCards([cyclonicRift])
+
+    const prepared = await prepareDeckImport(
+      "Mainboard\n1 Hope's Aero Magic",
+      currentDeck,
+    )
+
+    expect(prepared.deck.cards[0]?.card.name).toBe('Cyclonic Rift')
+    expect(prepared.result.issues).toHaveLength(0)
   })
 
   it('reports mainboard cards clearly when no Commander is available', async () => {

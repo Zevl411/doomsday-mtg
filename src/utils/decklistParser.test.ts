@@ -55,6 +55,18 @@ describe('parseDecklist', () => {
     ])
   })
 
+  it.each([
+    '1 Sink into Stupor / Soporific Springs',
+    '1 Sink into Stupor//Soporific Springs',
+    '1 Sink into Stupor // Soporific Springs',
+  ])('normalizes face separator in %s', (input) => {
+    const parsed = parseDecklist(input)
+
+    expect(parsed.lines[0]?.cardName).toBe(
+      'Sink into Stupor // Soporific Springs',
+    )
+  })
+
   it('preserves repeated lines and original line numbers', () => {
     const parsed = parseDecklist('1 Island\n\n2 Island')
 

@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import 'vuetify/styles'
+// Only the WUBRGC glyph subset is loaded; templates use Vue components.
+import './mana-symbols.css'
 import './style.css'
 import App from './App.vue'
 import vuetify from './plugins/vuetify'

@@ -232,6 +232,9 @@ function normalizeCardName(value: string): string {
   // both a set code and collector number preserves parentheses in card names.
   return value
     .replace(/\s+\([A-Z0-9]{2,6}\)\s+\S+(?:\s+\*[^*]+\*)?\s*$/, '')
+    // Exporters disagree between "Front / Back", "Front//Back", and
+    // Scryfall's canonical "Front // Back". Normalize all three spellings.
+    .replace(/\s*\/{1,2}\s*/g, ' // ')
     .trim()
 }
 

@@ -131,6 +131,38 @@ describe('DeckPanel', () => {
     wrapper.unmount()
   })
 
+  it('sorts displayed cards by canonical name without mutating the store', () => {
+    const store = useDeckStore()
+    const cyclonicRift = {
+      ...artifact,
+      id: 'cyclonic-rift',
+      oracle_id: 'cyclonic-rift-oracle',
+      name: 'Cyclonic Rift',
+      flavor_name: "Hope's Aero Magic",
+    }
+    const arcaneSignet = {
+      ...artifact,
+      id: 'arcane-signet',
+      oracle_id: 'arcane-signet-oracle',
+      name: 'Arcane Signet',
+    }
+    store.deck.cards = [
+      { card: cyclonicRift, quantity: 1 },
+      { card: arcaneSignet, quantity: 1 },
+    ]
+    const wrapper = mountPanel()
+    const text = wrapper.text()
+
+    expect(text.indexOf('Arcane Signet')).toBeLessThan(
+      text.indexOf('Cyclonic Rift'),
+    )
+    expect(store.deck.cards.map((entry) => entry.card.name)).toEqual([
+      'Cyclonic Rift',
+      'Arcane Signet',
+    ])
+    wrapper.unmount()
+  })
+
   it('defaults the search destination to the mainboard', () => {
     const wrapper = mountPanel()
 
