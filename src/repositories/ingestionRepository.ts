@@ -52,9 +52,26 @@ export interface IngestionDashboardMetrics {
   unknownLocationCount: number
   commanderFailureCount: number
   structuredDeckCount: number
+  plaintextDeckCount: number
+  urlOnlyDeckCount: number
+  unavailableSourceDeckCount: number
   possibleMatchCount: number
   linkedEventCount: number
+  normalizedDeckCount: number
+  completeDeckCount: number
+  partialDeckCount: number
+  deckCoverage: TournamentDeckCoverage[]
   recentTournaments: AdminTournamentSummary[]
+}
+
+export interface TournamentDeckCoverage {
+  dimension: string
+  groupKey: string
+  decks: number
+  complete: number
+  partial: number
+  unavailable: number
+  unresolvedCards: number
 }
 
 export type IngestionJobStatus =
@@ -83,6 +100,35 @@ export interface CreateIngestionJobOptions {
   minimumPlayers: number
   includeRounds: boolean
   enrichLocation: boolean
+}
+
+export interface TournamentDeckIngestionOptions {
+  provider?: 'topdeck' | 'edhtop16'
+  startDate?: string
+  endDate?: string
+  commanderKey?: string
+  tournamentIds?: string[]
+  onlyMissing: boolean
+  retryPartial: boolean
+  dryRun: boolean
+}
+
+export interface TournamentDeckIngestionReport {
+  entriesConsidered: number
+  decklistsAvailable: number
+  structuredDecksUsed: number
+  plaintextDecksUsed: number
+  externalUrlsFetched: number
+  decksCompleted: number
+  decksPartial: number
+  decksUnavailable: number
+  cardsResolved: number
+  cardsUnresolved: number
+  decksInserted: number
+  decksUpdated: number
+  decksUnchanged: number
+  errors: string[]
+  durationMs: number
 }
 
 /** Keeps Edge Function invocation and admin checks outside presentation code. */
@@ -144,6 +190,24 @@ export const ingestionRepository = {
     await invokeAuthenticatedFunction({ action, jobId })
   },
 
+  async ingestTournamentDecks(
+    options: TournamentDeckIngestionOptions,
+  ): Promise<TournamentDeckIngestionReport> {
+    if (!supabase) throw new Error('Supabase is not configured.')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    if (!token) throw new Error('Your session has expired. Sign in again.')
+    const { data, error } = await supabase.functions.invoke(
+      'ingest-tournament-decks',
+      {
+        body: options,
+        headers: createAuthorizationHeaders(token),
+      },
+    )
+    if (error) throw new Error(await getFunctionErrorMessage(error))
+    return data as TournamentDeckIngestionReport
+  },
+
   async getJobs(): Promise<IngestionJob[]> {
     if (!supabase) throw new Error('Supabase is not configured.')
     const { data, error } = await supabase
@@ -188,8 +252,15 @@ export const ingestionRepository = {
       locationResult,
       commanderFailuresResult,
       structuredDecksResult,
+      plaintextDecksResult,
+      urlDecksResult,
+      unavailableSourceDecksResult,
       possibleMatchesResult,
       linkedEventsResult,
+      normalizedDecksResult,
+      completeDecksResult,
+      partialDecksResult,
+      coverageResult,
     ] = await Promise.all([
       supabase.from('tournaments').select('*', { count: 'exact', head: true }),
       supabase
@@ -217,10 +288,25 @@ export const ingestionRepository = {
         .in('commander_extraction_status', ['missing', 'invalid']),
       supabase.from('tournament_entries').select('*', { count: 'exact', head: true })
         .eq('decklist_availability', 'structured'),
+      supabase.from('tournament_entries').select('*', { count: 'exact', head: true })
+        .eq('decklist_availability', 'plaintext'),
+      supabase.from('tournament_entries').select('*', { count: 'exact', head: true })
+        .eq('decklist_availability', 'url'),
+      supabase.from('tournament_entries').select('*', { count: 'exact', head: true })
+        .eq('decklist_availability', 'missing'),
       supabase.from('possible_tournament_matches')
         .select('*', { count: 'exact', head: true }),
       supabase.from('linked_tournament_events')
         .select('tournament_id', { count: 'exact', head: true }),
+      supabase.from('tournament_decks')
+        .select('*', { count: 'exact', head: true }),
+      supabase.from('tournament_decks')
+        .select('*', { count: 'exact', head: true })
+        .eq('parsing_status', 'complete'),
+      supabase.from('tournament_decks')
+        .select('*', { count: 'exact', head: true })
+        .eq('parsing_status', 'partial'),
+      supabase.rpc('get_tournament_deck_coverage'),
     ])
 
     const error =
@@ -233,8 +319,15 @@ export const ingestionRepository = {
       ?? locationResult.error
       ?? commanderFailuresResult.error
       ?? structuredDecksResult.error
+      ?? plaintextDecksResult.error
+      ?? urlDecksResult.error
+      ?? unavailableSourceDecksResult.error
       ?? possibleMatchesResult.error
       ?? linkedEventsResult.error
+      ?? normalizedDecksResult.error
+      ?? completeDecksResult.error
+      ?? partialDecksResult.error
+      ?? coverageResult.error
     if (error) {
       console.warn('Unable to load ingestion dashboard metrics.', error)
       throw new Error('Unable to load admin dashboard metrics.')
@@ -264,8 +357,24 @@ export const ingestionRepository = {
         (tournamentsResult.count ?? 0) - (locationResult.count ?? 0),
       commanderFailureCount: commanderFailuresResult.count ?? 0,
       structuredDeckCount: structuredDecksResult.count ?? 0,
+      plaintextDeckCount: plaintextDecksResult.count ?? 0,
+      urlOnlyDeckCount: urlDecksResult.count ?? 0,
+      unavailableSourceDeckCount: unavailableSourceDecksResult.count ?? 0,
       possibleMatchCount: possibleMatchesResult.count ?? 0,
       linkedEventCount: linkedEventsResult.count ?? 0,
+      normalizedDeckCount: normalizedDecksResult.count ?? 0,
+      completeDeckCount: completeDecksResult.count ?? 0,
+      partialDeckCount: partialDecksResult.count ?? 0,
+      deckCoverage: ((coverageResult.data ?? []) as DeckCoverageRow[])
+        .map((row) => ({
+          dimension: row.dimension,
+          groupKey: row.group_key,
+          decks: Number(row.decks),
+          complete: Number(row.complete),
+          partial: Number(row.partial),
+          unavailable: Number(row.unavailable),
+          unresolvedCards: Number(row.unresolved_cards),
+        })),
     }
   },
 }
@@ -307,6 +416,16 @@ interface AdminTournamentRow {
   imported_at: string
 }
 
+interface DeckCoverageRow {
+  dimension: string
+  group_key: string
+  decks: number
+  complete: number
+  partial: number
+  unavailable: number
+  unresolved_cards: number
+}
+
 interface IngestionJobRow {
   id: string
   provider: 'topdeck' | 'edhtop16'
@@ -336,6 +455,13 @@ export async function getFunctionErrorMessage(error: unknown): Promise<string> {
       const body: unknown = await error.context.clone().json()
       if (isRecord(body)) {
         if (typeof body.error === 'string') return body.error
+        if (
+          Array.isArray(body.errors) &&
+          body.errors.every((item) => typeof item === 'string') &&
+          body.errors.length
+        ) {
+          return body.errors.join(' ')
+        }
         if (
           Array.isArray(body.providerErrors) &&
           body.providerErrors.every((item) => typeof item === 'string') &&

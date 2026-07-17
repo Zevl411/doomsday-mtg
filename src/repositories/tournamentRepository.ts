@@ -7,6 +7,9 @@ import type {
   TournamentEntryDecklist,
   TournamentEntry,
   RegionalMetagameStats,
+  NormalizedTournamentDeck,
+  CommanderCardInclusion,
+  CardInclusionFilters,
 } from '../models/tournament'
 
 export interface TournamentDetail {
@@ -69,7 +72,7 @@ export const tournamentRepository = {
     })
     let query = supabase!
       .from('tournament_entries')
-      .select('*, tournaments!inner(*)')
+      .select('*, tournaments!inner(*), tournament_decks(id)')
       .eq('commander_key', commanderKey)
       .order('event_date', { referencedTable: 'tournaments', ascending: false })
       .limit(100)
@@ -171,13 +174,68 @@ export const tournamentRepository = {
     }))
   },
 
+  async getCommanderCardInclusion(
+    commanderKey: string,
+    filters: CardInclusionFilters = {},
+  ): Promise<CommanderCardInclusion[]> {
+    requireSupabase()
+    const { data, error } = await supabase!.rpc(
+      'get_commander_card_inclusion',
+      {
+        target_commander_key: commanderKey,
+        start_date: filters.startDate || null,
+        end_date: filters.endDate || null,
+        minimum_tournament_size: Math.max(0, filters.minimumPlayers ?? 0),
+        country_filter: filters.countryCode || null,
+        state_filter: filters.stateRegion || null,
+        region_filter: filters.regionKey || null,
+        online_filter: filters.isOnline ?? null,
+        maximum_standing: filters.maximumStanding ?? null,
+        minimum_complete_decks: Math.max(1, filters.minimumCompleteDecks ?? 1),
+      },
+    )
+    if (error) throw friendlyError('load Commander card inclusion', error)
+    return ((data ?? []) as InclusionRow[]).map((row) => ({
+      normalizedCardKey: row.normalized_card_key,
+      oracleId: row.oracle_id ?? undefined,
+      cardName: row.card_name,
+      typeLine: row.type_line ?? undefined,
+      colorIdentity: row.color_identity ?? [],
+      manaValue: row.mana_value === null ? undefined : Number(row.mana_value),
+      deckCount: Number(row.deck_count),
+      totalEligibleDecks: Number(row.total_eligible_decks),
+      inclusionRate: Number(row.inclusion_rate),
+      averageQuantity: Number(row.average_quantity),
+      top16DeckCount: Number(row.top16_deck_count),
+      top16InclusionRate: Number(row.top16_inclusion_rate),
+      firstPlaceDeckCount: Number(row.first_place_deck_count),
+      firstPlaceInclusionRate: Number(row.first_place_inclusion_rate),
+    }))
+  },
+
+  async getNormalizedTournamentDeck(
+    deckId: string,
+  ): Promise<NormalizedTournamentDeck | null> {
+    requireSupabase()
+    const { data, error } = await supabase!
+      .from('tournament_decks')
+      .select(
+        '*, tournament_deck_cards(*), tournament_entries!inner(*, tournaments!inner(*))',
+      )
+      .eq('id', deckId)
+      .maybeSingle()
+    if (error) throw friendlyError('load tournament Deck', error)
+    if (!data) return null
+    return mapNormalizedTournamentDeck(data as unknown as TournamentDeckRow)
+  },
+
   async getTournament(tournamentId: string): Promise<TournamentDetail | null> {
     requireSupabase()
     const [tournamentResult, entriesResult] = await Promise.all([
       supabase!.from('tournaments').select('*').eq('id', tournamentId).maybeSingle(),
       supabase!
         .from('tournament_entries')
-        .select('*')
+        .select('*, tournament_decks(id)')
         .eq('tournament_id', tournamentId)
         .order('standing', { ascending: true }),
     ])
@@ -347,6 +405,9 @@ interface EntryRow {
   created_at: string
   updated_at: string
   tournaments?: TournamentRow
+  // PostgREST may infer the unique relation as one object; older schemas can
+  // still return an array, so the mapper accepts both shapes.
+  tournament_decks?: { id: string } | Array<{ id: string }>
 }
 
 function mapMetagameRow(row: MetagameRow): CommanderMetagameStats {
@@ -390,6 +451,9 @@ function mapTournamentRow(row: TournamentRow): Tournament {
 }
 
 function mapEntryRow(row: EntryRow): TournamentEntry {
+  const normalizedDeck = Array.isArray(row.tournament_decks)
+    ? row.tournament_decks[0]
+    : row.tournament_decks
   return {
     id: row.id,
     tournamentId: row.tournament_id,
@@ -411,6 +475,7 @@ function mapEntryRow(row: EntryRow): TournamentEntry {
     source: row.tournaments?.source,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    tournamentDeckId: normalizedDeck?.id,
   }
 }
 
@@ -431,6 +496,94 @@ interface RegionalRow {
   top_commander: string | null
   top_commander_entries: number
   average_tournament_size: number | null
+}
+
+interface InclusionRow {
+  normalized_card_key: string
+  oracle_id: string | null
+  card_name: string
+  type_line: string | null
+  color_identity: string[] | null
+  mana_value: number | null
+  deck_count: number
+  total_eligible_decks: number
+  inclusion_rate: number
+  average_quantity: number
+  top16_deck_count: number
+  top16_inclusion_rate: number
+  first_place_deck_count: number
+  first_place_inclusion_rate: number
+}
+
+interface TournamentDeckRow {
+  id: string
+  tournament_entry_id: string
+  source: 'topdeck' | 'edhtop16'
+  source_deck_id?: string
+  commander_key: string
+  commander_name: string
+  mainboard_card_count?: number
+  sideboard_card_count?: number
+  parsing_status: NormalizedTournamentDeck['parsingStatus']
+  parsing_issues?: Array<{ code: string; message: string }>
+  raw_decklist_available: boolean
+  structured_deck_available: boolean
+  imported_at: string
+  updated_at: string
+  tournament_deck_cards?: Array<{
+    id: string
+    board: NormalizedTournamentDeck['cards'][number]['board']
+    oracle_id?: string
+    scryfall_id?: string
+    normalized_card_key: string
+    card_name: string
+    quantity: number
+    type_line?: string
+    color_identity?: string[]
+    colors?: string[]
+    mana_value?: number
+    is_basic_land: boolean
+    created_at?: string
+    updated_at?: string
+  }>
+  tournament_entries: EntryRow & { tournaments: TournamentRow }
+}
+
+function mapNormalizedTournamentDeck(row: TournamentDeckRow): NormalizedTournamentDeck {
+  return {
+    id: row.id,
+    tournamentEntryId: row.tournament_entry_id,
+    source: row.source,
+    sourceDeckId: row.source_deck_id,
+    commanderKey: row.commander_key,
+    commanderName: row.commander_name,
+    mainboardCardCount: row.mainboard_card_count,
+    sideboardCardCount: row.sideboard_card_count,
+    parsingStatus: row.parsing_status,
+    parsingIssues: row.parsing_issues ?? [],
+    rawDecklistAvailable: row.raw_decklist_available,
+    structuredDeckAvailable: row.structured_deck_available,
+    importedAt: row.imported_at,
+    updatedAt: row.updated_at,
+    cards: (row.tournament_deck_cards ?? []).map((card) => ({
+      id: card.id,
+      board: card.board,
+      oracleId: card.oracle_id,
+      scryfallId: card.scryfall_id,
+      normalizedCardKey: card.normalized_card_key,
+      cardName: card.card_name,
+      quantity: card.quantity,
+      typeLine: card.type_line,
+      colorIdentity: card.color_identity ?? [],
+      colors: card.colors ?? [],
+      manaValue: card.mana_value,
+      isBasicLand: card.is_basic_land,
+      createdAt: card.created_at,
+      updatedAt: card.updated_at,
+    })),
+    entry: mapEntryRow(row.tournament_entries),
+    tournament: mapTournamentRow(row.tournament_entries.tournaments),
+  }
 }
 
 function unique(values: Array<string | undefined>) {

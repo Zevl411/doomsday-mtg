@@ -58,6 +58,48 @@
         </v-col>
       </v-row>
 
+      <v-card
+        v-if="metrics?.deckCoverage.length"
+        border
+        class="mb-6"
+        color="surface"
+        variant="flat"
+      >
+        <v-card-item>
+          <v-card-title>Normalized Deck quality coverage</v-card-title>
+          <v-card-subtitle>
+            Completeness by provider, event region, and event month
+          </v-card-subtitle>
+        </v-card-item>
+        <v-table density="compact">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Value</th>
+              <th>Decks</th>
+              <th>Complete</th>
+              <th>Partial</th>
+              <th>Unavailable</th>
+              <th>Unresolved cards</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="coverage in metrics.deckCoverage"
+              :key="`${coverage.dimension}:${coverage.groupKey}`"
+            >
+              <td class="text-capitalize">{{ coverage.dimension }}</td>
+              <td>{{ coverage.groupKey }}</td>
+              <td>{{ coverage.decks }}</td>
+              <td>{{ coverage.complete }}</td>
+              <td>{{ coverage.partial }}</td>
+              <td>{{ coverage.unavailable }}</td>
+              <td>{{ coverage.unresolvedCards }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-card>
+
       <v-row align="start">
         <v-col cols="12" lg="5">
           <v-card border color="surface" variant="flat">
@@ -353,6 +395,71 @@
         </v-card-text>
       </v-card>
 
+      <v-card border class="mt-6" color="surface" variant="flat">
+        <v-card-item>
+          <v-card-title>Card-level Decklists</v-card-title>
+          <v-card-subtitle>
+            Normalize provider Decks and resolve stable Scryfall identities
+          </v-card-subtitle>
+        </v-card-item>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" sm="3">
+              <v-select
+                v-model="deckProvider"
+                clearable
+                :items="providerItems"
+                item-title="title"
+                item-value="value"
+                label="Provider"
+              />
+            </v-col>
+            <v-col cols="12" sm="3">
+              <v-text-field v-model="deckStartDate" label="Start date" type="date" />
+            </v-col>
+            <v-col cols="12" sm="3">
+              <v-text-field v-model="deckEndDate" label="End date" type="date" />
+            </v-col>
+            <v-col cols="12" sm="3">
+              <v-text-field v-model="deckCommanderKey" label="Commander key (optional)" />
+            </v-col>
+          </v-row>
+          <v-textarea
+            v-model="deckTournamentIds"
+            label="Tournament IDs (optional)"
+            rows="2"
+          />
+          <div class="d-flex flex-wrap ga-4">
+            <v-switch v-model="deckOnlyMissing" label="Only missing" />
+            <v-switch v-model="deckRetryPartial" label="Retry partial" />
+            <v-switch v-model="deckDryRun" label="Dry run" />
+          </div>
+          <v-btn
+            color="primary"
+            :loading="deckIngestionRunning"
+            @click="ingestTournamentDecks"
+          >
+            Ingest card-level Decklists
+          </v-btn>
+          <v-alert v-if="deckIngestionError" class="mt-4" type="error" variant="tonal">
+            {{ deckIngestionError }}
+          </v-alert>
+          <v-row v-if="deckIngestionReport" class="mt-3">
+            <v-col
+              v-for="item in deckReportItems"
+              :key="item.label"
+              cols="6"
+              md="3"
+            >
+              <v-sheet class="pa-3" color="surface-light" rounded>
+                <div class="text-caption">{{ item.label }}</div>
+                <div class="text-h6">{{ item.value }}</div>
+              </v-sheet>
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
+
       <v-card
         v-if="report"
         border
@@ -412,6 +519,7 @@ import {
   ingestionRepository,
   type IngestionDashboardMetrics,
   type IngestionJob,
+  type TournamentDeckIngestionReport,
   type IngestionReport,
 } from '../repositories/ingestionRepository'
 
@@ -441,6 +549,17 @@ const jobWindowDays = ref(7)
 const jobMinimumPlayers = ref(0)
 const jobError = ref('')
 const jobMessage = ref('')
+const deckProvider = ref<'topdeck' | 'edhtop16' | undefined>('topdeck')
+const deckStartDate = ref('')
+const deckEndDate = ref('')
+const deckCommanderKey = ref('')
+const deckTournamentIds = ref('')
+const deckOnlyMissing = ref(true)
+const deckRetryPartial = ref(false)
+const deckDryRun = ref(true)
+const deckIngestionRunning = ref(false)
+const deckIngestionError = ref('')
+const deckIngestionReport = ref<TournamentDeckIngestionReport | null>(null)
 const providerItems = [
   { title: 'TopDeck (recommended)', value: 'topdeck' },
   { title: 'EDHTop16', value: 'edhtop16' },
@@ -488,9 +607,13 @@ const metricCards = computed(() => [
     detail: `${metrics.value?.unknownLocationCount ?? 0} unknown`,
   },
   {
-    label: 'Extraction issues',
-    value: metrics.value?.commanderFailureCount.toLocaleString() ?? '0',
-    detail: `${metrics.value?.structuredDeckCount ?? 0} structured decklists`,
+    label: 'Source Deck coverage',
+    value: (
+      (metrics.value?.structuredDeckCount ?? 0) +
+      (metrics.value?.plaintextDeckCount ?? 0) +
+      (metrics.value?.urlOnlyDeckCount ?? 0)
+    ).toLocaleString(),
+    detail: `${metrics.value?.structuredDeckCount ?? 0} structured · ${metrics.value?.plaintextDeckCount ?? 0} plaintext · ${metrics.value?.urlOnlyDeckCount ?? 0} URL-only · ${metrics.value?.unavailableSourceDeckCount ?? 0} missing · ${metrics.value?.commanderFailureCount ?? 0} Commander issues`,
   },
   {
     label: 'Possible matches',
@@ -501,6 +624,11 @@ const metricCards = computed(() => [
     label: 'Source links',
     value: metrics.value?.linkedEventCount.toLocaleString() ?? '0',
     detail: 'Explicit provider identities',
+  },
+  {
+    label: 'Normalized Decks',
+    value: metrics.value?.normalizedDeckCount.toLocaleString() ?? '0',
+    detail: `${metrics.value?.completeDeckCount ?? 0} complete · ${metrics.value?.partialDeckCount ?? 0} partial`,
   },
 ])
 
@@ -522,6 +650,20 @@ const reportItems = computed(() => {
       value: report.value.tournamentsPartiallyIngested,
     },
     { label: 'Provider errors', value: report.value.providerErrors.length },
+  ]
+})
+const deckReportItems = computed(() => {
+  const report = deckIngestionReport.value
+  if (!report) return []
+  return [
+    { label: 'Entries considered', value: report.entriesConsidered },
+    { label: 'Decklists available', value: report.decklistsAvailable },
+    { label: 'Structured used', value: report.structuredDecksUsed },
+    { label: 'Plaintext used', value: report.plaintextDecksUsed },
+    { label: 'Complete Decks', value: report.decksCompleted },
+    { label: 'Partial Decks', value: report.decksPartial },
+    { label: 'Cards resolved', value: report.cardsResolved },
+    { label: 'Cards unresolved', value: report.cardsUnresolved },
   ]
 })
 
@@ -594,6 +736,29 @@ function jobProgress(job: IngestionJob) {
   return job.totalBatches
     ? (job.completedBatches / job.totalBatches) * 100
     : 0
+}
+
+async function ingestTournamentDecks() {
+  deckIngestionRunning.value = true
+  deckIngestionError.value = ''
+  try {
+    deckIngestionReport.value = await ingestionRepository.ingestTournamentDecks({
+      provider: deckProvider.value,
+      startDate: deckStartDate.value || undefined,
+      endDate: deckEndDate.value || undefined,
+      commanderKey: deckCommanderKey.value || undefined,
+      tournamentIds: deckTournamentIds.value
+        .split(/[\n,]/).map((id) => id.trim()).filter(Boolean),
+      onlyMissing: deckOnlyMissing.value,
+      retryPartial: deckRetryPartial.value,
+      dryRun: deckDryRun.value,
+    })
+  } catch (error) {
+    deckIngestionError.value = error instanceof Error
+      ? error.message : 'Card-level Deck ingestion failed.'
+  } finally {
+    deckIngestionRunning.value = false
+  }
 }
 
 async function ingest() {

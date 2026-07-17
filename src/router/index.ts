@@ -43,6 +43,11 @@ const router = createRouter({
       component: () => import('../views/CommanderMetagameView.vue'),
     },
     {
+      path: '/commanders/:commanderKey/cards',
+      name: 'commander-cards',
+      component: () => import('../views/CommanderCardsView.vue'),
+    },
+    {
       path: '/tournaments',
       name: 'tournaments',
       component: () => import('../views/TournamentsView.vue'),
@@ -56,6 +61,11 @@ const router = createRouter({
       path: '/tournaments/:tournamentId',
       name: 'tournament-detail',
       component: () => import('../views/TournamentDetailView.vue'),
+    },
+    {
+      path: '/tournament-decks/:deckId',
+      name: 'tournament-deck-detail',
+      component: () => import('../views/TournamentDeckDetailView.vue'),
     },
     {
       path: '/admin/ingestion',

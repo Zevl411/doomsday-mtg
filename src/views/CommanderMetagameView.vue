@@ -11,6 +11,14 @@
         <v-chip>{{ percent(detail.stats.matchWinRate) }} match win rate</v-chip>
         <v-chip>{{ percent(detail.stats.topCutRate) }} top-16 rate</v-chip>
       </div>
+      <v-btn
+        class="mb-5"
+        color="primary"
+        :to="{ name: 'commander-cards', params: { commanderKey: route.params.commanderKey } }"
+        variant="outlined"
+      >
+        Card inclusion
+      </v-btn>
       <v-list border>
         <v-list-item
           v-for="entry in detail.entries"
@@ -20,7 +28,14 @@
           :to="{ name: 'tournament-detail', params: { tournamentId: entry.tournamentId } }"
         >
           <template #append>
-            <v-btn v-if="entry.decklistUrl" :href="entry.decklistUrl" target="_blank" variant="text">Decklist</v-btn>
+            <v-btn
+              v-if="entry.tournamentDeckId"
+              :to="{ name: 'tournament-deck-detail', params: { deckId: entry.tournamentDeckId } }"
+              variant="text"
+            >
+              Normalized Deck
+            </v-btn>
+            <v-btn v-else-if="entry.decklistUrl" :href="entry.decklistUrl" target="_blank" variant="text">Decklist</v-btn>
           </template>
         </v-list-item>
       </v-list>

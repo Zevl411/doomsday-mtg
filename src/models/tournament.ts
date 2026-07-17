@@ -45,6 +45,7 @@ export interface TournamentEntry {
   source?: TournamentSource
   createdAt: string
   updatedAt: string
+  tournamentDeckId?: string
 }
 
 export interface TournamentDeckCard {
@@ -97,4 +98,69 @@ export interface RegionalMetagameStats {
   topCommander: string | null
   topCommanderEntries: number
   averageTournamentSize: number
+}
+
+export type TournamentDeckBoard =
+  | 'commander' | 'mainboard' | 'sideboard' | 'maybeboard'
+  | 'considering' | 'companion' | 'unknown'
+export type TournamentDeckParsingStatus =
+  | 'complete' | 'partial' | 'unavailable' | 'invalid' | 'pending'
+
+export interface NormalizedTournamentDeckCard {
+  id: string
+  board: TournamentDeckBoard
+  oracleId?: string
+  scryfallId?: string
+  normalizedCardKey: string
+  cardName: string
+  quantity: number
+  typeLine?: string
+  colorIdentity: string[]
+  colors: string[]
+  manaValue?: number
+  isBasicLand: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface NormalizedTournamentDeck {
+  id: string
+  tournamentEntryId: string
+  source: TournamentSource
+  sourceDeckId?: string
+  commanderKey: string
+  commanderName: string
+  mainboardCardCount?: number
+  sideboardCardCount?: number
+  parsingStatus: TournamentDeckParsingStatus
+  parsingIssues: Array<{ code: string; message: string }>
+  rawDecklistAvailable: boolean
+  structuredDeckAvailable: boolean
+  importedAt: string
+  updatedAt: string
+  cards: NormalizedTournamentDeckCard[]
+  entry: TournamentEntry
+  tournament: Tournament
+}
+
+export interface CommanderCardInclusion {
+  normalizedCardKey: string
+  oracleId?: string
+  cardName: string
+  typeLine?: string
+  colorIdentity: string[]
+  manaValue?: number
+  deckCount: number
+  totalEligibleDecks: number
+  inclusionRate: number
+  averageQuantity: number
+  top16DeckCount: number
+  top16InclusionRate: number
+  firstPlaceDeckCount: number
+  firstPlaceInclusionRate: number
+}
+
+export interface CardInclusionFilters extends MetagameFilters {
+  maximumStanding?: number
+  minimumCompleteDecks?: number
 }

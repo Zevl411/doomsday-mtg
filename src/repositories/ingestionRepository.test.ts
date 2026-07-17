@@ -24,6 +24,20 @@ describe('getFunctionErrorMessage', () => {
       'Tournament ingestion failed. Check the Edge Function logs.',
     )
   })
+
+  it('surfaces card-level ingestion report errors', async () => {
+    const error = {
+      context: new Response(
+        JSON.stringify({
+          errors: ['Could not find the tournament_decks table.'],
+        }),
+        { status: 400 },
+      ),
+    }
+    await expect(getFunctionErrorMessage(error)).resolves.toBe(
+      'Could not find the tournament_decks table.',
+    )
+  })
 })
 
 describe('createAuthorizationHeaders', () => {

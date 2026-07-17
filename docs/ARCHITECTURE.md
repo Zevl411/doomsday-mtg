@@ -213,10 +213,19 @@ route-level metagame and tournament views
 ```
 
 Provider credentials and raw response parsing never enter the GitHub Pages
-bundle. The normalized tournament model is separate from user-owned Decks;
-this phase preserves raw structured lists but does not compute card-level
-analytics. Provider-specific rows remain separate; strong shared IDs are
-recorded as source links, while moderate possible matches are diagnostics only.
+bundle. The normalized tournament model is separate from user-owned Decks.
+The `ingest-tournament-decks` boundary converts provider structured lists or
+embedded plaintext into board-aware `tournament_decks` and
+`tournament_deck_cards` rows. Card identity prefers Scryfall Oracle IDs, with
+a normalized-name fallback retained for unresolved diagnostics.
+
+The public browser can read normalized Deck snapshots and the aggregate
+inclusion RPC but cannot write tournament data. Only complete mainboards enter
+inclusion denominators. The Commander card page presents descriptive
+frequency, sample size, quantities, and finish subsets; it deliberately does
+not generate recommendations. Provider-specific rows remain separate; strong
+shared IDs are recorded as source links, while moderate possible matches are
+diagnostics only.
 Location normalization is a pure server-side boundary and region keys remain
 granular so regional taxonomy can be changed later.
 Administrative ingestion is authorized by `admin_users` in both the UI and

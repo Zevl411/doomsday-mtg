@@ -133,6 +133,18 @@
             </v-alert>
 
             <v-btn
+              v-if="entry.tournamentDeckId"
+              class="mt-4"
+              :to="{
+                name: 'tournament-deck-detail',
+                params: { deckId: entry.tournamentDeckId },
+              }"
+              variant="outlined"
+            >
+              View normalized Deck
+            </v-btn>
+
+            <v-btn
               v-if="entry.decklistUrl"
               class="mt-4"
               :href="entry.decklistUrl"

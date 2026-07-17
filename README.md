@@ -386,13 +386,17 @@ refreshing before retrying.
 - [x] Add TopDeck adapter, visible attribution, and private credential handling
 - [x] Preserve event location and granular region keys
 - [x] Add regional filters and event-location summaries
+- [x] Normalize tournament Decks and board-aware card rows
+- [x] Add Commander card-inclusion aggregation and filters
+- [x] Add normalized tournament Deck detail and copy-to-Deck workflow
+- [x] Add card-level ingestion controls and coverage metrics
 
 Current data limitations: provider and location fields may be absent,
 historical coverage depends on imported events, region means event location
 rather than player residence, and draws count in the match-rate denominator.
 Cross-provider linking automatically uses explicit shared IDs only. Exact
-coordinates are not shown publicly, and card-level inclusion analytics remain
-deferred.
+coordinates are not shown publicly. Card inclusion uses complete normalized
+mainboards only and is descriptive rather than a recommendation score.
 
 ---
 
@@ -410,9 +414,9 @@ deferred.
 ## Phase 4 — Data Collection
 
 - [ ] Tournament scraper
-- [ ] Deck database
+- [x] Tournament Deck database
 - [ ] Commander archetype detection
-- [ ] Card inclusion statistics
+- [x] Descriptive card inclusion statistics
 - [ ] Historical tournament tracking
 
 ---

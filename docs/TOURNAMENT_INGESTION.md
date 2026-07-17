@@ -16,12 +16,12 @@ credential is never a `VITE_` variable.
 Install the Supabase CLI, authenticate, and run:
 
 ```bash
-supabase login
-supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
-supabase secrets set TOPDECK_API_KEY=YOUR_PRIVATE_TOPDECK_KEY
-supabase secrets set EDHTOP16_BASE_URL=https://edhtop16.com
-supabase functions deploy ingest-tournaments
+npx supabase login
+npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase db push
+npx supabase secrets set TOPDECK_API_KEY=YOUR_PRIVATE_TOPDECK_KEY
+npx supabase secrets set EDHTOP16_BASE_URL=https://edhtop16.com
+npx supabase functions deploy ingest-tournaments
 ```
 
 Obtain a key from TopDeck, then store it under **Supabase Dashboard → Edge
@@ -81,7 +81,36 @@ not overwrite higher-confidence fields.
 
 TopDeck requests use bounded retries and honor `Retry-After`. Rounds are off by
 default. Location enrichment runs only when requested and bulk data is missing
-location. Card-level inclusion analytics remain a later milestone.
+location.
+
+## Card-level Deck normalization
+
+Migration `202607170006_create_tournament_decks.sql` adds one normalized Deck
+snapshot per tournament entry and normalized card rows separated by board.
+After applying it, deploy the dedicated administrator-only function:
+
+```bash
+npx supabase db push --dry-run
+npx supabase db push
+npx supabase functions deploy ingest-tournament-decks
+```
+
+Use **Admin Panel → Card-level Decklists** after tournament entries have been
+ingested. Start with dry run and a narrow date range. The function prefers
+provider structured data, falls back to embedded plaintext, resolves card
+identity in Scryfall collection batches, and records partial or unavailable
+Decks rather than inventing missing data. External deck-host URLs are retained
+but are not fetched unless an explicit safe adapter is implemented.
+
+Dry runs always reevaluate matching source entries, even when **Only missing**
+is enabled, because they do not write or replace normalized rows. Real runs
+use **Only missing** and **Retry partial** to control reprocessing.
+
+Complete Decks require approximately 100 cards across Commander and mainboard,
+one or two Commander cards, and no unresolved card names. Only complete
+mainboards contribute to aggregate inclusion. Sideboards, maybeboards,
+considering lists, companions, and unknown boards are preserved but excluded
+from the default calculation.
 
 ## Resumable historical backfills
 
@@ -146,5 +175,11 @@ EDHTop16 attribution remains visible for its records.
 - **Top-16 finishes:** entries whose final standing is 16 or better by default.
 - **Top-cut rate:** top-16 finishes divided by Commander entries.
 - **First-place finishes:** entries whose standing is exactly 1.
+- **Card inclusion:** complete matching Decks containing a mainboard card,
+  divided by all complete matching Decks.
+- **Average quantity:** total copies of a card divided by Decks containing it.
+
+Core/Common/Flexible/Rare labels are display buckets for descriptive
+frequency. They are not recommendations or claims about card quality.
 
 Missing dates, standings, pilots, locations, and decklists remain nullable.
