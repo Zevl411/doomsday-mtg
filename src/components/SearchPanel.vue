@@ -7,6 +7,7 @@
     <v-card-text class="pa-5">
       <CardSearch
         commander-only
+        @card-hovered="emit('card-hovered', $event)"
         @card-selected="emit('card-selected', $event)"
       />
     </v-card-text>
@@ -18,6 +19,7 @@ import CardSearch from './CardSearch.vue'
 import type { ScryfallCard } from '../types/card'
 
 const emit = defineEmits<{
+  'card-hovered': [card: ScryfallCard]
   'card-selected': [card: ScryfallCard]
 }>()
 </script>

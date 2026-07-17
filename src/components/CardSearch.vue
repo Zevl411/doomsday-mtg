@@ -8,7 +8,11 @@
     placeholder="Card name"
     type="search"
     variant="outlined"
-  />
+  >
+    <template v-if="$slots.actions" #append>
+      <slot name="actions" />
+    </template>
+  </v-text-field>
 
   <div class="search-results" aria-live="polite">
     <div v-if="isLoading" class="d-flex align-center ga-3 py-4">
@@ -41,6 +45,8 @@
         tag="button"
         type="button"
         @click="emit('card-selected', card)"
+        @focus="emit('card-hovered', card)"
+        @mouseenter="emit('card-hovered', card)"
       >
         <template v-if="getCardImage(card)" #prepend>
           <v-img
@@ -74,10 +80,12 @@ import type { ScryfallCard } from '../types/card'
 const props = withDefaults(
   defineProps<{
     commanderOnly?: boolean
+    searchFilter?: string
     selectedCardIds?: string[]
   }>(),
   {
     commanderOnly: false,
+    searchFilter: '',
     selectedCardIds: () => [],
   },
 )
@@ -85,6 +93,7 @@ const props = withDefaults(
 // Emits describe events this component can send back to its parent. The tuple
 // says that card-selected sends one value named card with the ScryfallCard type.
 const emit = defineEmits<{
+  'card-hovered': [card: ScryfallCard]
   'card-selected': [card: ScryfallCard]
 }>()
 
@@ -100,8 +109,8 @@ let searchTimer: number | undefined
 // AbortController lets us intentionally cancel a fetch that is no longer needed.
 let activeController: AbortController | null = null
 
-// watch() runs this function whenever the search query changes.
-watch(query, (newQuery) => {
+// Watching both values also refreshes results when a parent changes the filter.
+watch([query, () => props.searchFilter], ([newQuery]) => {
   window.clearTimeout(searchTimer)
   activeController?.abort()
   activeController = null
@@ -122,7 +131,7 @@ watch(query, (newQuery) => {
       const commanderFilter = 'is:commander legal:commander'
       const scryfallQuery = props.commanderOnly
         ? `${newQuery} ${commanderFilter}`
-        : newQuery
+        : `${newQuery} ${props.searchFilter}`.trim()
 
       cards.value = await searchCards(scryfallQuery, controller.signal)
     } catch (error) {

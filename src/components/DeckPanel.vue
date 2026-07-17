@@ -61,19 +61,45 @@
       <v-divider class="my-5" />
 
       <CardSearch
+        :search-filter="colorIdentitySearchFilter"
         :selected-card-ids="deck.cards.map((deckCard) => deckCard.card.id)"
+        @card-hovered="emit('card-hovered', $event)"
         @card-selected="emit('card-selected', $event)"
-      />
+      >
+        <template #actions>
+          <v-switch
+            v-model="limitToCommanderColors"
+            aria-label="Limit search to Commander color identity"
+            color="primary"
+            density="compact"
+            hide-details
+            inset
+          />
+        </template>
+      </CardSearch>
 
       <v-alert
-        v-if="rejectionMessage"
+        v-if="colorIdentityViolations.length"
         class="mt-5"
         density="compact"
-        role="status"
         type="error"
         variant="tonal"
       >
-        {{ rejectionMessage }}
+        <div class="d-flex flex-wrap align-center justify-space-between ga-3">
+          <span>
+            {{ colorIdentityViolations.length }}
+            {{ colorIdentityViolations.length === 1 ? 'card is' : 'cards are' }}
+            outside the Commander's color identity.
+          </span>
+          <v-btn
+            color="error"
+            size="small"
+            variant="outlined"
+            @click="emit('remove-illegal-cards')"
+          >
+            Remove all illegal cards
+          </v-btn>
+        </div>
       </v-alert>
 
       <v-list
@@ -86,7 +112,12 @@
           :key="deckCard.card.id"
           border="b"
           class="px-0"
+          :class="{
+            'deck-card--illegal': isColorIdentityViolation(deckCard),
+          }"
           :title="`${deckCard.quantity}× ${deckCard.card.name}`"
+          @focusin="emit('card-hovered', deckCard.card)"
+          @mouseenter="emit('card-hovered', deckCard.card)"
         >
           <template #append>
             <div class="d-flex align-center ga-1">
@@ -136,11 +167,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import CardSearch from './CardSearch.vue'
-import type { Deck } from '../models/deck'
+import type { Deck, DeckCard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
-import { isBasicLand } from '../utils/deckLegality'
+import {
+  getColorIdentityViolations,
+  isBasicLand,
+} from '../utils/deckLegality'
 import {
   getDeckSizeStatus,
   getMainDeckCardCount,
@@ -148,23 +182,44 @@ import {
 
 const props = defineProps<{
   deck: Deck
-  rejectionMessage: string
 }>()
 
 // These events let App.vue handle changes while this panel only displays them.
 const emit = defineEmits<{
+  'card-hovered': [card: ScryfallCard]
   'card-selected': [card: ScryfallCard]
   'decrease-quantity': [index: number]
   'increase-quantity': [index: number]
   'remove-card': [index: number]
+  'remove-illegal-cards': []
 }>()
 
 const mainDeckCardCount = computed(() => getMainDeckCardCount(props.deck))
 const deckSizeStatus = computed(() => getDeckSizeStatus(props.deck))
+const colorIdentityViolations = computed(() =>
+  getColorIdentityViolations(props.deck),
+)
+const limitToCommanderColors = ref(true)
+const colorIdentitySearchFilter = computed(() => {
+  if (!limitToCommanderColors.value || !props.deck.commander) {
+    return ''
+  }
+
+  const colorIdentity = props.deck.commander.color_identity
+    .join('')
+    .toLowerCase()
+
+  // Scryfall's `id<=` syntax includes cards contained within these colors.
+  return colorIdentity ? `id<=${colorIdentity}` : 'id:c'
+})
 const progressValue = computed(() => {
   const percentage =
     (deckSizeStatus.value.total / deckSizeStatus.value.target) * 100
 
   return Math.min(percentage, 100)
 })
+
+function isColorIdentityViolation(deckCard: DeckCard): boolean {
+  return colorIdentityViolations.value.includes(deckCard)
+}
 </script>

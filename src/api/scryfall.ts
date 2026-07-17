@@ -26,6 +26,10 @@ export async function searchCards(
     signal,
   })
 
+  if (response.status === 404) {
+    throw new Error('No matching cards found.')
+  }
+
   if (!response.ok) {
     throw new Error(
       `Scryfall search failed (${response.status} ${response.statusText}).`,

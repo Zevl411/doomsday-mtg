@@ -1,10 +1,12 @@
-import type { Deck } from '../models/deck'
+import type { Deck, DeckCard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 
 // A structured result gives the caller both the decision and an optional
 // explanation, which is more useful to the UI than a boolean by itself.
 export interface DeckLegalityResult {
   allowed: boolean
+  // Overridable marks a rule the user may intentionally accept.
+  overridable?: boolean
   reason?: string
 }
 
@@ -20,6 +22,19 @@ export function isWithinCommanderColorIdentity(
 
 export function isBasicLand(card: ScryfallCard): boolean {
   return card.type_line.includes('Basic Land')
+}
+
+export function getColorIdentityViolations(deck: Deck): DeckCard[] {
+  const commander = deck.commander
+
+  if (!commander) {
+    return []
+  }
+
+  return deck.cards.filter(
+    (deckCard) =>
+      !isWithinCommanderColorIdentity(deckCard.card, commander),
+  )
 }
 
 export function validateCardAddition(
@@ -55,6 +70,7 @@ export function validateCardAddition(
   if (!isWithinCommanderColorIdentity(card, deck.commander)) {
     return {
       allowed: false,
+      overridable: true,
       reason: `${card.name} is outside your commander's color identity.`,
     }
   }
