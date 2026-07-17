@@ -1,5 +1,6 @@
 import type { Deck, DeckCard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
+import { getCardIdentity } from './cardIdentity'
 
 // A structured result gives the caller both the decision and an optional
 // explanation, which is more useful to the UI than a boolean by itself.
@@ -48,16 +49,17 @@ export function validateCardAddition(
     }
   }
 
-  if (card.id === deck.commander.id) {
+  if (getCardIdentity(card) === getCardIdentity(deck.commander)) {
     return {
       allowed: false,
       reason: 'Your commander cannot also be added as a regular deck card.',
     }
   }
 
-  // some() returns true as soon as it finds a card with the same Scryfall ID.
+  // some() returns true as soon as it finds the same card in another printing.
   const isDuplicate = deck.cards.some(
-    (deckCard) => deckCard.card.id === card.id,
+    (deckCard) =>
+      getCardIdentity(deckCard.card) === getCardIdentity(card),
   )
 
   if (isDuplicate && !isBasicLand(card)) {

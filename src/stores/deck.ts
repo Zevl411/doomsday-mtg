@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import type { Deck } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import type { DeckLegalityResult } from '../utils/deckLegality'
+import { getCardIdentity } from '../utils/cardIdentity'
 import {
   getColorIdentityViolations,
   isBasicLand,
@@ -28,18 +29,19 @@ export const useDeckStore = defineStore('deck', {
     deck: loadDeck() ?? createEmptyDeck(),
     rejectionMessage: '',
     previewCard: null as ScryfallCard | null,
+    saveSucceeded: null as boolean | null,
   }),
 
   // Actions are the store's named methods for changing its state.
   actions: {
     setCommander(card: ScryfallCard) {
       this.deck.commander = card
-      saveDeck(this.deck)
+      this.saveSucceeded = saveDeck(this.deck)
     },
 
     clearCommander() {
       this.deck.commander = null
-      saveDeck(this.deck)
+      this.saveSucceeded = saveDeck(this.deck)
     },
 
     addCard(
@@ -60,7 +62,8 @@ export const useDeckStore = defineStore('deck', {
       }
 
       const existingBasicLand = this.deck.cards.find(
-        (deckCard) => deckCard.card.id === card.id,
+        (deckCard) =>
+          getCardIdentity(deckCard.card) === getCardIdentity(card),
       )
 
       if (existingBasicLand && isBasicLand(card)) {
@@ -70,7 +73,7 @@ export const useDeckStore = defineStore('deck', {
       }
 
       this.rejectionMessage = ''
-      saveDeck(this.deck)
+      this.saveSucceeded = saveDeck(this.deck)
       return { allowed: true }
     },
 
@@ -79,7 +82,7 @@ export const useDeckStore = defineStore('deck', {
         (_card, cardIndex) => cardIndex !== index,
       )
       this.rejectionMessage = ''
-      saveDeck(this.deck)
+      this.saveSucceeded = saveDeck(this.deck)
     },
 
     increaseQuantity(index: number) {
@@ -91,7 +94,7 @@ export const useDeckStore = defineStore('deck', {
 
       deckCard.quantity += 1
       this.rejectionMessage = ''
-      saveDeck(this.deck)
+      this.saveSucceeded = saveDeck(this.deck)
     },
 
     decreaseQuantity(index: number) {
@@ -108,7 +111,7 @@ export const useDeckStore = defineStore('deck', {
 
       deckCard.quantity -= 1
       this.rejectionMessage = ''
-      saveDeck(this.deck)
+      this.saveSucceeded = saveDeck(this.deck)
     },
 
     removeIllegalCards() {
@@ -118,13 +121,13 @@ export const useDeckStore = defineStore('deck', {
         (deckCard) => !illegalCards.includes(deckCard),
       )
       this.rejectionMessage = ''
-      saveDeck(this.deck)
+      this.saveSucceeded = saveDeck(this.deck)
     },
 
     resetDeck() {
       this.deck = createEmptyDeck()
       this.rejectionMessage = ''
-      clearSavedDeck()
+      this.saveSucceeded = clearSavedDeck()
     },
 
     setPreviewCard(card: ScryfallCard) {

@@ -4,5 +4,6 @@ import vuetify from 'vite-plugin-vuetify'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/doomsday-mtg/',
   plugins: [vue(), vuetify({ autoImport: true })],
 })

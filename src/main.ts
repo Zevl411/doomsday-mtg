@@ -4,8 +4,8 @@ import 'vuetify/styles'
 import './style.css'
 import App from './App.vue'
 import vuetify from './plugins/vuetify'
+import router from './router'
 import { useDeckStore } from './stores/deck'
-import router from './views/views'
 
 const pinia = createPinia()
 

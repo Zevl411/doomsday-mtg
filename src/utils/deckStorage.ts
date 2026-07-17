@@ -14,6 +14,8 @@ function isCardLike(value: unknown): boolean {
 
   return (
     typeof value.id === 'string' &&
+    (value.oracle_id === undefined ||
+      typeof value.oracle_id === 'string') &&
     typeof value.name === 'string' &&
     typeof value.type_line === 'string' &&
     Array.isArray(value.color_identity) &&
@@ -21,7 +23,7 @@ function isCardLike(value: unknown): boolean {
   )
 }
 
-function isUsableDeck(value: unknown): value is Deck {
+export function isUsableDeck(value: unknown): value is Deck {
   if (!isObject(value)) {
     return false
   }
@@ -46,17 +48,20 @@ function isUsableDeck(value: unknown): value is Deck {
       isCardLike(entry.card) &&
       typeof entry.quantity === 'number' &&
       Number.isFinite(entry.quantity) &&
+      Number.isInteger(entry.quantity) &&
       entry.quantity > 0
     )
   })
 }
 
-export function saveDeck(deck: Deck): void {
+export function saveDeck(deck: Deck): boolean {
   try {
     // localStorage saves text, so JSON.stringify() converts the Deck to text.
     localStorage.setItem(DECK_STORAGE_KEY, JSON.stringify(deck))
+    return true
   } catch (error) {
     console.warn('The deck could not be saved locally.', error)
+    return false
   }
 }
 
@@ -85,10 +90,12 @@ export function loadDeck(): Deck | null {
   }
 }
 
-export function clearSavedDeck(): void {
+export function clearSavedDeck(): boolean {
   try {
     localStorage.removeItem(DECK_STORAGE_KEY)
+    return true
   } catch (error) {
     console.warn('The saved deck could not be removed.', error)
+    return false
   }
 }

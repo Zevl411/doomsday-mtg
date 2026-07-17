@@ -152,6 +152,24 @@ Available routes:
 Hash-based routing is used so direct links and page refreshes work when the
 application is deployed to GitHub Pages.
 
+## Development and deployment
+
+Run the local development server:
+
+```bash
+npm run dev
+```
+
+Run the focused unit tests:
+
+```bash
+npm run test
+```
+
+GitHub Pages deployment is configured at
+`https://zevl411.github.io/doomsday-mtg/`. Pushes to `main` automatically build
+and deploy the application.
+
 Planned Backend
 
 - Node.js

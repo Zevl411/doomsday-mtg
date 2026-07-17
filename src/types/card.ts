@@ -18,7 +18,9 @@ export interface ScryfallCardFace {
 }
 
 export interface ScryfallCard {
+  // id identifies one printing; oracle_id identifies the same card across sets.
   id: string
+  oracle_id?: string
   name: string
   type_line: string
   color_identity: string[]

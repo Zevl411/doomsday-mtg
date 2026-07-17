@@ -24,7 +24,20 @@
       </div>
 
       <div class="d-flex align-center justify-space-between ga-3 mb-4">
-        <span class="text-caption text-medium-emphasis">Saved locally</span>
+        <v-chip
+          v-if="deckStore.saveSucceeded !== null"
+          :color="deckStore.saveSucceeded ? 'success' : 'error'"
+          role="status"
+          size="x-small"
+          variant="tonal"
+        >
+          {{
+            deckStore.saveSucceeded
+              ? 'Saved locally'
+              : 'Unable to save locally'
+          }}
+        </v-chip>
+        <span v-else />
         <v-btn
           color="error"
           size="small"
