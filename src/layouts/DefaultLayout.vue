@@ -4,10 +4,10 @@
       <v-container class="d-flex align-center mx-auto px-4 px-sm-6">
         <v-app-bar-title>
           <span class="text-h6 text-sm-h5 font-weight-bold text-primary">
-            DoomsdayMTG
+            {{ appConfig.name }}
           </span>
           <span class="d-none d-sm-block text-caption text-medium-emphasis">
-            Competitive Commander Deck Builder
+            {{ appConfig.tagline }}
           </span>
         </v-app-bar-title>
         <v-spacer />
@@ -84,6 +84,7 @@
 </template>
 
 <script setup lang="ts">
+import { appConfig } from '../config/app'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()

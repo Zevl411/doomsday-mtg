@@ -28,6 +28,7 @@ const corsHeaders = {
 const SCRYFALL_COLLECTION_URL = 'https://api.scryfall.com/cards/collection'
 const SCRYFALL_NAMED_URL = 'https://api.scryfall.com/cards/named'
 const BATCH_SIZE = 75
+const SCRYFALL_USER_AGENT = `${Deno.env.get('APP_NAME') ?? 'DoomsdayMTG'}/0.2`
 // TopDeck structured lists are much larger than entry summaries. Keep each
 // invocation bounded so the Edge runtime does not materialize 500 deckObjs.
 const ENTRY_BATCH_SIZE = 100
@@ -279,7 +280,7 @@ async function resolveCandidates(
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'User-Agent': 'DoomsdayMTG/0.2',
+        'User-Agent': SCRYFALL_USER_AGENT,
       },
       body: JSON.stringify({
         identifiers: names.map((name) => ({
@@ -311,7 +312,7 @@ async function resolveCandidates(
         {
           headers: {
             Accept: 'application/json',
-            'User-Agent': 'DoomsdayMTG/0.2',
+            'User-Agent': SCRYFALL_USER_AGENT,
           },
         },
         true,

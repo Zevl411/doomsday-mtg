@@ -1,6 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { EdhTop16Provider } from './edhtop16.ts'
 import { TopDeckProvider } from './topdeck.ts'
+import {
+  DEFAULT_EXCLUDED_TITLE_KEYWORDS,
+  evaluateTournamentTitle,
+} from './tournamentRelevance.ts'
 import type {
   ProviderTournament,
   ProviderTournamentEntry,
@@ -17,11 +21,14 @@ interface IngestionRequest {
   last?: number
   includeRounds?: boolean
   enrichLocation?: boolean
+  excludeCasualEvents?: boolean
   dryRun?: boolean
 }
 
 interface JobActionRequest {
-  action: 'create-job' | 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job'
+  action:
+    | 'create-job' | 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job'
+    | 'purge-casual-events'
   jobId?: string
   provider?: 'edhtop16' | 'topdeck'
   startDate?: string
@@ -30,6 +37,8 @@ interface JobActionRequest {
   minimumPlayers?: number
   includeRounds?: boolean
   enrichLocation?: boolean
+  excludeCasualEvents?: boolean
+  dryRun?: boolean
 }
 
 const corsHeaders = {
@@ -86,9 +95,39 @@ Deno.serve(async (request) => {
     }
     const options = validateRequest(requestBody)
     const provider = getProvider(options.provider)
-    const tournaments = await provider.listTournaments(options)
-    report.tournamentsFetched = tournaments.length
-    if (!tournaments.length) {
+    const fetchedTournaments = await provider.listTournaments(options)
+    report.tournamentsFetched = fetchedTournaments.length
+    const excludedKeywords = getExcludedTitleKeywords()
+    const excludedTournaments = options.excludeCasualEvents
+      ? fetchedTournaments.filter((tournament) =>
+        !evaluateTournamentTitle(tournament.name, excludedKeywords).included
+      )
+      : []
+    const excludedIds = new Set(
+      excludedTournaments.map((tournament) => tournament.sourceTournamentId),
+    )
+    const tournaments = fetchedTournaments.filter((tournament) =>
+      !excludedIds.has(tournament.sourceTournamentId)
+    )
+    report.tournamentsExcluded = excludedTournaments.length
+    report.excludedTournamentTitles = excludedTournaments
+      .slice(0, 25)
+      .map((tournament) => tournament.name)
+
+    // A real run removes a previously stored copy of an explicitly excluded
+    // event. Cascading foreign keys remove its entries and normalized Decks.
+    if (!options.dryRun && excludedTournaments.length) {
+      for (const tournament of excludedTournaments) {
+        const { data: purged, error } = await admin.from('tournaments')
+          .delete()
+          .eq('source', provider.source)
+          .eq('source_tournament_id', tournament.sourceTournamentId)
+          .select('id')
+        if (error) throw error
+        report.tournamentsPurged += purged?.length ?? 0
+      }
+    }
+    if (!fetchedTournaments.length) {
       report.validationIssues.push(
         createEmptyResultMessage(options),
       )
@@ -267,6 +306,7 @@ function validateRequest(value: unknown): Required<
     last,
     includeRounds: value.includeRounds === true,
     enrichLocation: value.enrichLocation === true,
+    excludeCasualEvents: value.excludeCasualEvents !== false,
   }
 }
 
@@ -381,6 +421,9 @@ function createReport() {
     rateLimitedRequests: 0,
     exhaustedRequests: 0,
     tournamentsPartiallyIngested: 0,
+    tournamentsExcluded: 0,
+    tournamentsPurged: 0,
+    excludedTournamentTitles: [] as string[],
   }
 }
 
@@ -393,6 +436,12 @@ function json(value: unknown, status = 200) {
 
 function readError(error: unknown) {
   return error instanceof Error ? error.message : 'Unknown ingestion error.'
+}
+
+function getExcludedTitleKeywords() {
+  const configured = Deno.env.get('TOURNAMENT_EXCLUDED_TITLE_KEYWORDS')
+  if (!configured?.trim()) return DEFAULT_EXCLUDED_TITLE_KEYWORDS
+  return configured.split(',').map((keyword) => keyword.trim()).filter(Boolean)
 }
 
 function createEmptyResultMessage(options: {
@@ -429,6 +478,7 @@ function isJobAction(value: unknown): value is JobActionRequest {
     'resume-job',
     'cancel-job',
     'retry-job',
+    'purge-casual-events',
   ].includes(String(value.action))
 }
 
@@ -437,6 +487,9 @@ async function handleJobAction(
   request: JobActionRequest,
   userId: string,
 ) {
+  if (request.action === 'purge-casual-events') {
+    return await purgeCasualEvents(admin, request)
+  }
   if (request.action === 'create-job') {
     if (
       request.provider !== 'topdeck' && request.provider !== 'edhtop16'
@@ -461,6 +514,7 @@ async function handleJobAction(
         minimum_players: Math.max(0, Number(request.minimumPlayers ?? 0)),
         include_rounds: request.includeRounds === true,
         enrich_location: request.enrichLocation === true,
+        exclude_casual_events: request.excludeCasualEvents !== false,
         created_by: userId,
       })
       .select('*')
@@ -509,4 +563,63 @@ async function handleJobAction(
     if (error) throw error
   }
   return { jobId: request.jobId }
+}
+
+async function purgeCasualEvents(
+  admin: ReturnType<typeof createClient>,
+  request: JobActionRequest,
+) {
+  for (const value of [request.startDate, request.endDate]) {
+    if (value && Number.isNaN(Date.parse(value))) {
+      throw new Error('Purge dates must be valid calendar dates.')
+    }
+  }
+  if (
+    request.startDate &&
+    request.endDate &&
+    request.endDate < request.startDate
+  ) {
+    throw new Error('Purge end date must not be before its start date.')
+  }
+  let query = admin.from('tournaments')
+    .select('id, name, event_date, tournament_entries(count)')
+    .eq('source', 'topdeck')
+    .order('event_date', { ascending: true })
+    .limit(10000)
+  if (request.startDate) query = query.gte('event_date', request.startDate)
+  if (request.endDate) {
+    const exclusiveEnd = new Date(`${request.endDate}T00:00:00.000Z`)
+    exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1)
+    query = query.lt('event_date', exclusiveEnd.toISOString())
+  }
+  const { data, error } = await query
+  if (error) throw error
+  const keywords = getExcludedTitleKeywords()
+  const matches = (data ?? []).filter((tournament) =>
+    !evaluateTournamentTitle(tournament.name, keywords).included
+  )
+  const entriesAffected = matches.reduce(
+    (total, tournament) =>
+      total + Number(tournament.tournament_entries?.[0]?.count ?? 0),
+    0,
+  )
+  let eventsPurged = 0
+  if (request.dryRun === false) {
+    // Short ID batches keep the generated PostgREST URL bounded.
+    for (let index = 0; index < matches.length; index += 100) {
+      const ids = matches.slice(index, index + 100).map((item) => item.id)
+      const { data: deleted, error: deleteError } = await admin
+        .from('tournaments').delete().in('id', ids).select('id')
+      if (deleteError) throw deleteError
+      eventsPurged += deleted?.length ?? 0
+    }
+  }
+  return {
+    dryRun: request.dryRun !== false,
+    eventsMatched: matches.length,
+    eventsPurged,
+    entriesAffected,
+    titles: matches.slice(0, 100).map((tournament) => tournament.name),
+    truncated: matches.length > 100,
+  }
 }

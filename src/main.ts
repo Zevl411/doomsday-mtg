@@ -5,6 +5,7 @@ import 'vuetify/styles'
 import './mana-symbols.css'
 import './style.css'
 import App from './App.vue'
+import { appConfig } from './config/app'
 import vuetify from './plugins/vuetify'
 import router from './router'
 import { useDeckStore } from './stores/deck'
@@ -12,6 +13,9 @@ import { useAuthStore } from './stores/auth'
 import { useDeckSyncStore } from './stores/deckSync'
 
 const pinia = createPinia()
+
+// The browser title follows the same configurable branding as the app bar.
+document.title = `${appConfig.name} — ${appConfig.tagline}`
 
 // Guests restore one browser draft; signed-in users load their Supabase decks.
 const deckStore = useDeckStore(pinia)

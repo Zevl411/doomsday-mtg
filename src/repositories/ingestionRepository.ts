@@ -11,6 +11,7 @@ export interface IngestionOptions {
   last?: number
   includeRounds?: boolean
   enrichLocation?: boolean
+  excludeCasualEvents?: boolean
 }
 
 export interface IngestionReport {
@@ -30,6 +31,9 @@ export interface IngestionReport {
   rateLimitedRequests: number
   exhaustedRequests: number
   tournamentsPartiallyIngested: number
+  tournamentsExcluded: number
+  tournamentsPurged: number
+  excludedTournamentTitles: string[]
 }
 
 export interface AdminTournamentSummary {
@@ -100,6 +104,22 @@ export interface CreateIngestionJobOptions {
   minimumPlayers: number
   includeRounds: boolean
   enrichLocation: boolean
+  excludeCasualEvents: boolean
+}
+
+export interface PurgeCasualEventsOptions {
+  startDate?: string
+  endDate?: string
+  dryRun: boolean
+}
+
+export interface PurgeCasualEventsReport {
+  dryRun: boolean
+  eventsMatched: number
+  eventsPurged: number
+  entriesAffected: number
+  titles: string[]
+  truncated: boolean
 }
 
 export interface TournamentDeckIngestionOptions {
@@ -188,6 +208,25 @@ export const ingestionRepository = {
     action: 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job',
   ): Promise<void> {
     await invokeAuthenticatedFunction({ action, jobId })
+  },
+
+  async purgeCasualEvents(
+    options: PurgeCasualEventsOptions,
+  ): Promise<PurgeCasualEventsReport> {
+    const result = await invokeAuthenticatedFunction({
+      action: 'purge-casual-events',
+      ...options,
+    })
+    if (
+      !isRecord(result) ||
+      typeof result.eventsMatched !== 'number' ||
+      typeof result.eventsPurged !== 'number' ||
+      typeof result.entriesAffected !== 'number' ||
+      !Array.isArray(result.titles)
+    ) {
+      throw new Error('The casual-event purge response was invalid.')
+    }
+    return result as unknown as PurgeCasualEventsReport
   },
 
   async ingestTournamentDecks(

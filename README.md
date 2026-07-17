@@ -1,5 +1,19 @@
 # DoomsdayMTG
 
+The public application name, tagline, and deployment base path can be changed
+without editing Vue components:
+
+```env
+VITE_APP_NAME=DoomsdayMTG
+VITE_APP_TAGLINE=Competitive Commander Deck Builder
+VITE_BASE_PATH=/doomsday-mtg/
+```
+
+For a renamed GitHub Pages repository, set `VITE_BASE_PATH` to
+`/NEW_REPOSITORY_NAME/`. Use `/` when deploying to a custom domain. Existing
+browser storage keys and database identifiers remain stable so a display-name
+change does not discard Decks.
+
 > A modern, data-driven deck builder for Competitive Commander (cEDH).
 
 DoomsdayMTG is an open-source web application focused on helping players build stronger Commander decks through tournament data, card association analysis, and intelligent recommendations.

@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { appConfig } from '../config/app'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -20,6 +21,6 @@ export const isCloudConfigured = supabase !== null
 
 if (!isCloudConfigured && import.meta.env.MODE !== 'test') {
   console.warn(
-    'Supabase is not configured. DoomsdayMTG is running in guest-only mode.',
+    `Supabase is not configured. ${appConfig.name} is running in guest-only mode.`,
   )
 }

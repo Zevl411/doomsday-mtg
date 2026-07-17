@@ -52,6 +52,7 @@ Deno.serve(async (request) => {
         minimumPlayers: job.minimum_players,
         includeRounds: job.include_rounds,
         enrichLocation: job.enrich_location,
+        excludeCasualEvents: job.exclude_casual_events !== false,
         dryRun: false,
       }),
     })

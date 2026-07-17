@@ -46,6 +46,9 @@ jobs:
       - name: Build application
         run: npm run build
         env:
+          VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}
+          VITE_APP_TAGLINE: ${{ vars.VITE_APP_TAGLINE }}
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 

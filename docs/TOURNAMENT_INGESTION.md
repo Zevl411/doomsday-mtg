@@ -83,6 +83,24 @@ TopDeck requests use bounded retries and honor `Retry-After`. Rounds are off by
 default. Location enrichment runs only when requested and bulk data is missing
 location.
 
+TopDeck exposes Commander events as `EDH` but does not provide a competitive
+or cEDH tag. Ingestion therefore keeps neutral titles and excludes only
+explicit casual signals such as `budget`, `casual`, `precon`, `beginner`,
+`learn to play`, and `low power`. Dry runs report matching titles. Real runs
+also purge a previously stored matching provider event; cascading foreign keys
+remove its entries and normalized Decks. This behavior can be disabled per
+manual run or historical job.
+
+Operators may replace the default list with the Edge Function secret
+`TOURNAMENT_EXCLUDED_TITLE_KEYWORDS`, using comma-separated phrases. Review a
+dry run before changing the production list.
+
+For data imported before this filter existed, use the Admin Panel's
+**Purge casual TopDeck data** job. It defaults to dry-run mode and reports
+matching titles and affected entry counts. Disabling dry run performs the
+purge; existing foreign-key cascades remove related entries and normalized
+Decks.
+
 ## Card-level Deck normalization
 
 Migration `202607170006_create_tournament_decks.sql` adds one normalized Deck

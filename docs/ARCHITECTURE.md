@@ -1,5 +1,10 @@
 # DoomsdayMTG Architecture
 
+Public branding is configured through `VITE_APP_NAME` and
+`VITE_APP_TAGLINE`. The GitHub Pages base path is configured independently
+through `VITE_BASE_PATH`. Stable storage keys, database names, and historical
+migration identifiers intentionally do not change when the display name does.
+
 This document explains how the current MVP is divided, how data moves through
 the application, and where future work should live. Keep it updated when a
 change moves ownership or introduces a new architectural boundary.

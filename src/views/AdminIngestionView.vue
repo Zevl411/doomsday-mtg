@@ -188,6 +188,16 @@
                 label="Enrich missing locations"
               />
               <v-switch
+                v-model="excludeCasualEvents"
+                color="primary"
+                label="Exclude and purge explicitly casual or budget events"
+              />
+              <v-alert class="mb-4" type="info" variant="tonal">
+                TopDeck does not provide a competitive tag. Neutral event
+                names remain included; only explicit casual, budget, precon,
+                beginner, or low-power title signals are excluded.
+              </v-alert>
+              <v-switch
                 v-model="dryRun"
                 color="primary"
                 label="Dry run (validate without writing)"
@@ -319,6 +329,11 @@
               </v-btn>
             </v-col>
           </v-row>
+          <v-switch
+            v-model="jobExcludeCasualEvents"
+            color="primary"
+            label="Exclude and purge explicitly casual or budget events"
+          />
 
           <v-alert v-if="jobError" class="mb-4" type="error" variant="tonal">
             {{ jobError }}
@@ -397,6 +412,50 @@
 
       <v-card border class="mt-6" color="surface" variant="flat">
         <v-card-item>
+          <v-card-title>Purge casual TopDeck data</v-card-title>
+          <v-card-subtitle>
+            Review or remove previously imported events with explicit casual,
+            budget, precon, beginner, or low-power title signals
+          </v-card-subtitle>
+        </v-card-item>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" sm="4">
+              <v-text-field v-model="purgeStartDate" label="Start date" type="date" />
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field v-model="purgeEndDate" label="End date" type="date" />
+            </v-col>
+            <v-col class="d-flex align-center" cols="12" sm="4">
+              <v-switch v-model="purgeDryRun" label="Dry run" />
+            </v-col>
+          </v-row>
+          <v-btn
+            :color="purgeDryRun ? 'primary' : 'error'"
+            :loading="purgeRunning"
+            @click="requestCasualPurge"
+          >
+            {{ purgeDryRun ? 'Preview purge' : 'Purge matching events' }}
+          </v-btn>
+          <v-alert v-if="purgeError" class="mt-4" type="error" variant="tonal">
+            {{ purgeError }}
+          </v-alert>
+          <v-alert v-if="purgeReport" class="mt-4" type="info" variant="tonal">
+            {{ purgeReport.eventsMatched }} events matched,
+            affecting {{ purgeReport.entriesAffected }} entries.
+            <span v-if="!purgeReport.dryRun">
+              {{ purgeReport.eventsPurged }} events were purged.
+            </span>
+            <span v-if="purgeReport.titles.length">
+              Titles: {{ purgeReport.titles.join(', ') }}
+              <span v-if="purgeReport.truncated">…</span>
+            </span>
+          </v-alert>
+        </v-card-text>
+      </v-card>
+
+      <v-card border class="mt-6" color="surface" variant="flat">
+        <v-card-item>
           <v-card-title>Card-level Decklists</v-card-title>
           <v-card-subtitle>
             Normalize provider Decks and resolve stable Scryfall identities
@@ -460,6 +519,22 @@
         </v-card-text>
       </v-card>
 
+      <v-dialog v-model="purgeConfirmation" max-width="520">
+        <v-card>
+          <v-card-title>Delete matching tournament data?</v-card-title>
+          <v-card-text>
+            This permanently removes matching TopDeck events, their entries,
+            and normalized tournament Decks. Run the preview first and review
+            every matching title.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn @click="purgeConfirmation = false">Cancel</v-btn>
+            <v-btn color="error" @click="runCasualPurge">Purge data</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <v-card
         v-if="report"
         border
@@ -507,6 +582,14 @@
           >
             {{ report.validationIssues.join(' ') }}
           </v-alert>
+          <v-alert
+            v-if="report.excludedTournamentTitles.length"
+            class="mt-4"
+            type="info"
+            variant="tonal"
+          >
+            Excluded by title: {{ report.excludedTournamentTitles.join(', ') }}
+          </v-alert>
         </v-card-text>
       </v-card>
     </template>
@@ -519,6 +602,7 @@ import {
   ingestionRepository,
   type IngestionDashboardMetrics,
   type IngestionJob,
+  type PurgeCasualEventsReport,
   type TournamentDeckIngestionReport,
   type IngestionReport,
 } from '../repositories/ingestionRepository'
@@ -539,6 +623,7 @@ const dryRun = ref(true)
 const tournamentIds = ref('')
 const includeRounds = ref(false)
 const enrichLocation = ref(false)
+const excludeCasualEvents = ref(true)
 const report = ref<IngestionReport | null>(null)
 const errorMessage = ref('')
 const jobs = ref<IngestionJob[]>([])
@@ -547,8 +632,16 @@ const jobStartDate = ref('')
 const jobEndDate = ref('')
 const jobWindowDays = ref(7)
 const jobMinimumPlayers = ref(0)
+const jobExcludeCasualEvents = ref(true)
 const jobError = ref('')
 const jobMessage = ref('')
+const purgeStartDate = ref('')
+const purgeEndDate = ref('')
+const purgeDryRun = ref(true)
+const purgeRunning = ref(false)
+const purgeConfirmation = ref(false)
+const purgeError = ref('')
+const purgeReport = ref<PurgeCasualEventsReport | null>(null)
 const deckProvider = ref<'topdeck' | 'edhtop16' | undefined>('topdeck')
 const deckStartDate = ref('')
 const deckEndDate = ref('')
@@ -650,6 +743,8 @@ const reportItems = computed(() => {
       value: report.value.tournamentsPartiallyIngested,
     },
     { label: 'Provider errors', value: report.value.providerErrors.length },
+    { label: 'Events excluded', value: report.value.tournamentsExcluded },
+    { label: 'Existing events purged', value: report.value.tournamentsPurged },
   ]
 })
 const deckReportItems = computed(() => {
@@ -709,6 +804,7 @@ async function createHistoricalJob() {
       minimumPlayers: jobMinimumPlayers.value,
       includeRounds: false,
       enrichLocation: false,
+      excludeCasualEvents: jobExcludeCasualEvents.value,
     })
     jobMessage.value = 'Historical job created. The worker will process it in the background.'
     jobs.value = await ingestionRepository.getJobs()
@@ -716,6 +812,34 @@ async function createHistoricalJob() {
     jobError.value = error instanceof Error ? error.message : 'Unable to create job.'
   } finally {
     creatingJob.value = false
+  }
+}
+
+function requestCasualPurge() {
+  if (purgeDryRun.value) {
+    void runCasualPurge()
+  } else {
+    purgeConfirmation.value = true
+  }
+}
+
+async function runCasualPurge() {
+  purgeConfirmation.value = false
+  purgeRunning.value = true
+  purgeError.value = ''
+  try {
+    purgeReport.value = await ingestionRepository.purgeCasualEvents({
+      startDate: purgeStartDate.value || undefined,
+      endDate: purgeEndDate.value || undefined,
+      dryRun: purgeDryRun.value,
+    })
+    if (!purgeDryRun.value) await loadMetrics()
+  } catch (error) {
+    purgeError.value = error instanceof Error
+      ? error.message
+      : 'Unable to purge casual TopDeck events.'
+  } finally {
+    purgeRunning.value = false
   }
 }
 
@@ -779,6 +903,7 @@ async function ingest() {
         .filter(Boolean),
       includeRounds: includeRounds.value,
       enrichLocation: enrichLocation.value,
+      excludeCasualEvents: excludeCasualEvents.value,
     })
     if (!dryRun.value && !report.value.providerErrors.length) {
       await loadMetrics()
