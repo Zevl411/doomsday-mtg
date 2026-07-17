@@ -4,14 +4,64 @@
       <v-card-title>Deck</v-card-title>
       <template #append>
         <v-chip color="secondary" size="small" variant="tonal">
-          {{ getTotalCardCount() }} cards
+          {{ deckSizeStatus.total }} / {{ deckSizeStatus.target }}
         </v-chip>
       </template>
     </v-card-item>
 
     <v-card-text class="pa-5">
+      <div class="d-flex flex-wrap ga-2 mb-3">
+        <v-chip size="small" variant="tonal">
+          Main deck: {{ mainDeckCardCount }}
+        </v-chip>
+        <v-chip
+          :color="deck.commander ? 'success' : 'warning'"
+          size="small"
+          variant="tonal"
+        >
+          Commander {{ deck.commander ? 'selected' : 'not selected' }}
+        </v-chip>
+      </div>
+
+      <v-progress-linear
+        :color="deckSizeStatus.overLimit ? 'error' : 'primary'"
+        height="8"
+        :model-value="progressValue"
+        rounded
+      />
+
+      <v-alert
+        v-if="deckSizeStatus.overLimit"
+        class="mt-3"
+        density="compact"
+        type="error"
+        variant="tonal"
+      >
+        {{ deckSizeStatus.message }}
+      </v-alert>
+      <v-alert
+        v-else-if="deckSizeStatus.complete"
+        class="mt-3"
+        density="compact"
+        type="success"
+        variant="tonal"
+      >
+        {{ deckSizeStatus.message }}
+      </v-alert>
+      <v-alert
+        v-else
+        class="mt-3"
+        density="compact"
+        type="info"
+        variant="tonal"
+      >
+        {{ deckSizeStatus.message }}
+      </v-alert>
+
+      <v-divider class="my-5" />
+
       <CardSearch
-        :selected-card-ids="cards.map((deckCard) => deckCard.card.id)"
+        :selected-card-ids="deck.cards.map((deckCard) => deckCard.card.id)"
         @card-selected="emit('card-selected', $event)"
       />
 
@@ -26,9 +76,13 @@
         {{ rejectionMessage }}
       </v-alert>
 
-      <v-list v-if="cards.length" class="mt-5 pa-0" bg-color="transparent">
+      <v-list
+        v-if="deck.cards.length"
+        class="mt-5 pa-0"
+        bg-color="transparent"
+      >
         <v-list-item
-          v-for="(deckCard, index) in cards"
+          v-for="(deckCard, index) in deck.cards"
           :key="deckCard.card.id"
           border="b"
           class="px-0"
@@ -82,13 +136,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import CardSearch from './CardSearch.vue'
-import type { DeckCard } from '../models/deck'
+import type { Deck } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import { isBasicLand } from '../utils/deckLegality'
+import {
+  getDeckSizeStatus,
+  getMainDeckCardCount,
+} from '../utils/deckValidation'
 
 const props = defineProps<{
-  cards: DeckCard[]
+  deck: Deck
   rejectionMessage: string
 }>()
 
@@ -100,13 +159,12 @@ const emit = defineEmits<{
   'remove-card': [index: number]
 }>()
 
-function getTotalCardCount(): number {
-  let total = 0
+const mainDeckCardCount = computed(() => getMainDeckCardCount(props.deck))
+const deckSizeStatus = computed(() => getDeckSizeStatus(props.deck))
+const progressValue = computed(() => {
+  const percentage =
+    (deckSizeStatus.value.total / deckSizeStatus.value.target) * 100
 
-  for (const deckCard of props.cards) {
-    total += deckCard.quantity
-  }
-
-  return total
-}
+  return Math.min(percentage, 100)
+})
 </script>

@@ -14,7 +14,7 @@
 
       <v-col cols="12" md="6" lg="4">
         <DeckPanel
-          :cards="deck.cards"
+          :deck="deck"
           :rejection-message="rejectionMessage"
           @card-selected="addDeckCard"
           @decrease-quantity="decreaseCardQuantity"
