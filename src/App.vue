@@ -18,7 +18,8 @@ import SearchPanel from './components/SearchPanel.vue'
 import type { Deck } from './models/deck'
 import type { ScryfallCard } from './types/card'
 
-// reactive() makes every property on this Deck update the UI when it changes.
+// reactive() keeps these related deck properties together and updates the UI
+// when any property on the object changes.
 const deck = reactive<Deck>({
   commander: null,
   cards: [],
