@@ -42,6 +42,11 @@ save data migrates into the library automatically. Clearing browser site
 storage deletes the local library, and accounts or cloud synchronization are
 not yet supported.
 
+Persistence is accessed through a small repository boundary. The MVP
+repository remains browser-local; a future authenticated implementation may
+use Supabase without coupling Vue components or deck-building rules to the
+cloud provider.
+
 ### Plaintext decklists
 
 Import accepts card names with an optional positive quantity:

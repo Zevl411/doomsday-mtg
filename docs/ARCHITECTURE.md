@@ -106,7 +106,7 @@ mainboard legality and auxiliary-board assembly
     ↓
 PreparedDeckImport preview
     ↓
-confirmed Pinia replacement and localStorage save
+confirmed Pinia replacement and repository save
 ```
 
 The parser never calls Scryfall. It recognizes known and decorative headings,
@@ -123,13 +123,23 @@ never partially mutates the active Deck.
 
 ## Persistence and migration
 
-`src/utils/deckStorage.ts` is the only localStorage adapter. Version 1 uses the
-`doomsday-mtg-deck-library` key and stores the Deck collection plus the active
-Deck ID. Stored JSON is untrusted: loading validates unique Deck IDs,
-timestamps, the Commander, every card shape, and every positive integer
-quantity. The previous `doomsday-mtg-current-deck` save is migrated once,
-receiving an ID, timestamps, and any missing board arrays. The old key is
-removed only after the new library saves successfully.
+The Pinia store depends on the small `DeckRepository` interface rather than
+calling localStorage. `localDeckRepository` is the current implementation and
+delegates to `src/utils/deckStorage.ts`, the only module that accesses
+localStorage directly.
+
+Version 1 uses the `doomsday-mtg-deck-library` key and stores the Deck
+collection plus the active Deck ID. Stored JSON is untrusted: loading validates
+unique Deck IDs, timestamps, the Commander, every card shape, and every
+positive integer quantity. The previous `doomsday-mtg-current-deck` save is
+migrated once, receiving an ID, timestamps, and any missing board arrays. The
+old key is removed only after the new library saves successfully.
+
+The local repository intentionally stays synchronous to preserve the simple
+MVP startup path. A future authenticated repository may hydrate and save
+asynchronously through Supabase. That change should remain inside the
+repository/store boundary; components and domain utilities should not know
+which persistence provider is active.
 
 Temporary UI state—search text, previews, dialogs, and import issues—is never
 stored with the Deck.

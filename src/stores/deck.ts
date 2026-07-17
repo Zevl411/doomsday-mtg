@@ -14,13 +14,13 @@ import {
   isBasicLand,
   validateCardAddition,
 } from '../utils/deckLegality'
-import { loadDeckLibrary, saveDeckLibrary } from '../utils/deckStorage'
+import { localDeckRepository } from '../repositories/localDeckRepository'
 
 // defineStore() creates one shared source of deck-library state.
 export const useDeckStore = defineStore('deck', {
   // State contains the values that components can read reactively.
   state: () => ({
-    library: loadDeckLibrary(),
+    library: localDeckRepository.loadLibrary(),
     rejectionMessage: '',
     previewCard: null as ScryfallCard | null,
     saveSucceeded: null as boolean | null,
@@ -401,7 +401,7 @@ export const useDeckStore = defineStore('deck', {
     },
 
     persistLibrary() {
-      this.saveSucceeded = saveDeckLibrary(this.library)
+      this.saveSucceeded = localDeckRepository.saveLibrary(this.library)
     },
   },
 })
