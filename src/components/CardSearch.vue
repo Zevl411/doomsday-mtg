@@ -1,7 +1,7 @@
 <template>
-  <label class="sr-only" for="card-search">Search for a Magic card</label>
+  <label class="sr-only" :for="searchInputId">Search for a Magic card</label>
   <input
-    id="card-search"
+    :id="searchInputId"
     v-model="query"
     type="search"
     placeholder="Card name"
@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue'
+import { onUnmounted, ref, useId, watch } from 'vue'
 import { searchCards } from '../api/scryfall'
 import type { ScryfallCard } from '../types/card'
 
@@ -49,6 +49,9 @@ const props = withDefaults(defineProps<{ commanderOnly?: boolean }>(), {
 const emit = defineEmits<{
   'card-selected': [card: ScryfallCard]
 }>()
+
+// useId() gives each CardSearch instance its own accessible input and label ID.
+const searchInputId = useId()
 
 // ref() makes a value reactive, so Vue updates the page when it changes.
 const query = ref('')

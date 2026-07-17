@@ -5,7 +5,11 @@
       :commander="deck.commander"
       @clear-commander="clearCommander"
     />
-    <DeckPanel />
+    <DeckPanel
+      :cards="deck.cards"
+      @card-selected="addDeckCard"
+      @remove-card="removeDeckCard"
+    />
   </AppLayout>
 </template>
 
@@ -32,5 +36,19 @@ function selectCommander(card: ScryfallCard) {
 
 function clearCommander() {
   deck.commander = null
+}
+
+function addDeckCard(card: ScryfallCard) {
+  if (deck.commander?.id === card.id) {
+    return
+  }
+
+  // push() adds one item to the end of an array.
+  deck.cards.push(card)
+}
+
+function removeDeckCard(index: number) {
+  // filter() creates a new array containing every item except the chosen one.
+  deck.cards = deck.cards.filter((_card, cardIndex) => cardIndex !== index)
 }
 </script>

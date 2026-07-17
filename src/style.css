@@ -63,6 +63,17 @@ body {
   font-size: 1.35rem;
 }
 
+.panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panel-heading span {
+  color: #8f979f;
+}
+
 .placeholder-text {
   margin: 0;
   color: #8f979f;
@@ -94,14 +105,17 @@ input:focus {
 .results ul {
   display: grid;
   gap: 16px;
+  max-height: calc((124px * 6) + (16px * 5));
   margin: 0;
-  padding: 0;
+  padding: 0 8px 0 0;
+  overflow-y: auto;
   list-style: none;
 }
 
 .card-result {
   display: flex;
   width: 100%;
+  height: 124px;
   gap: 16px;
   padding: 12px;
   border: 1px solid #303438;
@@ -200,6 +214,41 @@ input:focus {
 
 .clear-button:hover {
   background: #292d31;
+}
+
+.deck-card-list {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deck-card-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #303438;
+}
+
+.deck-card-list button {
+  padding: 6px 9px;
+  border: 1px solid #555b61;
+  border-radius: 5px;
+  color: #f5f5f5;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.deck-card-list button:hover {
+  background: #292d31;
+}
+
+.deck-empty {
+  margin-top: 24px;
 }
 
 .status,
