@@ -162,6 +162,18 @@ input:focus {
   margin: 0 0 10px;
 }
 
+.commander-panel .selected-commander {
+  display: grid;
+}
+
+.commander-panel .selected-commander img {
+  width: min(100%, 220px);
+}
+
+.commander-panel .selected-commander h3 {
+  margin: 0 0 10px;
+}
+
 .selected-commander p {
   margin: 0 0 8px;
   color: #b7b7b7;
