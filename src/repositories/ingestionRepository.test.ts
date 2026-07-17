@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { getFunctionErrorMessage } from './ingestionRepository'
+import {
+  createAuthorizationHeaders,
+  getFunctionErrorMessage,
+} from './ingestionRepository'
 
 describe('getFunctionErrorMessage', () => {
   it('surfaces structured provider errors returned by the Edge Function', async () => {
@@ -20,5 +23,13 @@ describe('getFunctionErrorMessage', () => {
     await expect(getFunctionErrorMessage(new Error('private'))).resolves.toBe(
       'Tournament ingestion failed. Check the Edge Function logs.',
     )
+  })
+})
+
+describe('createAuthorizationHeaders', () => {
+  it('formats the signed-in user token for the Edge Function gateway', () => {
+    expect(createAuthorizationHeaders('user-access-token')).toEqual({
+      Authorization: 'Bearer user-access-token',
+    })
   })
 })

@@ -53,6 +53,11 @@
               </v-btn>
             </template>
             <v-list>
+              <v-list-item
+                :to="{ name: 'admin-ingestion' }"
+                title="Admin Panel"
+              />
+              <v-divider />
               <v-list-item title="Sign Out" @click="auth.signOut" />
             </v-list>
           </v-menu>

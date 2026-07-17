@@ -3,6 +3,7 @@ import type {
   CommanderMetagameStats,
   MetagameFilters,
   Tournament,
+  TournamentEntryDecklist,
   TournamentEntry,
 } from '../models/tournament'
 
@@ -17,6 +18,7 @@ export interface CommanderDetail {
 }
 
 const metagameCache = new Map<string, CommanderMetagameStats[]>()
+const entryDecklistCache = new Map<string, TournamentEntryDecklist>()
 
 /** Queries only normalized public tables and shields views from Supabase rows. */
 export const tournamentRepository = {
@@ -119,9 +121,82 @@ export const tournamentRepository = {
     }
   },
 
+  async getEntryDecklist(
+    sourceEntryId: string,
+  ): Promise<TournamentEntryDecklist> {
+    requireSupabase()
+    const cached = entryDecklistCache.get(sourceEntryId)
+    if (cached) return cached
+
+    const { data, error } = await supabase!.functions.invoke(
+      'tournament-decklist',
+      { body: { entryId: sourceEntryId } },
+    )
+    if (error) {
+      throw new Error(await readFunctionError(error))
+    }
+
+    const decklist = normalizeEntryDecklist(data)
+    if (!decklist) {
+      throw new Error('The tournament decklist response was invalid.')
+    }
+    entryDecklistCache.set(sourceEntryId, decklist)
+    return decklist
+  },
+
   clearCache() {
     metagameCache.clear()
+    entryDecklistCache.clear()
   },
+}
+
+function normalizeEntryDecklist(
+  value: unknown,
+): TournamentEntryDecklist | null {
+  if (!isRecord(value)) return null
+  const commanders = normalizeTournamentCards(value.commanders)
+  const cards = normalizeTournamentCards(value.cards)
+  if (!commanders || !cards) return null
+  return { commanders, cards }
+}
+
+function normalizeTournamentCards(value: unknown) {
+  if (!Array.isArray(value)) return null
+  const cards: TournamentEntryDecklist['cards'] = []
+  for (const card of value) {
+    if (
+      !isRecord(card) ||
+      typeof card.name !== 'string' ||
+      typeof card.imageUrl !== 'string'
+    ) {
+      return null
+    }
+    cards.push({
+      name: card.name,
+      oracleId: typeof card.oracleId === 'string' ? card.oracleId : null,
+      typeLine: typeof card.typeLine === 'string' ? card.typeLine : '',
+      manaCost: typeof card.manaCost === 'string' ? card.manaCost : '',
+      imageUrl: card.imageUrl,
+    })
+  }
+  return cards
+}
+
+async function readFunctionError(error: unknown): Promise<string> {
+  if (
+    isRecord(error) &&
+    error.context instanceof Response
+  ) {
+    try {
+      const body: unknown = await error.context.clone().json()
+      if (isRecord(body) && typeof body.error === 'string') {
+        return body.error
+      }
+    } catch {
+      // Fall through to a stable public error.
+    }
+  }
+  return 'Unable to load this tournament decklist.'
 }
 
 function requireSupabase() {
@@ -250,4 +325,8 @@ function mapEntryRow(row: EntryRow): TournamentEntry {
 function friendlyError(operation: string, error: unknown) {
   console.warn(`Tournament repository could not ${operation}.`, error)
   return new Error(`Unable to ${operation}. Please try again later.`)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }

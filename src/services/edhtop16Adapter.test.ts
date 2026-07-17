@@ -42,6 +42,20 @@ describe('EDHTop16 adapter mapping', () => {
     })
   })
 
+  it('maps color identity from the nested commander record', () => {
+    expect(
+      mapEntry({
+        id: 'entry-1',
+        commander: {
+          name: 'Thrasios, Triton Hero / Tymna the Weaver',
+          colorId: 'WUBG',
+        },
+      }),
+    ).toMatchObject({
+      colorIdentity: ['W', 'U', 'B', 'G'],
+    })
+  })
+
   it('skips malformed rows with no stable identity or Commander', () => {
     expect(mapTournament({ name: 'Missing ID' })).toBeNull()
     expect(mapEntry({ playerName: 'Missing Commander' })).toBeNull()
@@ -57,10 +71,21 @@ describe('EDHTop16 adapter mapping', () => {
         }),
       )
       .mockResolvedValueOnce(
-        new Response(
-          '<script>{"edges":[{"node":{"TID":"event-1","name":"Event","size":32,"tournamentDate":"2026-07-01"}}]}</script>',
-          { status: 200 },
-        ),
+        Response.json({
+          data: {
+            tournaments: {
+              edges: [{
+                node: {
+                  TID: 'event-1',
+                  name: 'Event',
+                  size: 32,
+                  tournamentDate: '2026-07-01',
+                },
+              }],
+              pageInfo: { endCursor: null, hasNextPage: false },
+            },
+          },
+        }),
       )
     const provider = new EdhTop16Provider(
       'https://provider.example',
@@ -71,6 +96,64 @@ describe('EDHTop16 adapter mapping', () => {
       provider.listTournaments({ minimumPlayers: 0 }),
     ).resolves.toHaveLength(1)
     expect(request).toHaveBeenCalledTimes(2)
+  })
+
+  it('follows every tournament archive cursor in the requested range', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          data: {
+            tournaments: {
+              edges: [{
+                node: {
+                  TID: 'new-event',
+                  name: 'New Event',
+                  size: 12,
+                  tournamentDate: '2026-07-15',
+                },
+              }],
+              pageInfo: { endCursor: 'page-two', hasNextPage: true },
+            },
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          data: {
+            tournaments: {
+              edges: [{
+                node: {
+                  TID: 'older-event',
+                  name: 'Older Event',
+                  size: 8,
+                  tournamentDate: '2026-07-02',
+                },
+              }],
+              pageInfo: { endCursor: null, hasNextPage: false },
+            },
+          },
+        }),
+      )
+    const provider = new EdhTop16Provider(
+      'https://provider.example',
+      request,
+    )
+
+    const tournaments = await provider.listTournaments({
+      startDate: '2026-07-01',
+      endDate: '2026-07-31',
+      minimumPlayers: 0,
+    })
+
+    expect(tournaments.map((item) => item.sourceTournamentId)).toEqual([
+      'new-event',
+      'older-event',
+    ])
+    expect(request).toHaveBeenCalledTimes(2)
+    expect(JSON.parse(String(request.mock.calls[1]?.[1]?.body))).toMatchObject({
+      variables: { after: 'page-two', first: 100 },
+    })
   })
 
   it('extracts complete Relay arrays without depending on visual markup', () => {

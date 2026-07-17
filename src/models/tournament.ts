@@ -37,6 +37,19 @@ export interface TournamentEntry {
   updatedAt: string
 }
 
+export interface TournamentDeckCard {
+  name: string
+  oracleId: string | null
+  typeLine: string
+  manaCost: string
+  imageUrl: string
+}
+
+export interface TournamentEntryDecklist {
+  commanders: TournamentDeckCard[]
+  cards: TournamentDeckCard[]
+}
+
 export interface CommanderMetagameStats {
   commanderKey: string
   commanderName: string
@@ -60,4 +73,3 @@ export interface MetagameFilters {
   minimumEntries?: number
   topFinishThreshold?: number
 }
-

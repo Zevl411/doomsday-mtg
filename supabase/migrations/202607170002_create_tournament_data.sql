@@ -137,9 +137,12 @@ as $$
     select
       commander_key,
       max(commander_name) as commander_name,
-      -- Cast through text so array_agg keeps each complete color identity as
-      -- one value instead of flattening text[] values into individual colors.
-      ((array_agg(color_identity::text))[1])::text[] as color_identity,
+      -- Prefer a populated identity while historical rows are being refreshed.
+      -- Casting through text keeps each complete text[] as one aggregate value.
+      ((array_agg(
+        color_identity::text
+        order by cardinality(color_identity) desc
+      ))[1])::text[] as color_identity,
       count(*) as entries,
       count(distinct tournament_id) as tournaments,
       sum(wins)::bigint as wins,

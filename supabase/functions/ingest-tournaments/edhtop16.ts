@@ -6,6 +6,60 @@ import type {
 } from './types.ts'
 
 const DEFAULT_BASE_URL = 'https://edhtop16.com'
+const TOURNAMENT_PAGE_SIZE = 100
+const MAX_TOURNAMENT_PAGES = 100
+const TOURNAMENTS_QUERY = `
+  query DoomsdayTournamentArchive(
+    $after: String
+    $first: Int!
+    $filters: TournamentFilters
+    $sortBy: TournamentSortBy!
+  ) {
+    tournaments(
+      after: $after
+      first: $first
+      filters: $filters
+      sortBy: $sortBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          TID
+          name
+          size
+          tournamentDate
+        }
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+    }
+  }
+`
+const TOURNAMENT_ENTRIES_QUERY = `
+  query DoomsdayTournamentEntries($tournamentId: String!) {
+    tournament(TID: $tournamentId) {
+      entries {
+        id
+        standing
+        wins
+        losses
+        draws
+        decklist
+        player {
+          id
+          name
+        }
+        commander {
+          name
+          colorId
+        }
+      }
+    }
+  }
+`
 
 /**
  * EDHTop16 transport is isolated here because its response contract may evolve
@@ -27,60 +81,44 @@ export class EdhTop16Provider implements TournamentProvider {
   async listTournaments(
     options: ProviderListOptions,
   ): Promise<ProviderTournament[]> {
-    const url = new URL('/tournaments', this.baseUrl)
-    const rows = extractEmbeddedArrays(await this.getText(url), 'edges')
-      .flat()
-      .map((row) => isRecord(row) ? row.node : null)
     const unique = new Map<string, ProviderTournament>()
+    let cursor: string | null = null
 
-    for (const row of rows) {
-      const tournament = mapTournament(row)
-      if (!tournament) continue
-      tournament.url ??= new URL(
-        `/tournament/${encodeURIComponent(tournament.sourceTournamentId)}`,
-        this.baseUrl,
-      ).toString()
-      if (
-        options.tournamentIds?.length &&
-        !options.tournamentIds.includes(tournament.sourceTournamentId)
-      ) {
-        continue
+    for (let page = 0; page < MAX_TOURNAMENT_PAGES; page += 1) {
+      const connection = await this.getTournamentPage(options, cursor)
+
+      for (const edge of connection.edges) {
+        const tournament = mapTournament(edge.node)
+        if (!tournament || !matchesOptions(tournament, options)) continue
+        tournament.url ??= new URL(
+          `/tournament/${encodeURIComponent(tournament.sourceTournamentId)}`,
+          this.baseUrl,
+        ).toString()
+        unique.set(tournament.sourceTournamentId, tournament)
       }
-      if (
-        tournament.playerCount !== null &&
-        tournament.playerCount < options.minimumPlayers
-      ) {
-        continue
+
+      if (!connection.pageInfo.hasNextPage) {
+        return [...unique.values()]
       }
-      if (
-        options.startDate &&
-        tournament.date &&
-        tournament.date < new Date(options.startDate).toISOString()
-      ) {
-        continue
+
+      const nextCursor = connection.pageInfo.endCursor
+      if (!nextCursor || nextCursor === cursor) {
+        throw new Error('EDHTop16 pagination returned an invalid cursor.')
       }
-      if (
-        options.endDate &&
-        tournament.date &&
-        tournament.date >= endOfDay(options.endDate)
-      ) {
-        continue
-      }
-      unique.set(tournament.sourceTournamentId, tournament)
+      cursor = nextCursor
     }
-    return [...unique.values()]
+
+    throw new Error(
+      `EDHTop16 returned more than ${MAX_TOURNAMENT_PAGES} tournament pages.`,
+    )
   }
 
   async listEntries(
     tournament: ProviderTournament,
   ): Promise<ProviderTournamentEntry[]> {
-    const url = new URL(
-      `/tournament/${encodeURIComponent(tournament.sourceTournamentId)}`,
-      this.baseUrl,
-    )
     const unique = new Map<string, ProviderTournamentEntry>()
-    const arrays = extractEmbeddedArrays(await this.getText(url), 'entries')
-    for (const row of arrays.flat()) {
+    const rows = await this.getTournamentEntries(tournament.sourceTournamentId)
+    for (const row of rows) {
       const entry = mapEntry(row)
       if (!entry) continue
       const identity = entry.sourceEntryId ??
@@ -90,12 +128,79 @@ export class EdhTop16Provider implements TournamentProvider {
     return [...unique.values()]
   }
 
-  private async getText(url: URL): Promise<string> {
+  private async getTournamentPage(
+    options: ProviderListOptions,
+    cursor: string | null,
+  ): Promise<TournamentConnection> {
+    const response = await this.requestWithRetry(
+      new URL('/api/graphql', this.baseUrl),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: TOURNAMENTS_QUERY,
+          variables: {
+            after: cursor,
+            first: TOURNAMENT_PAGE_SIZE,
+            filters: {
+              minDate: options.startDate,
+              maxDate: options.endDate
+                ? endOfDay(options.endDate)
+                : undefined,
+              minSize: options.minimumPlayers,
+            },
+            sortBy: 'DATE',
+          },
+        }),
+      },
+    )
+    const body: unknown = await response.json()
+    const connection = readTournamentConnection(body)
+    if (!connection) {
+      throw new Error('EDHTop16 returned an invalid tournament page.')
+    }
+    return connection
+  }
+
+  private async getTournamentEntries(
+    tournamentId: string,
+  ): Promise<unknown[]> {
+    const response = await this.requestWithRetry(
+      new URL('/api/graphql', this.baseUrl),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: TOURNAMENT_ENTRIES_QUERY,
+          variables: { tournamentId },
+        }),
+      },
+    )
+    const body: unknown = await response.json()
+    if (
+      !isRecord(body) ||
+      !isRecord(body.data) ||
+      !isRecord(body.data.tournament) ||
+      !Array.isArray(body.data.tournament.entries)
+    ) {
+      throw new Error('EDHTop16 returned invalid tournament entries.')
+    }
+    return body.data.tournament.entries
+  }
+
+  private async requestWithRetry(
+    url: URL,
+    init: RequestInit,
+  ): Promise<Response> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      const response = await this.request(url, {
-        headers: { Accept: 'text/html' },
-      })
-      if (response.ok) return response.text()
+      const response = await this.request(url, init)
+      if (response.ok) return response
       if (response.status !== 429 || attempt === 2) {
         throw new Error(`EDHTop16 request failed with ${response.status}.`)
       }
@@ -108,6 +213,69 @@ export class EdhTop16Provider implements TournamentProvider {
     }
     throw new Error('EDHTop16 request failed.')
   }
+}
+
+interface TournamentConnection {
+  edges: Array<{ node: unknown }>
+  pageInfo: {
+    endCursor: string | null
+    hasNextPage: boolean
+  }
+}
+
+function readTournamentConnection(value: unknown): TournamentConnection | null {
+  if (!isRecord(value) || !isRecord(value.data)) return null
+  const connection = value.data.tournaments
+  if (
+    !isRecord(connection) ||
+    !Array.isArray(connection.edges) ||
+    !isRecord(connection.pageInfo) ||
+    typeof connection.pageInfo.hasNextPage !== 'boolean'
+  ) {
+    return null
+  }
+
+  const edges = connection.edges
+    .filter(isRecord)
+    .map((edge) => ({ node: edge.node }))
+  const endCursor = connection.pageInfo.endCursor
+  return {
+    edges,
+    pageInfo: {
+      endCursor: typeof endCursor === 'string' ? endCursor : null,
+      hasNextPage: connection.pageInfo.hasNextPage,
+    },
+  }
+}
+
+function matchesOptions(
+  tournament: ProviderTournament,
+  options: ProviderListOptions,
+): boolean {
+  if (
+    options.tournamentIds?.length &&
+    !options.tournamentIds.includes(tournament.sourceTournamentId)
+  ) {
+    return false
+  }
+  if (
+    tournament.playerCount !== null &&
+    tournament.playerCount < options.minimumPlayers
+  ) {
+    return false
+  }
+  if (
+    options.startDate &&
+    tournament.date &&
+    tournament.date < new Date(options.startDate).toISOString()
+  ) {
+    return false
+  }
+  return !(
+    options.endDate &&
+    tournament.date &&
+    tournament.date >= endOfDay(options.endDate)
+  )
 }
 
 function mapTournament(value: unknown): ProviderTournament | null {
@@ -128,8 +296,9 @@ function mapTournament(value: unknown): ProviderTournament | null {
 
 function mapEntry(value: unknown): ProviderTournamentEntry | null {
   if (!isRecord(value)) return null
-  const commanderValue = isRecord(value.commander)
-    ? value.commander.name
+  const commander = isRecord(value.commander) ? value.commander : null
+  const commanderValue = commander
+    ? commander.name
     : value.commander
   const commanderName =
     typeof commanderValue === 'string' && commanderValue.trim()
@@ -143,7 +312,9 @@ function mapEntry(value: unknown): ProviderTournamentEntry | null {
     playerExternalId: readNestedString(value, 'player', 'id') ??
       readString(value, ['playerId', 'profileId']),
     commanderName,
-    colorIdentity: readColors(value.colorIdentity ?? value.colors),
+    colorIdentity: readColors(
+      commander?.colorId ?? value.colorIdentity ?? value.colors,
+    ),
     standing: readNumber(value, ['standing', 'place', 'rank']) ?? undefined,
     wins: readNumber(value, ['wins', 'win']) ?? 0,
     losses: readNumber(value, ['losses', 'loss']) ?? 0,

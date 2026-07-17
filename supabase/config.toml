@@ -1,3 +1,8 @@
 [functions.ingest-tournaments]
 verify_jwt = true
 
+# Tournament records are public reference data, so deck-card previews do not
+# require an authenticated session. The function accepts only a provider entry
+# ID and never exposes database write credentials.
+[functions.tournament-decklist]
+verify_jwt = false
