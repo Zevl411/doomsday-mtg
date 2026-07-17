@@ -111,11 +111,11 @@ describe('DeckPanel', () => {
 
     store.saveSucceeded = true
     await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Saved locally')
+    expect(wrapper.text()).toContain('Saved as temporary draft')
 
     store.saveSucceeded = false
     await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Unable to save locally')
+    expect(wrapper.text()).toContain('Unable to save temporary draft')
     wrapper.unmount()
   })
 

@@ -33,19 +33,20 @@ The end goal is a tool capable of answering questions like:
 - Commander color identity restrictions
 - Deck model written in TypeScript
 - Responsive Vue 3 interface
-- Multiple decks saved locally in the browser
+- One refresh-safe guest draft and authenticated cloud deck libraries
 - Plaintext decklist import and export
 
-The deck library remains only in this browser. You can create, open, rename,
-duplicate, reset, and delete decks from the Decks screen. Existing single-deck
-save data migrates into the library automatically. Clearing browser site
-storage deletes the local library, and accounts or cloud synchronization are
-not yet supported.
+Guests receive one temporary, refresh-safe browser draft. Authenticated users
+receive a multi-deck library whose authoritative records live in Supabase;
+authenticated deck data is not mirrored into localStorage. On sign-in, one
+meaningful guest draft is automatically saved to the account with its stable
+deck ID. The browser copy is removed only after that deck can be read back from
+Supabase. Failed cloud writes leave the current in-memory edit available for
+retry during the session, but refreshing can lose an authenticated edit that
+has not reached Supabase.
 
-Persistence is accessed through a small repository boundary. The MVP
-repository remains browser-local; a future authenticated implementation may
-use Supabase without coupling Vue components or deck-building rules to the
-cloud provider.
+Persistence remains behind repository modules, so Vue components and deck
+rules do not call localStorage or Supabase directly.
 
 ### Plaintext decklists
 
@@ -210,7 +211,7 @@ migration, and testing conventions, see
 Available routes:
 
 - `#/` — Home
-- `#/decks` — Local deck library
+- `#/decks` — Guest draft or authenticated cloud deck library
 - `#/deck-builder` — Deck Builder
 
 Hash-based routing is used so direct links and page refreshes work when the
@@ -247,6 +248,31 @@ Preview the production build locally:
 ```bash
 npm run preview
 ```
+
+### Optional Supabase setup
+
+Copy `.env.example` to `.env.local` and provide the browser-safe project URL
+and publishable key:
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
+
+Apply `supabase/migrations/202607170001_create_decks_table.sql` to create the private
+deck table and Row Level Security policies. No service-role key belongs in the
+frontend. Without these variables, the app and tests run in guest-only mode.
+
+In Supabase Authentication URL Configuration, add:
+
+- Site URL: `https://zevl411.github.io/doomsday-mtg/`
+- Redirect URL: `https://zevl411.github.io/doomsday-mtg/#/auth/callback`
+- Local redirect: `http://localhost:5173/doomsday-mtg/#/auth/callback`
+
+Cloud records store a complete Deck JSON document for this MVP. This is not
+end-to-end encrypted. RLS restricts records to their authenticated owner;
+future tournament analytics will use separate normalized data. Account
+deletion and sophisticated multi-device conflict resolution remain deferred.
 
 GitHub Pages deployment is configured at
 `https://zevl411.github.io/doomsday-mtg/`. Pushes to `main` automatically build

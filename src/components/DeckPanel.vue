@@ -26,12 +26,12 @@
       <div class="d-flex align-center justify-space-between ga-3 mb-4">
         <v-chip
           v-if="deckStore.saveSucceeded !== null"
-          :color="deckStore.saveSucceeded ? 'success' : 'error'"
+          :color="saveStatusColor"
           role="status"
           size="x-small"
           variant="tonal"
         >
-          {{ deckStore.saveSucceeded ? 'Saved locally' : 'Unable to save locally' }}
+          {{ saveStatusLabel }}
         </v-chip>
         <span v-else />
         <v-btn
@@ -249,6 +249,7 @@ import {
   type TrackedDeckBoard,
 } from '../models/deck'
 import { useDeckStore } from '../stores/deck'
+import { useDeckSyncStore } from '../stores/deckSync'
 import type { ScryfallCard } from '../types/card'
 import { getCardIdentity } from '../utils/cardIdentity'
 import {
@@ -272,6 +273,23 @@ const boardOptions: Array<{ title: string; value: TrackedDeckBoard }> = [
 ]
 
 const deckStore = useDeckStore()
+const syncStore = useDeckSyncStore()
+const saveStatusColor = computed(() => {
+  if (deckStore.storageMode === 'cloud') {
+    if (syncStore.syncStatus === 'error') return 'error'
+    return syncStore.syncStatus === 'syncing' ? 'info' : 'success'
+  }
+  return deckStore.saveSucceeded ? 'success' : 'error'
+})
+const saveStatusLabel = computed(() => {
+  if (deckStore.storageMode === 'cloud') {
+    if (syncStore.syncStatus === 'error') return 'Unable to sync'
+    return syncStore.syncStatus === 'syncing' ? 'Saving…' : 'Synced'
+  }
+  return deckStore.saveSucceeded
+    ? 'Saved as temporary draft'
+    : 'Unable to save temporary draft'
+})
 const deck = computed<Deck>(() => deckStore.deck)
 const selectedBoard = ref<TrackedDeckBoard>('mainboard')
 const searchDestination = ref<TrackedDeckBoard>('mainboard')

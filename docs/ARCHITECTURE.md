@@ -14,7 +14,7 @@ Vue route-level view
         │       └── read shared Pinia state
         │
         ├── Pinia deck store
-        │       ├── owns the local Deck library and active Deck ID
+        │       ├── owns the current Deck library and active Deck ID
         │       ├── performs mutations
         │       └── saves meaningful mutations
         │
@@ -45,8 +45,8 @@ shapes. A Deck contains:
 - sideboard, maybeboard, and considering boards;
 - a user-facing deck name.
 
-Pinia's `useDeckStore` is the single source of truth for the browser-local
-Deck collection, active Deck selection, and editor mutations. Components may
+Pinia's `useDeckStore` is the single source of truth for the current Deck
+collection, active Deck selection, and editor mutations. Components may
 read the store and call actions, but they should not introduce a second copy
 of deck state. Import previews are temporary and intentionally remain inside
 the import component until the user confirms replacement.
@@ -121,25 +121,41 @@ Clean imports replace the Deck immediately and close the dialog. Imports with
 errors remain previews until the user proceeds or cancels. Network failure
 never partially mutates the active Deck.
 
-## Persistence and migration
+## Persistence
 
-The Pinia store depends on the small `DeckRepository` interface rather than
-calling localStorage. `localDeckRepository` is the current implementation and
-delegates to `src/utils/deckStorage.ts`, the only module that accesses
-localStorage directly.
+The Pinia store depends on repository modules rather than calling localStorage
+or Supabase from components and domain rules.
 
-Version 1 uses the `doomsday-mtg-deck-library` key and stores the Deck
-collection plus the active Deck ID. Stored JSON is untrusted: loading validates
-unique Deck IDs, timestamps, the Commander, every card shape, and every
-positive integer quantity. The previous `doomsday-mtg-current-deck` save is
-migrated once, receiving an ID, timestamps, and any missing board arrays. The
-old key is removed only after the new library saves successfully.
+Guest mode intentionally stores exactly one refresh-safe temporary draft under
+`doomsday-mtg-guest-draft`. `guestDraftRepository` delegates validation and
+serialization to `src/utils/deckStorage.ts`, the only module that accesses
+localStorage. A one-time compatibility path retains the active deck from the
+former guest library and removes the old key only after the new draft saves.
 
-The local repository intentionally stays synchronous to preserve the simple
-MVP startup path. A future authenticated repository may hydrate and save
-asynchronously through Supabase. That change should remain inside the
-repository/store boundary; components and domain utilities should not know
-which persistence provider is active.
+Authenticated mode treats Supabase as authoritative. Pinia holds the working
+library in memory, `supabaseDeckRepository` performs CRUD, and no per-user
+localStorage cache is created. The `deck-sync` store loads the cloud library,
+performs optimistic writes, reports failures without rolling back session
+state, and provides retry behavior. A refresh can lose an authenticated edit
+that has not reached Supabase; this is the intentional offline limitation of
+the simplified MVP.
+
+When a user signs in with a meaningful guest draft, the sync store upserts that
+single deck using its existing stable ID. It reloads the cloud records and only
+clears the guest draft after confirming the ID is retrievable. Empty drafts are
+not uploaded. A failed transfer leaves the guest data intact and exposes a
+retryable status. Logging out clears cloud state from Pinia and returns to the
+guest repository.
+
+The cloud `decks` table stores one complete Deck JSON value per record for this
+MVP. Row Level Security compares `auth.uid()` with `user_id` for every select,
+insert, update, and delete. Complete JSON preserves all tracked boards without
+prematurely coupling deck-builder storage to future normalized tournament
+analytics.
+
+The current MVP deliberately has no local/cloud reconciliation or automatic
+conflict-copy algorithm. Supabase's unique `(user_id, deck_id)` constraint
+makes saves idempotent, while Row Level Security is the ownership boundary.
 
 Temporary UI state—search text, previews, dialogs, and import issues—is never
 stored with the Deck.

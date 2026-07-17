@@ -4,13 +4,31 @@
       <div>
         <h1 class="text-h4 font-weight-bold">Your decks</h1>
         <p class="text-medium-emphasis">
-          Create and manage decks saved in this browser.
+          {{ libraryDescription }}
         </p>
       </div>
       <v-btn color="primary" size="large" @click="openCreateDialog">
         New deck
       </v-btn>
     </div>
+
+    <v-alert
+      class="mb-5"
+      :color="sync.syncStatus === 'error' ? 'error' : 'info'"
+      variant="tonal"
+    >
+      <div class="d-flex flex-wrap align-center justify-space-between ga-3">
+        <span>{{ syncLabel }}</span>
+        <v-btn
+          v-if="sync.syncStatus === 'error'"
+          size="small"
+          variant="outlined"
+          @click="sync.retry"
+        >
+          Retry sync
+        </v-btn>
+      </div>
+    </v-alert>
 
     <v-row v-if="deckStore.library.decks.length">
       <v-col
@@ -34,7 +52,7 @@
     <v-card v-else border class="pa-8 text-center" color="surface" rounded="lg">
       <v-card-title>No decks yet</v-card-title>
       <v-card-text>
-        Create your first local deck to start building.
+        Create your first deck to start building.
       </v-card-text>
       <v-btn color="primary" @click="openCreateDialog">
         Create a deck
@@ -69,7 +87,8 @@
       <v-card color="surface" rounded="lg">
         <v-card-title class="px-5 pt-5">Delete this deck?</v-card-title>
         <v-card-text class="px-5">
-          This permanently removes “{{ deletingDeck?.name }}” from this browser.
+          This permanently removes “{{ deletingDeck?.name }}”
+          {{ auth.isSignedIn ? 'from your account' : 'from this browser' }}.
         </v-card-text>
         <v-card-actions class="px-5 pb-5">
           <v-spacer />
@@ -80,6 +99,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
   </section>
 </template>
 
@@ -88,8 +108,12 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import DeckLibraryCard from '../components/DeckLibraryCard.vue'
 import { useDeckStore } from '../stores/deck'
+import { useDeckSyncStore } from '../stores/deckSync'
+import { useAuthStore } from '../stores/auth'
 
 const deckStore = useDeckStore()
+const sync = useDeckSyncStore()
+const auth = useAuthStore()
 const router = useRouter()
 const showNameDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -97,6 +121,20 @@ const editingDeckId = ref<string | null>(null)
 const deletingDeckId = ref<string | null>(null)
 const deckName = ref('')
 const nameError = ref('')
+const libraryDescription = computed(() =>
+  auth.isSignedIn
+    ? 'Create and manage decks saved to your account.'
+    : 'Build one temporary draft saved in this browser.',
+)
+const syncLabel = computed(() => {
+  if (!auth.isSignedIn) return 'Saved as a temporary browser draft'
+  if (sync.transferringGuestDraft) {
+    return 'Saving your current deck to your account…'
+  }
+  if (sync.syncStatus === 'syncing') return 'Saving…'
+  if (sync.syncStatus === 'error') return sync.syncError
+  return sync.syncStatus === 'synced' ? 'Synced' : 'Cloud sync ready'
+})
 
 const decksByRecentUpdate = computed(() =>
   [...deckStore.library.decks].sort(

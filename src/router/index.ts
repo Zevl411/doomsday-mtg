@@ -13,6 +13,16 @@ const router = createRouter({
       component: () => import('../views/HomeView.vue'),
     },
     {
+      path: '/auth',
+      name: 'auth',
+      component: () => import('../views/AuthView.vue'),
+    },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('../views/AuthCallbackView.vue'),
+    },
+    {
       path: '/decks',
       name: 'deck-library',
       component: () => import('../views/DeckLibraryView.vue'),

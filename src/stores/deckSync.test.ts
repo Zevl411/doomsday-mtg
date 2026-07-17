@@ -1,0 +1,182 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import { createEmptyDeck } from '../models/createDeck'
+import { guestDraftRepository } from '../repositories/localDeckRepository'
+import { createSupabaseDeckRepository } from '../repositories/supabaseDeckRepository'
+import { GUEST_DRAFT_STORAGE_KEY } from '../utils/deckStorage'
+import { useDeckStore } from './deck'
+import { isMeaningfulGuestDraft, useDeckSyncStore } from './deckSync'
+
+vi.mock('../lib/supabase', () => ({ supabase: {} }))
+vi.mock('../repositories/supabaseDeckRepository', () => ({
+  createSupabaseDeckRepository: vi.fn(),
+}))
+
+const loadDecks = vi.fn()
+const saveDeck = vi.fn()
+const deleteDeck = vi.fn()
+
+beforeEach(() => {
+  localStorage.clear()
+  setActivePinia(createPinia())
+  loadDecks.mockReset().mockResolvedValue([])
+  saveDeck.mockReset().mockResolvedValue(undefined)
+  deleteDeck.mockReset().mockResolvedValue(undefined)
+  vi.mocked(createSupabaseDeckRepository).mockReturnValue({
+    loadDecks,
+    saveDeck,
+    deleteDeck,
+  })
+})
+
+describe('deck synchronization store', () => {
+  it('keeps guests in one browser draft', async () => {
+    const deckStore = useDeckStore()
+    const sync = useDeckSyncStore()
+
+    await sync.handleUser(null)
+    deckStore.createDeck('Guest Deck')
+
+    expect(sync.syncStatus).toBe('local-only')
+    expect(guestDraftRepository.loadLibrary().decks).toHaveLength(1)
+    expect(saveDeck).not.toHaveBeenCalled()
+  })
+
+  it('loads Supabase as the authenticated source of truth', async () => {
+    const cloudDeck = createEmptyDeck('Cloud Deck')
+    loadDecks.mockResolvedValue([cloudDeck])
+
+    await useDeckSyncStore().handleUser('user-a')
+
+    expect(useDeckStore().decks).toEqual([cloudDeck])
+    expect(useDeckStore().storageMode).toBe('cloud')
+    expect(localStorage.length).toBe(0)
+  })
+
+  it('automatically transfers one meaningful guest draft and then clears it', async () => {
+    const guest = createEmptyDeck('Guest Migration')
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: guest.id,
+      decks: [guest],
+    })
+    loadDecks
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([guest])
+
+    await useDeckSyncStore().handleUser('user-a')
+
+    expect(saveDeck).toHaveBeenCalledOnce()
+    expect(saveDeck).toHaveBeenCalledWith(guest)
+    expect(useDeckStore().deck.id).toBe(guest.id)
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).toBeNull()
+  })
+
+  it('deduplicates concurrent and repeated sign-in initialization', async () => {
+    const guest = createEmptyDeck('One Transfer')
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: guest.id,
+      decks: [guest],
+    })
+    loadDecks
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([guest])
+    const sync = useDeckSyncStore()
+
+    await Promise.all([
+      sync.handleUser('user-a'),
+      sync.handleUser('user-a'),
+    ])
+    await sync.handleUser('user-a')
+
+    expect(saveDeck).toHaveBeenCalledOnce()
+    expect(loadDecks).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not upload an empty default draft', async () => {
+    const empty = createEmptyDeck()
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: empty.id,
+      decks: [empty],
+    })
+
+    await useDeckSyncStore().handleUser('user-a')
+
+    expect(saveDeck).not.toHaveBeenCalled()
+  })
+
+  it('preserves the guest draft when transfer confirmation fails', async () => {
+    const guest = createEmptyDeck('Safe Guest')
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: guest.id,
+      decks: [guest],
+    })
+    loadDecks.mockResolvedValue([])
+
+    await useDeckSyncStore().handleUser('user-a')
+
+    expect(useDeckSyncStore().syncStatus).toBe('error')
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).not.toBeNull()
+  })
+
+  it('retries a failed guest transfer with the same stable ID', async () => {
+    const guest = createEmptyDeck('Retry Guest')
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: guest.id,
+      decks: [guest],
+    })
+    loadDecks
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([guest])
+    const sync = useDeckSyncStore()
+
+    await sync.handleUser('user-a')
+    await sync.retry()
+
+    expect(saveDeck).toHaveBeenCalledTimes(2)
+    expect(saveDeck.mock.calls.every(([deck]) => deck.id === guest.id)).toBe(true)
+    expect(sync.syncStatus).toBe('synced')
+    expect(useDeckStore().deck.id).toBe(guest.id)
+  })
+
+  it('preserves optimistic cloud edits when saving fails', async () => {
+    const sync = useDeckSyncStore()
+    await sync.handleUser('user-a')
+    const deck = useDeckStore().createDeck('Offline Deck')
+    saveDeck.mockRejectedValue(new Error('offline'))
+
+    await sync.syncNow()
+
+    expect(useDeckStore().deck.id).toBe(deck.id)
+    expect(sync.syncStatus).toBe('error')
+    expect(sync.hasUnsyncedChanges).toBe(true)
+    expect(localStorage.length).toBe(0)
+  })
+
+  it('removes cloud decks from memory on logout without deleting or copying them', async () => {
+    const cloudDeck = createEmptyDeck('Private Cloud Deck')
+    loadDecks.mockResolvedValue([cloudDeck])
+    const sync = useDeckSyncStore()
+    await sync.handleUser('user-a')
+
+    await sync.handleUser(null)
+
+    expect(useDeckStore().decks).toEqual([])
+    expect(useDeckStore().storageMode).toBe('guest')
+    expect(deleteDeck).not.toHaveBeenCalled()
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).toBeNull()
+  })
+})
+
+describe('meaningful guest draft detection', () => {
+  it('ignores a new empty draft and accepts a renamed draft', () => {
+    expect(isMeaningfulGuestDraft(createEmptyDeck())).toBe(false)
+    expect(isMeaningfulGuestDraft(createEmptyDeck('Named Deck'))).toBe(true)
+  })
+})

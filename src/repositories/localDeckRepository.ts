@@ -1,17 +1,40 @@
+import { DECK_LIBRARY_VERSION } from '../models/deckLibrary'
 import type { DeckRepository } from './deckRepository'
 import {
-  clearDeckLibrary,
-  loadDeckLibrary,
-  saveDeckLibrary,
+  clearGuestDraft,
+  loadGuestDraft,
+  saveGuestDraft,
 } from '../utils/deckStorage'
 
-/**
- * The local repository is the MVP persistence implementation. It delegates
- * serialization, validation, and legacy migration to the focused storage
- * utility, which remains the only module that accesses localStorage directly.
- */
-export const localDeckRepository: DeckRepository = {
-  loadLibrary: loadDeckLibrary,
-  saveLibrary: saveDeckLibrary,
-  clearLibrary: clearDeckLibrary,
+/** Guest mode persists exactly one refresh-safe temporary draft. */
+export const guestDraftRepository: DeckRepository = {
+  loadLibrary() {
+    const deck = loadGuestDraft()
+    return {
+      version: DECK_LIBRARY_VERSION,
+      activeDeckId: deck?.id ?? null,
+      decks: deck ? [deck] : [],
+    }
+  },
+
+  saveLibrary(library) {
+    const active =
+      library.decks.find((deck) => deck.id === library.activeDeckId) ??
+      library.decks[0] ??
+      null
+    return saveGuestDraft(active)
+  },
+
+  clearLibrary: clearGuestDraft,
+}
+
+/** Cloud libraries remain in memory and are never mirrored to localStorage. */
+export const memoryDeckRepository: DeckRepository = {
+  loadLibrary: () => ({
+    version: DECK_LIBRARY_VERSION,
+    activeDeckId: null,
+    decks: [],
+  }),
+  saveLibrary: () => true,
+  clearLibrary: () => true,
 }

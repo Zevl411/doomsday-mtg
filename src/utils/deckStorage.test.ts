@@ -8,6 +8,7 @@ import type { ScryfallCard } from '../types/card'
 import {
   DECK_LIBRARY_STORAGE_KEY,
   LEGACY_DECK_STORAGE_KEY,
+  LEGACY_LIBRARY_STORAGE_KEY,
   clearDeckLibrary,
   isUsableDeck,
   loadDeckLibrary,
@@ -133,6 +134,22 @@ describe('deck-library storage', () => {
     })
     expect(firstLoad.decks[0]?.createdAt).toBeTruthy()
     expect(localStorage.getItem(LEGACY_DECK_STORAGE_KEY)).toBeNull()
+  })
+
+  it('moves the previous unscoped library into the guest namespace once', () => {
+    const deck = createStoredDeck()
+    localStorage.setItem(
+      LEGACY_LIBRARY_STORAGE_KEY,
+      JSON.stringify({
+        version: DECK_LIBRARY_VERSION,
+        activeDeckId: deck.id,
+        decks: [deck],
+      }),
+    )
+
+    expect(loadDeckLibrary().decks).toEqual([deck])
+    expect(localStorage.getItem(LEGACY_LIBRARY_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).not.toBeNull()
   })
 
   it('does not remove legacy data when the migration save fails', () => {

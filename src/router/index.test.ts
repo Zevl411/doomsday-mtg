@@ -14,6 +14,11 @@ describe('router', () => {
     expect(router.resolve('/decks').name).toBe('deck-library')
   })
 
+  it('resolves Supabase auth and callback routes under hash history', () => {
+    expect(router.resolve('/auth').name).toBe('auth')
+    expect(router.resolve('/auth/callback').name).toBe('auth-callback')
+  })
+
   it('resolves unknown paths to the not-found route', () => {
     expect(router.resolve('/missing-page').name).toBe('not-found')
   })

@@ -10,7 +10,9 @@ import type {
   ScryfallImageUris,
 } from '../types/card'
 
-export const DECK_LIBRARY_STORAGE_KEY = 'doomsday-mtg-deck-library'
+export const DECK_LIBRARY_STORAGE_KEY = 'doomsday-mtg-guest-library'
+export const GUEST_DRAFT_STORAGE_KEY = 'doomsday-mtg-guest-draft'
+export const LEGACY_LIBRARY_STORAGE_KEY = 'doomsday-mtg-deck-library'
 export const LEGACY_DECK_STORAGE_KEY = 'doomsday-mtg-current-deck'
 
 function createEmptyLibrary(): StoredDeckLibrary {
@@ -304,10 +306,13 @@ function normalizeLibrary(value: unknown): StoredDeckLibrary | null {
   }
 }
 
-export function saveDeckLibrary(library: StoredDeckLibrary): boolean {
+export function saveDeckLibrary(
+  library: StoredDeckLibrary,
+  storageKey = DECK_LIBRARY_STORAGE_KEY,
+): boolean {
   try {
     localStorage.setItem(
-      DECK_LIBRARY_STORAGE_KEY,
+      storageKey,
       JSON.stringify(library),
     )
     return true
@@ -322,9 +327,12 @@ export function saveDeckLibrary(library: StoredDeckLibrary): boolean {
  * only when no valid library exists. The old key is removed after—not before—
  * the new library has been saved successfully.
  */
-export function loadDeckLibrary(): StoredDeckLibrary {
+export function loadDeckLibrary(
+  storageKey = DECK_LIBRARY_STORAGE_KEY,
+  migrateLegacy = true,
+): StoredDeckLibrary {
   try {
-    const libraryText = localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)
+    const libraryText = localStorage.getItem(storageKey)
 
     if (libraryText) {
       const library = normalizeLibrary(JSON.parse(libraryText))
@@ -333,7 +341,26 @@ export function loadDeckLibrary(): StoredDeckLibrary {
       }
     }
 
-    const legacyText = localStorage.getItem(LEGACY_DECK_STORAGE_KEY)
+    if (migrateLegacy) {
+      const previousLibraryText = localStorage.getItem(
+        LEGACY_LIBRARY_STORAGE_KEY,
+      )
+      if (previousLibraryText) {
+        const previousLibrary = normalizeLibrary(
+          JSON.parse(previousLibraryText),
+        )
+        if (previousLibrary) {
+          if (saveDeckLibrary(previousLibrary, storageKey)) {
+            localStorage.removeItem(LEGACY_LIBRARY_STORAGE_KEY)
+          }
+          return previousLibrary
+        }
+      }
+    }
+
+    const legacyText = migrateLegacy
+      ? localStorage.getItem(LEGACY_DECK_STORAGE_KEY)
+      : null
     if (!legacyText) {
       return createEmptyLibrary()
     }
@@ -349,7 +376,7 @@ export function loadDeckLibrary(): StoredDeckLibrary {
       decks: [migratedDeck],
     }
 
-    if (saveDeckLibrary(migratedLibrary)) {
+    if (saveDeckLibrary(migratedLibrary, storageKey)) {
       localStorage.removeItem(LEGACY_DECK_STORAGE_KEY)
     }
 
@@ -360,12 +387,68 @@ export function loadDeckLibrary(): StoredDeckLibrary {
   }
 }
 
-export function clearDeckLibrary(): boolean {
+export function clearDeckLibrary(
+  storageKey = DECK_LIBRARY_STORAGE_KEY,
+): boolean {
   try {
-    localStorage.removeItem(DECK_LIBRARY_STORAGE_KEY)
+    localStorage.removeItem(storageKey)
     return true
   } catch (error) {
     console.warn('The deck library could not be removed.', error)
+    return false
+  }
+}
+
+interface StoredGuestDraft {
+  version: 1
+  deck: Deck | null
+}
+
+export function loadGuestDraft(): Deck | null {
+  try {
+    const text = localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)
+    if (text) {
+      const value: unknown = JSON.parse(text)
+      if (isObject(value) && value.version === 1) {
+        return value.deck === null ? null : normalizeDeck(value.deck, false)
+      }
+      return null
+    }
+
+    // One-time correction from the former guest library: retain only its
+    // active Deck because guest mode now intentionally exposes one draft.
+    const previous = loadDeckLibrary()
+    const active =
+      previous.decks.find((deck) => deck.id === previous.activeDeckId) ??
+      previous.decks[0] ??
+      null
+    if (active && saveGuestDraft(active)) {
+      clearDeckLibrary()
+    }
+    return active
+  } catch (error) {
+    console.warn('The guest draft could not be loaded.', error)
+    return null
+  }
+}
+
+export function saveGuestDraft(deck: Deck | null): boolean {
+  try {
+    const value: StoredGuestDraft = { version: 1, deck }
+    localStorage.setItem(GUEST_DRAFT_STORAGE_KEY, JSON.stringify(value))
+    return true
+  } catch (error) {
+    console.warn('The guest draft could not be saved.', error)
+    return false
+  }
+}
+
+export function clearGuestDraft(): boolean {
+  try {
+    localStorage.removeItem(GUEST_DRAFT_STORAGE_KEY)
+    return true
+  } catch (error) {
+    console.warn('The guest draft could not be removed.', error)
     return false
   }
 }

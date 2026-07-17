@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.7",
     "mana-font": "^1.18.0",
     "pinia": "^4.0.2",
     "vue": "^3.5.39",

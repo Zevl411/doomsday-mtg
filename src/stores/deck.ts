@@ -14,16 +14,20 @@ import {
   isBasicLand,
   validateCardAddition,
 } from '../utils/deckLegality'
-import { localDeckRepository } from '../repositories/localDeckRepository'
+import { guestDraftRepository } from '../repositories/localDeckRepository'
+import type { DeckRepository } from '../repositories/deckRepository'
+
+let activeDeckRepository: DeckRepository = guestDraftRepository
 
 // defineStore() creates one shared source of deck-library state.
 export const useDeckStore = defineStore('deck', {
   // State contains the values that components can read reactively.
   state: () => ({
-    library: localDeckRepository.loadLibrary(),
+    library: activeDeckRepository.loadLibrary(),
     rejectionMessage: '',
     previewCard: null as ScryfallCard | null,
     saveSucceeded: null as boolean | null,
+    storageMode: 'guest' as 'guest' | 'cloud',
   }),
 
   // Getters calculate convenient values from state without duplicating data.
@@ -75,7 +79,11 @@ export const useDeckStore = defineStore('deck', {
   actions: {
     createDeck(name?: string): Deck {
       const deck = createEmptyDeck(name)
-      this.library.decks.push(deck)
+      if (this.storageMode === 'guest') {
+        this.library.decks = [deck]
+      } else {
+        this.library.decks.push(deck)
+      }
       this.library.activeDeckId = deck.id
       this.rejectionMessage = ''
       this.persistLibrary()
@@ -401,7 +409,25 @@ export const useDeckStore = defineStore('deck', {
     },
 
     persistLibrary() {
-      this.saveSucceeded = localDeckRepository.saveLibrary(this.library)
+      this.saveSucceeded = activeDeckRepository.saveLibrary(this.library)
+    },
+
+    useRepository(
+      repository: DeckRepository,
+      storageMode: 'guest' | 'cloud',
+      library = repository.loadLibrary(),
+    ) {
+      activeDeckRepository = repository
+      this.storageMode = storageMode
+      this.library = library
+      this.rejectionMessage = ''
+      this.previewCard = null
+      this.saveSucceeded = null
+    },
+
+    replaceLibrary(library: typeof this.library) {
+      this.library = library
+      this.persistLibrary()
     },
   },
 })

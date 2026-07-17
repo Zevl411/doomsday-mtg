@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import type { ScryfallCard } from '../types/card'
-import { DECK_LIBRARY_STORAGE_KEY } from '../utils/deckStorage'
+import {
+  guestDraftRepository,
+  memoryDeckRepository,
+} from '../repositories/localDeckRepository'
 import { useDeckStore } from './deck'
 
 function createCard(
@@ -43,10 +46,12 @@ const island = createCard(
 beforeEach(() => {
   localStorage.clear()
   setActivePinia(createPinia())
+  // Authenticated mode supports a multi-deck library without a local cache.
+  useDeckStore().useRepository(memoryDeckRepository, 'cloud')
 })
 
 describe('deck library store', () => {
-  it('creates, opens, and persists decks', () => {
+  it('creates and opens decks', () => {
     const store = useDeckStore()
     const first = store.createDeck(' First ')
     const second = store.createDeck('Second')
@@ -55,7 +60,6 @@ describe('deck library store', () => {
     expect(store.deck.id).toBe(second.id)
     expect(store.openDeck(first.id)).toBe(true)
     expect(store.deck.name).toBe('First')
-    expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).toContain(first.id)
   })
 
   it('renames a deck, trims its name, and rejects an empty name', () => {
@@ -201,9 +205,7 @@ describe('deck library store', () => {
     store.setPreviewCard(artifact)
     store.setCommander(commander)
 
-    expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).not.toContain(
-      'previewCard',
-    )
+    expect(localStorage.length).toBe(0)
     store.clearPreviewCard()
     expect(store.previewCard).toBeNull()
   })
@@ -227,6 +229,7 @@ describe('deck library store', () => {
 
   it('reports persistence failures without throwing', () => {
     const store = useDeckStore()
+    store.useRepository(guestDraftRepository, 'guest')
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('Storage unavailable')
     })

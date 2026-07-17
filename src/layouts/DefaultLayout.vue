@@ -37,6 +37,25 @@
             <span class="d-none d-sm-inline">Deck Builder</span>
             <span class="d-sm-none">Builder</span>
           </v-btn>
+          <v-menu v-if="auth.isSignedIn">
+            <template #activator="{ props }">
+              <v-btn size="small" v-bind="props" variant="text">
+                {{ auth.user?.email ?? 'Account' }}
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item title="Sign Out" @click="auth.signOut" />
+            </v-list>
+          </v-menu>
+          <v-btn
+            v-else
+            color="primary"
+            size="small"
+            :to="{ name: 'auth' }"
+            variant="text"
+          >
+            Sign In
+          </v-btn>
         </nav>
       </v-container>
     </v-app-bar>
@@ -48,3 +67,9 @@
     </v-main>
   </v-app>
 </template>
+
+<script setup lang="ts">
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
+</script>
