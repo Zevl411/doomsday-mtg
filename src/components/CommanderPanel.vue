@@ -1,29 +1,41 @@
 <template>
-  <section class="app-panel commander-panel">
-    <h2>Commander</h2>
+  <v-card border class="h-100" color="surface" rounded="lg" variant="flat">
+    <v-card-title class="px-5 pt-5">Commander</v-card-title>
 
-    <article v-if="commander" class="selected-commander">
-      <img
+    <template v-if="commander">
+      <v-img
         v-if="getCardImage(commander)"
-        :src="getCardImage(commander)"
         :alt="`${commander.name} card art`"
+        aspect-ratio="0.716"
+        class="commander-image mx-5 mt-4 rounded-lg"
+        cover
+        :src="getCardImage(commander)"
       />
-      <div>
-        <h3>{{ commander.name }}</h3>
-        <p>{{ commander.type_line }}</p>
-        <p>Color identity: {{ formatColorIdentity(commander) }}</p>
-        <button
-          class="clear-button"
-          type="button"
+
+      <v-card-title class="px-5 pt-5 text-wrap">
+        {{ commander.name }}
+      </v-card-title>
+      <v-card-subtitle class="px-5 text-wrap">
+        {{ commander.type_line }}
+      </v-card-subtitle>
+      <v-card-text class="px-5 pb-2 text-medium-emphasis">
+        Color identity: {{ formatColorIdentity(commander) }}
+      </v-card-text>
+      <v-card-actions class="px-5 pb-5">
+        <v-btn
+          color="secondary"
+          variant="outlined"
           @click="emit('clear-commander')"
         >
           Clear commander
-        </button>
-      </div>
-    </article>
+        </v-btn>
+      </v-card-actions>
+    </template>
 
-    <p v-else class="placeholder-text">No commander selected.</p>
-  </section>
+    <v-card-text v-else class="px-5 pb-5 text-medium-emphasis">
+      No commander selected.
+    </v-card-text>
+  </v-card>
 </template>
 
 <script setup lang="ts">

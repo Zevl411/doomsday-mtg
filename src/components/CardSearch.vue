@@ -1,36 +1,65 @@
 <template>
-  <label class="sr-only" :for="searchInputId">Search for a Magic card</label>
-  <input
+  <v-text-field
     :id="searchInputId"
     v-model="query"
-    type="search"
-    placeholder="Card name"
     autocomplete="off"
+    color="primary"
+    label="Search for a Magic card"
+    placeholder="Card name"
+    type="search"
+    variant="outlined"
   />
 
-  <div class="results" aria-live="polite">
-    <p v-if="isLoading" class="status">Searching…</p>
-    <p v-else-if="errorMessage" class="error">{{ errorMessage }}</p>
-    <ul v-else-if="cards.length">
-      <li v-for="card in cards" :key="card.id">
-        <button
-          class="card-result"
-          type="button"
-          @click="emit('card-selected', card)"
-        >
-          <img
-            v-if="getCardImage(card)"
-            :src="getCardImage(card)"
+  <div class="search-results" aria-live="polite">
+    <div v-if="isLoading" class="d-flex align-center ga-3 py-4">
+      <v-progress-circular color="primary" indeterminate size="24" width="3" />
+      <span class="text-body-2 text-medium-emphasis">Searching…</span>
+    </div>
+
+    <v-alert
+      v-else-if="errorMessage"
+      density="compact"
+      type="error"
+      variant="tonal"
+    >
+      {{ errorMessage }}
+    </v-alert>
+
+    <v-list
+      v-else-if="cards.length"
+      class="search-results-list pa-0"
+      bg-color="transparent"
+    >
+      <v-list-item
+        v-for="card in cards"
+        :key="card.id"
+        border
+        class="card-result mb-3"
+        rounded="lg"
+        tag="button"
+        type="button"
+        @click="emit('card-selected', card)"
+      >
+        <template v-if="getCardImage(card)" #prepend>
+          <v-img
             :alt="`${card.name} card art`"
+            class="card-result-image mr-4 rounded"
+            cover
+            height="100"
+            :src="getCardImage(card)"
+            width="72"
           />
-          <span class="card-result-details">
-            <strong>{{ card.name }}</strong>
-            <span>{{ card.type_line }}</span>
-            <span>Color identity: {{ formatColorIdentity(card) }}</span>
-          </span>
-        </button>
-      </li>
-    </ul>
+        </template>
+
+        <v-list-item-title class="font-weight-bold">
+          {{ card.name }}
+        </v-list-item-title>
+        <v-list-item-subtitle>{{ card.type_line }}</v-list-item-subtitle>
+        <v-list-item-subtitle>
+          Color identity: {{ formatColorIdentity(card) }}
+        </v-list-item-subtitle>
+      </v-list-item>
+    </v-list>
   </div>
 </template>
 

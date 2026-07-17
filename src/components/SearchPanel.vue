@@ -1,8 +1,16 @@
 <template>
-  <section class="app-panel search-panel">
-    <h2>Search</h2>
-    <CardSearch commander-only @card-selected="emit('card-selected', $event)" />
-  </section>
+  <v-card border class="h-100" color="surface" rounded="lg" variant="flat">
+    <v-card-title class="px-5 pt-5">Commander Search</v-card-title>
+    <v-card-subtitle class="px-5">
+      Find a Commander-legal card
+    </v-card-subtitle>
+    <v-card-text class="pa-5">
+      <CardSearch
+        commander-only
+        @card-selected="emit('card-selected', $event)"
+      />
+    </v-card-text>
+  </v-card>
 </template>
 
 <script setup lang="ts">
