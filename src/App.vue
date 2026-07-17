@@ -17,6 +17,8 @@
           :cards="deck.cards"
           :rejection-message="rejectionMessage"
           @card-selected="addDeckCard"
+          @decrease-quantity="decreaseCardQuantity"
+          @increase-quantity="increaseCardQuantity"
           @remove-card="removeDeckCard"
         />
       </v-col>
@@ -32,7 +34,7 @@ import SearchPanel from './components/SearchPanel.vue'
 import DefaultLayout from './layouts/DefaultLayout.vue'
 import type { Deck } from './models/deck'
 import type { ScryfallCard } from './types/card'
-import { validateCardAddition } from './utils/deckLegality'
+import { isBasicLand, validateCardAddition } from './utils/deckLegality'
 
 // reactive() keeps these related deck properties together and updates the UI
 // when any property on the object changes.
@@ -60,14 +62,50 @@ function addDeckCard(card: ScryfallCard) {
     return
   }
 
-  // push() adds one item to the end of an array.
-  deck.cards.push(card)
+  const existingBasicLand = deck.cards.find(
+    (deckCard) => deckCard.card.id === card.id,
+  )
+
+  if (existingBasicLand && isBasicLand(card)) {
+    existingBasicLand.quantity += 1
+  } else {
+    // push() adds one card-and-quantity entry to the end of the array.
+    deck.cards.push({ card, quantity: 1 })
+  }
+
   rejectionMessage.value = ''
 }
 
 function removeDeckCard(index: number) {
   // filter() creates a new array containing every item except the chosen one.
   deck.cards = deck.cards.filter((_card, cardIndex) => cardIndex !== index)
+  rejectionMessage.value = ''
+}
+
+function increaseCardQuantity(index: number) {
+  const deckCard = deck.cards[index]
+
+  if (!deckCard || !isBasicLand(deckCard.card)) {
+    return
+  }
+
+  deckCard.quantity += 1
+  rejectionMessage.value = ''
+}
+
+function decreaseCardQuantity(index: number) {
+  const deckCard = deck.cards[index]
+
+  if (!deckCard) {
+    return
+  }
+
+  if (deckCard.quantity <= 1) {
+    removeDeckCard(index)
+    return
+  }
+
+  deckCard.quantity -= 1
   rejectionMessage.value = ''
 }
 </script>

@@ -4,45 +4,67 @@
       <v-card-title>Deck</v-card-title>
       <template #append>
         <v-chip color="secondary" size="small" variant="tonal">
-          {{ cards.length }} cards
+          {{ getTotalCardCount() }} cards
         </v-chip>
       </template>
     </v-card-item>
 
     <v-card-text class="pa-5">
       <CardSearch
-        :selected-card-ids="cards.map((card) => card.id)"
-        @card-selected="toggleCard"
+        :selected-card-ids="cards.map((deckCard) => deckCard.card.id)"
+        @card-selected="emit('card-selected', $event)"
       />
 
       <v-alert
-      v-if="rejectionMessage"
-      class="mt-5"
-      density="compact"
-      role="status"
-      type="error"
-      variant="tonal"
+        v-if="rejectionMessage"
+        class="mt-5"
+        density="compact"
+        role="status"
+        type="error"
+        variant="tonal"
       >
         {{ rejectionMessage }}
       </v-alert>
 
       <v-list v-if="cards.length" class="mt-5 pa-0" bg-color="transparent">
         <v-list-item
-          v-for="(card, index) in cards"
-          :key="`${card.id}-${index}`"
+          v-for="(deckCard, index) in cards"
+          :key="deckCard.card.id"
           border="b"
           class="px-0"
-          :title="card.name"
+          :title="`${deckCard.quantity}× ${deckCard.card.name}`"
         >
           <template #append>
-            <v-btn
-              color="error"
-              size="small"
-              variant="text"
-              @click="emit('remove-card', index)"
-            >
-              Remove
-            </v-btn>
+            <div class="d-flex align-center ga-1">
+              <v-btn
+                :aria-label="`Decrease quantity of ${deckCard.card.name}`"
+                color="secondary"
+                size="small"
+                variant="text"
+                @click="emit('decrease-quantity', index)"
+              >
+                −
+              </v-btn>
+              <v-btn
+                :aria-label="`Increase quantity of ${deckCard.card.name}`"
+                color="secondary"
+                :disabled="!isBasicLand(deckCard.card)"
+                size="small"
+                variant="text"
+                @click="emit('increase-quantity', index)"
+              >
+                +
+              </v-btn>
+              <v-btn
+                :aria-label="`Remove ${deckCard.card.name} from deck`"
+                color="error"
+                size="small"
+                variant="text"
+                @click="emit('remove-card', index)"
+              >
+                Remove
+              </v-btn>
+            </div>
           </template>
         </v-list-item>
       </v-list>
@@ -61,29 +83,30 @@
 
 <script setup lang="ts">
 import CardSearch from './CardSearch.vue'
+import type { DeckCard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
+import { isBasicLand } from '../utils/deckLegality'
 
 const props = defineProps<{
-  cards: ScryfallCard[]
+  cards: DeckCard[]
   rejectionMessage: string
 }>()
 
 // These events let App.vue handle changes while this panel only displays them.
 const emit = defineEmits<{
   'card-selected': [card: ScryfallCard]
+  'decrease-quantity': [index: number]
+  'increase-quantity': [index: number]
   'remove-card': [index: number]
 }>()
 
-function toggleCard(card: ScryfallCard) {
-  const selectedIndex = props.cards.findIndex(
-    (deckCard) => deckCard.id === card.id,
-  )
+function getTotalCardCount(): number {
+  let total = 0
 
-  if (selectedIndex >= 0) {
-    emit('remove-card', selectedIndex)
-    return
+  for (const deckCard of props.cards) {
+    total += deckCard.quantity
   }
 
-  emit('card-selected', card)
+  return total
 }
 </script>

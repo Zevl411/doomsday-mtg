@@ -18,6 +18,10 @@ export function isWithinCommanderColorIdentity(
   )
 }
 
+export function isBasicLand(card: ScryfallCard): boolean {
+  return card.type_line.includes('Basic Land')
+}
+
 export function validateCardAddition(
   card: ScryfallCard,
   deck: Deck,
@@ -37,9 +41,11 @@ export function validateCardAddition(
   }
 
   // some() returns true as soon as it finds a card with the same Scryfall ID.
-  const isDuplicate = deck.cards.some((deckCard) => deckCard.id === card.id)
+  const isDuplicate = deck.cards.some(
+    (deckCard) => deckCard.card.id === card.id,
+  )
 
-  if (isDuplicate) {
+  if (isDuplicate && !isBasicLand(card)) {
     return {
       allowed: false,
       reason: `${card.name} is already in the deck.`,
