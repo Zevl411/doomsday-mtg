@@ -196,6 +196,24 @@ npm run build
 
 ## Future data sources
 
-EDHTop16 and tournament data do not belong in the plaintext parser. A future
-structured adapter should fetch structured data in `src/api`, normalize it in a
-dedicated service, and return the same application-owned Deck model.
+Tournament data follows a server-side provider boundary:
+
+```text
+EDHTop16
+    ↓
+provider-neutral Edge Function adapter
+    ↓
+normalized Supabase tournaments and entries
+    ↓
+server-side Commander aggregation RPC
+    ↓
+typed Vue tournament repository
+    ↓
+route-level metagame and tournament views
+```
+
+Provider credentials and raw response parsing never enter the GitHub Pages
+bundle. The normalized tournament model is separate from user-owned Decks;
+this phase intentionally does not fetch or parse card-level tournament lists.
+Administrative ingestion is authorized by `admin_users` in both the UI and
+Edge Function, while RLS gives browser clients read-only tournament access.

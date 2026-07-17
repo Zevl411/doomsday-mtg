@@ -14,6 +14,7 @@ import {
   isBasicLand,
   validateCardAddition,
 } from '../utils/deckLegality'
+import { validateCommanderPairing } from '../utils/commanderPairing'
 import { guestDraftRepository } from '../repositories/localDeckRepository'
 import type { DeckRepository } from '../repositories/deckRepository'
 
@@ -156,6 +157,12 @@ export const useDeckStore = defineStore('deck', {
 
     setCommander(card: ScryfallCard) {
       this.deck.commander = card
+      if (
+        this.deck.partnerCommander &&
+        !validateCommanderPairing(card, this.deck.partnerCommander).allowed
+      ) {
+        this.deck.partnerCommander = null
+      }
       this.persistActiveDeck()
     },
 
@@ -165,6 +172,34 @@ export const useDeckStore = defineStore('deck', {
       }
 
       this.deck.commander = null
+      this.deck.partnerCommander = null
+      this.persistActiveDeck()
+    },
+
+    setPartnerCommander(card: ScryfallCard): DeckLegalityResult {
+      if (!this.deck.commander) {
+        return {
+          allowed: false,
+          reason: 'Choose the first commander before choosing its partner.',
+        }
+      }
+
+      const result = validateCommanderPairing(this.deck.commander, card)
+      if (!result.allowed) {
+        this.rejectionMessage =
+          result.reason ?? 'Those commanders cannot be paired.'
+        return result
+      }
+
+      this.deck.partnerCommander = card
+      this.rejectionMessage = ''
+      this.persistActiveDeck()
+      return { allowed: true }
+    },
+
+    clearPartnerCommander() {
+      if (!this.deck.partnerCommander) return
+      this.deck.partnerCommander = null
       this.persistActiveDeck()
     },
 

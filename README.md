@@ -29,12 +29,13 @@ The end goal is a tool capable of answering questions like:
 
 - Search the entire Magic card database
 - Add and remove cards
-- Select a commander
+- Select one Commander or a rules-compatible paired Commander combination
 - Commander color identity restrictions
 - Deck model written in TypeScript
 - Responsive Vue 3 interface
 - One refresh-safe guest draft and authenticated cloud deck libraries
 - Plaintext decklist import and export
+- Commander metagame and tournament explorer backed by normalized Supabase data
 
 Guests receive one temporary, refresh-safe browser draft. Authenticated users
 receive a multi-deck library whose authoritative records live in Supabase;
@@ -281,6 +282,15 @@ browser-publishable values to Vite without hard-coding them.
 Detailed schema, RLS, duplicate-diagnostic, and two-user verification steps are
 in [Supabase operations](docs/SUPABASE_OPERATIONS.md).
 
+### Tournament ingestion
+
+Tournament pages read normalized public data from Supabase. EDHTop16 requests
+run only inside an administrator-triggered Edge Function; the static Vue
+frontend receives neither provider response shapes nor private credentials.
+See [Tournament ingestion](docs/TOURNAMENT_INGESTION.md) for migrations, Edge
+Function deployment, admin setup, dry runs, attribution, limitations, and
+metric definitions.
+
 Cloud records store a complete Deck JSON document for this MVP. This is not
 end-to-end encrypted. RLS restricts records to their authenticated owner;
 future tournament analytics will use separate normalized data. Account
@@ -348,14 +358,35 @@ Data Sources
 - [x] README and architecture documentation current
 - [x] Known MVP limitations documented
 
-Known v0.1.0 limitations include one Commander only (no Partners or Background
-pairing), no banned-list enforcement, no special oracle-text quantity
-exceptions, and no authenticated offline cache. An authenticated edit that has
-not reached Supabase can be lost by refreshing before retrying.
+Known deck-builder limitations include no banned-list enforcement, no special
+oracle-text quantity exceptions, and no authenticated offline cache. Partner,
+named partner pairs, Partner—variants, Backgrounds, and Doctor's companions are
+supported. An authenticated edit that has not reached Supabase can be lost by
+refreshing before retrying.
 
 ---
 
-## Phase 2 — Deck Builder
+## Phase 2 — Tournament Explorer 🚧 *(Current)*
+
+- [x] Provider-neutral tournament models
+- [x] Normalized tournament and entry tables
+- [x] Public read-only tournament RLS
+- [x] Admin-protected EDHTop16 ingestion boundary
+- [x] Idempotent tournament and entry identities
+- [x] Commander metagame aggregation
+- [x] Metagame, Commander, and tournament routes
+- [x] In-app viewing for linked tournament decklists
+- [ ] Validate the current EDHTop16 API contract with production fixtures
+- [ ] Deploy and run the first administrator dry run
+- [ ] Add TopDeck adapter after credentials and attribution requirements exist
+
+Current data limitations: provider fields may be absent, historical coverage
+depends on imported events, draws count in the match-rate denominator, and no
+card-level tournament deck contents are ingested.
+
+---
+
+## Phase 3 — Deck Builder Enhancements
 
 - [ ] Mana curve visualization
 - [ ] Color pip analysis
@@ -366,7 +397,7 @@ not reached Supabase can be lost by refreshing before retrying.
 
 ---
 
-## Phase 3 — Data Collection
+## Phase 4 — Data Collection
 
 - [ ] Tournament scraper
 - [ ] Deck database
@@ -376,7 +407,7 @@ not reached Supabase can be lost by refreshing before retrying.
 
 ---
 
-## Phase 4 — Analytics
+## Phase 5 — Analytics
 
 - [ ] Deck comparison engine
 - [ ] Card association graph
@@ -386,7 +417,7 @@ not reached Supabase can be lost by refreshing before retrying.
 
 ---
 
-## Phase 5 — Intelligent Recommendations
+## Phase 6 — Intelligent Recommendations
 
 The "magic" of DoomsdayMTG.
 

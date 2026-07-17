@@ -25,6 +25,9 @@ export interface Deck {
   createdAt: string
   updatedAt: string
   commander: ScryfallCard | null
+  // Older saved decks omit this field, so it remains optional at the type
+  // boundary. Newly created and normalized decks always store null or a card.
+  partnerCommander?: ScryfallCard | null
   // Quantity belongs beside the card so one entry represents all of its copies
   // instead of duplicating the same Scryfall card object throughout the array.
   // `cards` remains the mainboard name to avoid a broad application rename.

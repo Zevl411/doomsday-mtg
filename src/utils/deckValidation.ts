@@ -1,4 +1,5 @@
 import type { Deck } from '../models/deck'
+import { getDeckCommanders } from './commanderPairing'
 
 const COMMANDER_DECK_SIZE = 100
 
@@ -20,7 +21,7 @@ export function getMainDeckCardCount(deck: Deck): number {
 }
 
 export function getTotalDeckCardCount(deck: Deck): number {
-  const commanderCount = deck.commander ? 1 : 0
+  const commanderCount = getDeckCommanders(deck).length
   return getMainDeckCardCount(deck) + commanderCount
 }
 

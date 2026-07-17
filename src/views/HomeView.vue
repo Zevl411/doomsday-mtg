@@ -1,20 +1,256 @@
 <template>
-  <v-row justify="center">
-    <v-col cols="12" md="8" lg="6">
-      <v-card border color="surface" rounded="lg" variant="flat">
-        <v-card-title class="px-6 pt-6 text-h4 text-wrap">
-          DoomsdayMTG
-        </v-card-title>
-        <v-card-text class="px-6 text-body-1 text-medium-emphasis">
-          Build and validate competitive Commander decks with Scryfall-powered
-          card search.
-        </v-card-text>
-        <v-card-actions class="px-6 pb-6">
-          <v-btn color="primary" :to="{ name: 'deck-builder' }" variant="flat">
-            Open Deck Builder
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-col>
-  </v-row>
+  <v-container class="pa-0" fluid>
+    <v-row class="mb-2" align="center">
+      <v-col>
+        <div class="text-h4 font-weight-bold">Recently edited decks</div>
+        <div class="text-body-2 text-medium-emphasis">
+          Continue with your latest Commander builds.
+        </div>
+      </v-col>
+      <v-col class="text-right" cols="auto">
+        <v-btn :to="{ name: 'deck-library' }" variant="text">
+          View all decks
+        </v-btn>
+      </v-col>
+    </v-row>
+
+    <v-row v-if="recentDecks.length" class="mb-8">
+      <v-col
+        v-for="deck in recentDecks"
+        :key="deck.id"
+        cols="12"
+        sm="6"
+        lg="3"
+      >
+        <v-card border class="d-flex flex-column h-100" color="surface">
+          <v-img
+            v-if="commanderImage(deck)"
+            :alt="`${deck.commander?.name} card art`"
+            aspect-ratio="1.7"
+            cover
+            :src="commanderImage(deck)"
+          />
+          <v-sheet
+            v-else
+            class="d-flex align-center justify-center text-medium-emphasis"
+            color="surface-light"
+            height="140"
+          >
+            No Commander selected
+          </v-sheet>
+          <v-card-item>
+            <v-card-title>{{ deck.name }}</v-card-title>
+            <v-card-subtitle>
+              {{ deck.commander?.name ?? 'No Commander' }}
+            </v-card-subtitle>
+          </v-card-item>
+          <v-card-text class="flex-grow-1">
+            <v-chip size="small" variant="tonal">
+              {{ totalCards(deck) }} cards
+            </v-chip>
+            <div class="mt-2 text-caption text-medium-emphasis">
+              Edited {{ formatDateTime(deck.updatedAt) }}
+            </div>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn color="primary" variant="flat" @click="openDeck(deck.id)">
+              Continue editing
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-card
+      v-else
+      border
+      class="mb-8 pa-8 text-center"
+      color="surface"
+      rounded="lg"
+    >
+      <v-card-title>No decks yet</v-card-title>
+      <v-card-text>Create a deck to begin building.</v-card-text>
+      <v-card-actions class="justify-center">
+        <v-btn color="primary" :to="{ name: 'deck-builder' }">
+          Create a deck
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+
+    <v-divider class="mb-8" />
+
+    <v-row class="mb-2" align="center">
+      <v-col>
+        <div class="text-h4 font-weight-bold">Tournament snapshot</div>
+        <div class="text-body-2 text-medium-emphasis">
+          Recent cEDH results imported from EDHTop16.
+        </div>
+      </v-col>
+      <v-col class="d-flex ga-2 justify-end" cols="auto">
+        <v-btn :to="{ name: 'metagame' }" variant="text">Metagame</v-btn>
+        <v-btn :to="{ name: 'tournaments' }" variant="text">
+          Tournaments
+        </v-btn>
+      </v-col>
+    </v-row>
+
+    <v-progress-linear
+      v-if="tournamentLoading"
+      class="mb-6"
+      color="primary"
+      indeterminate
+    />
+    <v-alert
+      v-else-if="tournamentError"
+      class="mb-6"
+      type="info"
+      variant="tonal"
+    >
+      {{ tournamentError }}
+    </v-alert>
+    <v-row v-else>
+      <v-col cols="12" lg="7">
+        <v-card border color="surface" rounded="lg">
+          <v-card-title>Popular Commanders</v-card-title>
+          <v-list v-if="commanderStats.length">
+            <v-list-item
+              v-for="commander in commanderStats"
+              :key="commander.commanderKey"
+              :to="{
+                name: 'commander-metagame',
+                params: { commanderKey: commander.commanderKey },
+              }"
+            >
+              <template #prepend>
+                <ColorIdentitySymbols
+                  :colors="commander.colorIdentity"
+                  size="small"
+                />
+              </template>
+              <v-list-item-title>
+                {{ commander.commanderName }}
+              </v-list-item-title>
+              <v-list-item-subtitle>
+                {{ commander.entries }} entries ·
+                {{ percent(commander.metaShare) }} of the field
+              </v-list-item-subtitle>
+              <template #append>
+                <v-chip size="small" variant="tonal">
+                  {{ percent(commander.matchWinRate) }} win rate
+                </v-chip>
+              </template>
+            </v-list-item>
+          </v-list>
+          <v-card-text v-else class="text-medium-emphasis">
+            No Commander statistics have been imported yet.
+          </v-card-text>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" lg="5">
+        <v-card border color="surface" rounded="lg">
+          <v-card-title>Recent Tournaments</v-card-title>
+          <v-list v-if="recentTournaments.length">
+            <v-list-item
+              v-for="tournament in recentTournaments"
+              :key="tournament.id"
+              :subtitle="`${formatDate(tournament.date)} · ${tournament.playerCount ?? 'Unknown'} players`"
+              :title="tournament.name"
+              :to="{
+                name: 'tournament-detail',
+                params: { tournamentId: tournament.id },
+              }"
+            >
+              <template #append>
+                <v-chip size="x-small" variant="tonal">
+                  {{ tournament.source }}
+                </v-chip>
+              </template>
+            </v-list-item>
+          </v-list>
+          <v-card-text v-else class="text-medium-emphasis">
+            No tournament results have been imported yet.
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
+import type { Deck } from '../models/deck'
+import type {
+  CommanderMetagameStats,
+  Tournament,
+} from '../models/tournament'
+import { tournamentRepository } from '../repositories/tournamentRepository'
+import { useDeckStore } from '../stores/deck'
+import { getCardImage } from '../utils/cardDisplay'
+import { getTotalDeckCardCount } from '../utils/deckValidation'
+
+const deckStore = useDeckStore()
+const router = useRouter()
+const commanderStats = ref<CommanderMetagameStats[]>([])
+const recentTournaments = ref<Tournament[]>([])
+const tournamentLoading = ref(true)
+const tournamentError = ref('')
+
+// Sorting a copy keeps Pinia's authoritative library order untouched.
+const recentDecks = computed(() =>
+  [...deckStore.decks]
+    .sort(
+      (left, right) =>
+        Date.parse(right.updatedAt) - Date.parse(left.updatedAt),
+    )
+    .slice(0, 4),
+)
+
+onMounted(async () => {
+  try {
+    const [stats, tournaments] = await Promise.all([
+      tournamentRepository.getCommanderMetagame({ minimumEntries: 1 }),
+      tournamentRepository.getRecentTournaments(),
+    ])
+    commanderStats.value = stats.slice(0, 4)
+    recentTournaments.value = tournaments.slice(0, 4)
+  } catch {
+    // Tournament data is supplemental; deck access remains useful without it.
+    tournamentError.value =
+      'Tournament data is not available yet. Your decks are still ready.'
+  } finally {
+    tournamentLoading.value = false
+  }
+})
+
+function openDeck(deckId: string) {
+  if (deckStore.openDeck(deckId)) {
+    void router.push({ name: 'deck-builder' })
+  }
+}
+
+function commanderImage(deck: Deck) {
+  return deck.commander ? getCardImage(deck.commander, 'large') : undefined
+}
+
+function totalCards(deck: Deck) {
+  return getTotalDeckCardCount(deck)
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+function formatDate(value: string | null) {
+  return value ? new Date(value).toLocaleDateString() : 'Unknown date'
+}
+
+function percent(value: number) {
+  return `${(value * 100).toFixed(1)}%`
+}
+</script>

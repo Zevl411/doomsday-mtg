@@ -63,19 +63,24 @@ function normalizeCard(value: unknown): ScryfallCard | null {
     return null
   }
 
-  return {
+  const card: ScryfallCard = {
     id: value.id,
-    oracle_id: getOptionalString(value, 'oracle_id'),
     name: value.name,
-    flavor_name: getOptionalString(value, 'flavor_name'),
-    printed_name: getOptionalString(value, 'printed_name'),
     type_line: value.type_line,
     color_identity: [...value.color_identity],
-    mana_cost: getOptionalString(value, 'mana_cost'),
-    oracle_text: getOptionalString(value, 'oracle_text'),
-    image_uris: imageUris,
-    card_faces: cardFaces,
   }
+
+  // Assign optional fields only when present so a storage round trip does not
+  // add enumerable `undefined` properties to otherwise unchanged cards.
+  for (const field of optionalStringFields) {
+    const optionalValue = getOptionalString(value, field)
+    if (optionalValue !== undefined) {
+      Object.assign(card, { [field]: optionalValue })
+    }
+  }
+  if (imageUris !== undefined) card.image_uris = imageUris
+  if (cardFaces !== undefined) card.card_faces = cardFaces
+  return card
 }
 
 function normalizeImageUris(
@@ -202,9 +207,22 @@ function normalizeDeck(
 
   const commander =
     value.commander === null ? null : normalizeCard(value.commander)
+  // Missing partnerCommander is valid for decks saved before partner support.
+  const partnerCommander =
+    value.partnerCommander === undefined || value.partnerCommander === null
+      ? null
+      : normalizeCard(value.partnerCommander)
   const cards = normalizeBoard(value.cards)
 
   if (value.commander !== null && !commander) {
+    return null
+  }
+
+  if (
+    value.partnerCommander !== undefined &&
+    value.partnerCommander !== null &&
+    !partnerCommander
+  ) {
     return null
   }
 
@@ -257,6 +275,7 @@ function normalizeDeck(
     createdAt,
     updatedAt,
     commander,
+    partnerCommander,
     cards,
     sideboard,
     maybeboard,

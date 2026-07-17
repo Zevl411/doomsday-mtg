@@ -19,7 +19,7 @@
           size="small"
           variant="tonal"
         >
-          Commander {{ deck.commander ? 'selected' : 'not selected' }}
+          {{ commanderStatusLabel }}
         </v-chip>
       </div>
 
@@ -256,6 +256,7 @@ import {
   getColorIdentityViolations,
   isBasicLand,
 } from '../utils/deckLegality'
+import { getCommanderColorIdentity } from '../utils/commanderPairing'
 import {
   getDeckSizeStatus,
   getMainDeckCardCount,
@@ -297,6 +298,12 @@ const showResetDialog = ref(false)
 const limitToCommanderColors = ref(true)
 const mainDeckCardCount = computed(() => getMainDeckCardCount(deckStore.deck))
 const deckSizeStatus = computed(() => getDeckSizeStatus(deckStore.deck))
+const commanderStatusLabel = computed(() => {
+  if (!deckStore.deck.commander) return 'Commander not selected'
+  return deckStore.deck.partnerCommander
+    ? 'Two commanders selected'
+    : 'Commander selected'
+})
 const colorIdentityViolations = computed(() =>
   getColorIdentityViolations(deckStore.deck),
 )
@@ -323,7 +330,7 @@ const colorIdentitySearchFilter = computed(() => {
     return ''
   }
 
-  const colorIdentity = deckStore.deck.commander.color_identity
+  const colorIdentity = getCommanderColorIdentity(deckStore.deck)
     .join('')
     .toLowerCase()
   return colorIdentity ? `id<=${colorIdentity}` : 'id:c'

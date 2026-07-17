@@ -4,7 +4,13 @@ export function formatDecklist(deck: Deck): string {
   const sections: string[] = []
 
   if (deck.commander) {
-    sections.push(`Commander\n1 ${deck.commander.name}`)
+    const commanders = [
+      deck.commander,
+      deck.partnerCommander,
+    ].filter((card) => card !== null && card !== undefined)
+    sections.push(
+      `Commander\n${commanders.map((card) => `1 ${card.name}`).join('\n')}`,
+    )
   }
 
   addBoardSection(sections, 'Mainboard', deck.cards)

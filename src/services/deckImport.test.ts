@@ -115,10 +115,40 @@ describe('prepareDeckImport', () => {
 
     expect(prepared.result.issues.map((issue) => issue.message)).toEqual(
       expect.arrayContaining([
-        'Only one Commander is supported.',
+        'Commander and Second Commander cannot be paired as commanders.',
         'No matching Scryfall card was found.',
       ]),
     )
+  })
+
+  it('imports a compatible pair from the Commander section', async () => {
+    const first = createCard(
+      'first-partner',
+      'First Partner',
+      'first-oracle',
+      'Legendary Creature',
+      ['U'],
+    )
+    first.oracle_text = 'Partner'
+    const second = createCard(
+      'second-partner',
+      'Second Partner',
+      'second-oracle',
+      'Legendary Creature',
+      ['R'],
+    )
+    second.oracle_text = 'Partner'
+    mockCards([first, second])
+
+    const prepared = await prepareDeckImport(
+      'Commander\n1 First Partner\n1 Second Partner',
+      { ...currentDeck, commander: null, partnerCommander: null },
+    )
+
+    expect(prepared.deck.commander).toEqual(first)
+    expect(prepared.deck.partnerCommander).toEqual(second)
+    expect(prepared.result.importedCards).toBe(2)
+    expect(prepared.result.issues).toEqual([])
   })
 
   it('combines basic-land quantities and repeated lines', async () => {

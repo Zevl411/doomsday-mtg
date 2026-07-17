@@ -13,6 +13,7 @@ import type {
 import type { ScryfallCard } from '../types/card'
 import { getCardIdentity } from '../utils/cardIdentity'
 import { isBasicLand, validateCardAddition } from '../utils/deckLegality'
+import { validateCommanderPairing } from '../utils/commanderPairing'
 import { parseDecklist } from '../utils/decklistParser'
 
 type ImportCardBoard =
@@ -69,6 +70,9 @@ export async function prepareDeckImport(
   let commander = parsed.hasCommanderSection
     ? null
     : currentDeck.commander
+  let partnerCommander = parsed.hasCommanderSection
+    ? null
+    : currentDeck.partnerCommander ?? null
   let commanderSource:
     | 'imported'
     | 'inferred'
@@ -89,19 +93,35 @@ export async function prepareDeckImport(
       continue
     }
 
-    if (commander) {
+    if (commander && partnerCommander) {
       issues.push({
         lineNumber: line.lineNumber,
         input: line.cardName,
-        message: 'Only one Commander is supported.',
+        message: 'Only two paired Commanders are supported.',
       })
       skippedCards += line.quantity
       continue
     }
 
-    commander = card
-    commanderSource = 'imported'
-    importedCards += 1
+    if (!commander) {
+      commander = card
+      commanderSource = 'imported'
+      importedCards += 1
+    } else {
+      const pairing = validateCommanderPairing(commander, card)
+      if (!pairing.allowed) {
+        issues.push({
+          lineNumber: line.lineNumber,
+          input: line.cardName,
+          message:
+            pairing.reason ?? 'These cards cannot be paired as Commanders.',
+        })
+        skippedCards += line.quantity
+        continue
+      }
+      partnerCommander = card
+      importedCards += 1
+    }
 
     if (line.quantity > 1) {
       issues.push({
@@ -148,6 +168,7 @@ export async function prepareDeckImport(
     updatedAt: currentDeck.updatedAt,
     name: currentDeck.name,
     commander,
+    partnerCommander,
     cards: [],
     sideboard: [],
     maybeboard: [],

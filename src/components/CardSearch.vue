@@ -135,7 +135,7 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
     try {
       const commanderFilter = 'is:commander legal:commander'
       const scryfallQuery = props.commanderOnly
-        ? `${newQuery} ${commanderFilter}`
+        ? `${newQuery} ${commanderFilter} ${props.searchFilter}`.trim()
         : `${newQuery} ${props.searchFilter}`.trim()
 
       cards.value = await searchCards(scryfallQuery, controller.signal)

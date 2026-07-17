@@ -22,6 +22,7 @@ export function createEmptyDeck(name = DEFAULT_DECK_NAME): Deck {
     createdAt: timestamp,
     updatedAt: timestamp,
     commander: null,
+    partnerCommander: null,
     cards: [],
     sideboard: [],
     maybeboard: [],
@@ -38,6 +39,9 @@ export function cloneDeck(source: Deck, name?: string): Deck {
     createdAt: timestamp,
     updatedAt: timestamp,
     commander: source.commander ? cloneCard(source.commander) : null,
+    partnerCommander: source.partnerCommander
+      ? cloneCard(source.partnerCommander)
+      : null,
     cards: cloneBoard(source.cards),
     sideboard: cloneBoard(source.sideboard),
     maybeboard: cloneBoard(source.maybeboard),

@@ -1,6 +1,10 @@
 import type { Deck, DeckCard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import { getCardIdentity } from './cardIdentity'
+import {
+  getCommanderColorIdentity,
+  getDeckCommanders,
+} from './commanderPairing'
 
 // A structured result gives the caller both the decision and an optional
 // explanation, which is more useful to the UI than a boolean by itself.
@@ -21,6 +25,16 @@ export function isWithinCommanderColorIdentity(
   )
 }
 
+export function isWithinDeckCommanderColorIdentity(
+  card: ScryfallCard,
+  deck: Deck,
+): boolean {
+  const commanderColors = getCommanderColorIdentity(deck)
+  return card.color_identity.every((color) =>
+    commanderColors.includes(color),
+  )
+}
+
 export function isBasicLand(card: ScryfallCard): boolean {
   return card.type_line.includes('Basic Land')
 }
@@ -34,7 +48,7 @@ export function getColorIdentityViolations(deck: Deck): DeckCard[] {
 
   return deck.cards.filter(
     (deckCard) =>
-      !isWithinCommanderColorIdentity(deckCard.card, commander),
+      !isWithinDeckCommanderColorIdentity(deckCard.card, deck),
   )
 }
 
@@ -49,7 +63,12 @@ export function validateCardAddition(
     }
   }
 
-  if (getCardIdentity(card) === getCardIdentity(deck.commander)) {
+  if (
+    getDeckCommanders(deck).some(
+      (commander) =>
+        getCardIdentity(card) === getCardIdentity(commander),
+    )
+  ) {
     return {
       allowed: false,
       reason: 'Your commander cannot also be added as a regular deck card.',
@@ -69,7 +88,7 @@ export function validateCardAddition(
     }
   }
 
-  if (!isWithinCommanderColorIdentity(card, deck.commander)) {
+  if (!isWithinDeckCommanderColorIdentity(card, deck)) {
     return {
       allowed: false,
       overridable: true,

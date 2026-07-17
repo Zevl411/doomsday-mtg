@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <v-container class="pa-0" fluid>
     <div class="d-flex flex-wrap align-center justify-space-between ga-4 mb-6">
       <div>
         <h1 class="text-h4 font-weight-bold">Your decks</h1>
@@ -100,7 +100,7 @@
       </v-card>
     </v-dialog>
 
-  </section>
+  </v-container>
 </template>
 
 <script setup lang="ts">

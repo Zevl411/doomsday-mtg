@@ -24,10 +24,11 @@
 
       <v-card-text class="px-5">
         <template v-if="card.card_faces?.length">
-          <section
+          <v-sheet
             v-for="cardFace in card.card_faces"
             :key="cardFace.name"
             class="mb-5"
+            color="transparent"
           >
             <div class="d-flex justify-space-between ga-3">
               <h3 class="text-subtitle-1 font-weight-bold">
@@ -43,7 +44,7 @@
             <p v-if="cardFace.oracle_text" class="mt-3 text-body-2">
               {{ cardFace.oracle_text }}
             </p>
-          </section>
+          </v-sheet>
         </template>
 
         <template v-else>

@@ -33,6 +33,31 @@ const router = createRouter({
       component: () => import('../views/DeckBuilderView.vue'),
     },
     {
+      path: '/metagame',
+      name: 'metagame',
+      component: () => import('../views/MetagameView.vue'),
+    },
+    {
+      path: '/commanders/:commanderKey',
+      name: 'commander-metagame',
+      component: () => import('../views/CommanderMetagameView.vue'),
+    },
+    {
+      path: '/tournaments',
+      name: 'tournaments',
+      component: () => import('../views/TournamentsView.vue'),
+    },
+    {
+      path: '/tournaments/:tournamentId',
+      name: 'tournament-detail',
+      component: () => import('../views/TournamentDetailView.vue'),
+    },
+    {
+      path: '/admin/ingestion',
+      name: 'admin-ingestion',
+      component: () => import('../views/AdminIngestionView.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue'),

@@ -37,6 +37,15 @@
             <span class="d-none d-sm-inline">Deck Builder</span>
             <span class="d-sm-none">Builder</span>
           </v-btn>
+          <v-menu>
+            <template #activator="{ props }">
+              <v-btn size="small" v-bind="props" variant="text">Explore</v-btn>
+            </template>
+            <v-list>
+              <v-list-item :to="{ name: 'metagame' }" title="Metagame" />
+              <v-list-item :to="{ name: 'tournaments' }" title="Tournaments" />
+            </v-list>
+          </v-menu>
           <v-menu v-if="auth.isSignedIn">
             <template #activator="{ props }">
               <v-btn size="small" v-bind="props" variant="text">
