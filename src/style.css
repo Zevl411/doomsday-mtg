@@ -224,6 +224,10 @@ input:focus {
   list-style: none;
 }
 
+.deck-rejection {
+  margin-top: 20px;
+}
+
 .deck-card-list li {
   display: flex;
   align-items: center;

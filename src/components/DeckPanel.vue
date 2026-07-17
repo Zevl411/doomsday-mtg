@@ -7,6 +7,14 @@
 
     <CardSearch @card-selected="emit('card-selected', $event)" />
 
+    <p
+      v-if="rejectionMessage"
+      class="error deck-rejection"
+      role="status"
+    >
+      {{ rejectionMessage }}
+    </p>
+
     <ul v-if="cards.length" class="deck-card-list">
       <li v-for="(card, index) in cards" :key="`${card.id}-${index}`">
         <span>{{ card.name }}</span>
@@ -25,6 +33,7 @@ import type { ScryfallCard } from '../types/card'
 
 defineProps<{
   cards: ScryfallCard[]
+  rejectionMessage: string
 }>()
 
 // These events let App.vue handle changes while this panel only displays them.
