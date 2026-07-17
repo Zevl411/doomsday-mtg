@@ -41,6 +41,16 @@ body {
   border-color: rgb(var(--v-theme-primary));
 }
 
+.card-result--selected {
+  border-color: rgb(var(--v-theme-secondary)) !important;
+  box-shadow: inset 0 0 0 1px rgb(var(--v-theme-secondary));
+  background: color-mix(
+    in srgb,
+    rgb(var(--v-theme-secondary)) 10%,
+    rgb(var(--v-theme-surface-bright))
+  );
+}
+
 .card-result-image {
   flex: 0 0 72px;
 }

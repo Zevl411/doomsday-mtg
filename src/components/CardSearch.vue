@@ -33,8 +33,10 @@
       <v-list-item
         v-for="card in cards"
         :key="card.id"
+        :aria-pressed="isCardSelected(card)"
         border
         class="card-result mb-3"
+        :class="{ 'card-result--selected': isCardSelected(card) }"
         rounded="lg"
         tag="button"
         type="button"
@@ -69,9 +71,16 @@ import { searchCards } from '../api/scryfall'
 import type { ScryfallCard } from '../types/card'
 
 // Props are values a parent component can pass into this component.
-const props = withDefaults(defineProps<{ commanderOnly?: boolean }>(), {
-  commanderOnly: false,
-})
+const props = withDefaults(
+  defineProps<{
+    commanderOnly?: boolean
+    selectedCardIds?: string[]
+  }>(),
+  {
+    commanderOnly: false,
+    selectedCardIds: () => [],
+  },
+)
 
 // Emits describe events this component can send back to its parent. The tuple
 // says that card-selected sends one value named card with the ScryfallCard type.
@@ -145,5 +154,9 @@ function getCardImage(card: ScryfallCard): string | undefined {
 
 function formatColorIdentity(card: ScryfallCard): string {
   return card.color_identity.join(', ') || 'Colorless'
+}
+
+function isCardSelected(card: ScryfallCard): boolean {
+  return props.selectedCardIds.includes(card.id)
 }
 </script>

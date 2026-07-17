@@ -10,7 +10,10 @@
     </v-card-item>
 
     <v-card-text class="pa-5">
-      <CardSearch @card-selected="emit('card-selected', $event)" />
+      <CardSearch
+        :selected-card-ids="cards.map((card) => card.id)"
+        @card-selected="toggleCard"
+      />
 
       <v-alert
       v-if="rejectionMessage"
@@ -60,7 +63,7 @@
 import CardSearch from './CardSearch.vue'
 import type { ScryfallCard } from '../types/card'
 
-defineProps<{
+const props = defineProps<{
   cards: ScryfallCard[]
   rejectionMessage: string
 }>()
@@ -70,4 +73,17 @@ const emit = defineEmits<{
   'card-selected': [card: ScryfallCard]
   'remove-card': [index: number]
 }>()
+
+function toggleCard(card: ScryfallCard) {
+  const selectedIndex = props.cards.findIndex(
+    (deckCard) => deckCard.id === card.id,
+  )
+
+  if (selectedIndex >= 0) {
+    emit('remove-card', selectedIndex)
+    return
+  }
+
+  emit('card-selected', card)
+}
 </script>
