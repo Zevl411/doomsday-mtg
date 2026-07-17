@@ -5,6 +5,12 @@ import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 import { validateCardAddition } from './deckLegality'
 
+const deckMetadata = {
+  id: 'test-deck',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+}
+
 function createCard(
   id: string,
   name: string,
@@ -23,12 +29,14 @@ function createCard(
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  useDeckStore().createDeck()
 })
 
 describe('deck legality identity checks', () => {
   it('requires a commander before adding a card', () => {
     const card = createCard('card-printing', 'Card', 'card-oracle')
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Test Deck',
       commander: null,
       cards: [],
@@ -54,6 +62,7 @@ describe('deck legality identity checks', () => {
       'Legendary Creature',
     )
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Test Deck',
       commander,
       cards: [],
@@ -84,6 +93,7 @@ describe('deck legality identity checks', () => {
       'arcane-signet-oracle',
     )
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Test Deck',
       commander,
       cards: [{ card: firstPrinting, quantity: 1 }],
@@ -143,6 +153,7 @@ describe('deck legality identity checks', () => {
       ['R'],
     )
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Test Deck',
       commander,
       cards: [],
@@ -173,6 +184,7 @@ describe('deck legality identity checks', () => {
       ['U'],
     )
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Test Deck',
       commander,
       cards: [],

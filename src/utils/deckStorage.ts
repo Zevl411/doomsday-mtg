@@ -1,123 +1,263 @@
-import type { Deck } from '../models/deck'
+import { createDeckId } from '../models/createDeck'
+import type { Deck, DeckCard } from '../models/deck'
+import {
+  DECK_LIBRARY_VERSION,
+  type StoredDeckLibrary,
+} from '../models/deckLibrary'
+import type { ScryfallCard } from '../types/card'
 
-const DECK_STORAGE_KEY = 'doomsday-mtg-current-deck'
+export const DECK_LIBRARY_STORAGE_KEY = 'doomsday-mtg-deck-library'
+export const LEGACY_DECK_STORAGE_KEY = 'doomsday-mtg-current-deck'
+
+function createEmptyLibrary(): StoredDeckLibrary {
+  return {
+    version: DECK_LIBRARY_VERSION,
+    activeDeckId: null,
+    decks: [],
+  }
+}
 
 // Record<string, unknown> describes an object whose values are not trusted yet.
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function isCardLike(value: unknown): boolean {
-  if (!isObject(value)) {
+function normalizeCard(value: unknown): ScryfallCard | null {
+  if (
+    !isObject(value) ||
+    typeof value.id !== 'string' ||
+    typeof value.name !== 'string' ||
+    typeof value.type_line !== 'string' ||
+    !Array.isArray(value.color_identity) ||
+    !value.color_identity.every((color) => typeof color === 'string')
+  ) {
+    return null
+  }
+
+  if (
+    value.oracle_id !== undefined &&
+    typeof value.oracle_id !== 'string'
+  ) {
+    return null
+  }
+
+  return value as unknown as ScryfallCard
+}
+
+function normalizeBoard(value: unknown): DeckCard[] | null {
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const board: DeckCard[] = []
+
+  for (const entry of value) {
+    if (
+      !isObject(entry) ||
+      typeof entry.quantity !== 'number' ||
+      !Number.isFinite(entry.quantity) ||
+      !Number.isInteger(entry.quantity) ||
+      entry.quantity <= 0
+    ) {
+      return null
+    }
+
+    const card = normalizeCard(entry.card)
+    if (!card) {
+      return null
+    }
+
+    board.push({ card, quantity: entry.quantity })
+  }
+
+  return board
+}
+
+function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
     return false
   }
 
-  return (
-    typeof value.id === 'string' &&
-    (value.oracle_id === undefined ||
-      typeof value.oracle_id === 'string') &&
-    typeof value.name === 'string' &&
-    typeof value.type_line === 'string' &&
-    Array.isArray(value.color_identity) &&
-    value.color_identity.every((color) => typeof color === 'string')
-  )
+  // Comparing the normalized value rejects ambiguous locale date strings.
+  return new Date(value).toISOString() === value
+}
+
+function normalizeDeck(
+  value: unknown,
+  allowLegacyFields: boolean,
+): Deck | null {
+  if (!isObject(value) || typeof value.name !== 'string') {
+    return null
+  }
+
+  const commander =
+    value.commander === null ? null : normalizeCard(value.commander)
+  const cards = normalizeBoard(value.cards)
+
+  if (value.commander !== null && !commander) {
+    return null
+  }
+
+  if (!cards) {
+    return null
+  }
+
+  const sideboard =
+    value.sideboard === undefined && allowLegacyFields
+      ? []
+      : normalizeBoard(value.sideboard)
+  const maybeboard =
+    value.maybeboard === undefined && allowLegacyFields
+      ? []
+      : normalizeBoard(value.maybeboard)
+  const considering =
+    value.considering === undefined && allowLegacyFields
+      ? []
+      : normalizeBoard(value.considering)
+
+  if (!sideboard || !maybeboard || !considering) {
+    return null
+  }
+
+  const timestamp = new Date().toISOString()
+  const id =
+    typeof value.id === 'string' && value.id
+      ? value.id
+      : allowLegacyFields
+        ? createDeckId()
+        : null
+  const createdAt = isIsoDate(value.createdAt)
+    ? value.createdAt
+    : allowLegacyFields
+      ? timestamp
+      : null
+  const updatedAt = isIsoDate(value.updatedAt)
+    ? value.updatedAt
+    : allowLegacyFields
+      ? timestamp
+      : null
+
+  if (!id || !createdAt || !updatedAt) {
+    return null
+  }
+
+  return {
+    id,
+    name: value.name,
+    createdAt,
+    updatedAt,
+    commander,
+    cards,
+    sideboard,
+    maybeboard,
+    considering,
+  }
 }
 
 export function isUsableDeck(value: unknown): value is Deck {
-  if (!isObject(value)) {
-    return false
-  }
-
-  const commanderIsValid =
-    value.commander === null || isCardLike(value.commander)
-
-  if (
-    typeof value.name !== 'string' ||
-    !commanderIsValid ||
-    !isUsableBoard(value.cards)
-  ) {
-    return false
-  }
-
-  return ['sideboard', 'maybeboard', 'considering'].every((boardName) => {
-    const board = value[boardName]
-    return board === undefined || isUsableBoard(board)
-  })
+  return normalizeDeck(value, false) !== null
 }
 
-function isUsableBoard(value: unknown): boolean {
-  if (!Array.isArray(value)) {
-    return false
+function normalizeLibrary(value: unknown): StoredDeckLibrary | null {
+  if (
+    !isObject(value) ||
+    value.version !== DECK_LIBRARY_VERSION ||
+    !Array.isArray(value.decks) ||
+    (value.activeDeckId !== null &&
+      typeof value.activeDeckId !== 'string')
+  ) {
+    return null
   }
 
-  return value.every((entry) => {
-    if (!isObject(entry)) {
-      return false
+  const decks: Deck[] = []
+  const deckIds = new Set<string>()
+
+  for (const storedDeck of value.decks) {
+    const deck = normalizeDeck(storedDeck, false)
+    if (!deck || deckIds.has(deck.id)) {
+      return null
     }
 
-    return (
-      isCardLike(entry.card) &&
-      typeof entry.quantity === 'number' &&
-      Number.isFinite(entry.quantity) &&
-      Number.isInteger(entry.quantity) &&
-      entry.quantity > 0
-    )
-  })
+    deckIds.add(deck.id)
+    decks.push(deck)
+  }
+
+  // A dangling active ID should not make otherwise valid decks disappear.
+  const activeDeckId =
+    typeof value.activeDeckId === 'string' &&
+    deckIds.has(value.activeDeckId)
+      ? value.activeDeckId
+      : null
+
+  return {
+    version: DECK_LIBRARY_VERSION,
+    activeDeckId,
+    decks,
+  }
 }
 
-export function saveDeck(deck: Deck): boolean {
+export function saveDeckLibrary(library: StoredDeckLibrary): boolean {
   try {
-    // localStorage saves text, so JSON.stringify() converts the Deck to text.
-    localStorage.setItem(DECK_STORAGE_KEY, JSON.stringify(deck))
+    localStorage.setItem(
+      DECK_LIBRARY_STORAGE_KEY,
+      JSON.stringify(library),
+    )
     return true
   } catch (error) {
-    console.warn('The deck could not be saved locally.', error)
+    console.warn('The deck library could not be saved locally.', error)
     return false
   }
 }
 
 /**
- * Treats browser storage as untrusted input and performs the old-to-new board
- * migration only after every present value passes runtime validation.
+ * Loads the versioned library first, then performs a one-time legacy migration
+ * only when no valid library exists. The old key is removed after—not before—
+ * the new library has been saved successfully.
  */
-export function loadDeck(): Deck | null {
+export function loadDeckLibrary(): StoredDeckLibrary {
   try {
-    const savedText = localStorage.getItem(DECK_STORAGE_KEY)
+    const libraryText = localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)
 
-    if (!savedText) {
-      return null
+    if (libraryText) {
+      const library = normalizeLibrary(JSON.parse(libraryText))
+      if (library) {
+        return library
+      }
     }
 
-    // JSON.parse() converts stored text back into a JavaScript value.
-    const savedValue: unknown = JSON.parse(savedText)
-
-    if (!isUsableDeck(savedValue)) {
-      clearSavedDeck()
-      return null
+    const legacyText = localStorage.getItem(LEGACY_DECK_STORAGE_KEY)
+    if (!legacyText) {
+      return createEmptyLibrary()
     }
 
-    // Older saved decks predate auxiliary boards. Loading supplies their
-    // defaults so the rest of the application always receives a complete Deck.
-    return {
-      ...savedValue,
-      sideboard: savedValue.sideboard ?? [],
-      maybeboard: savedValue.maybeboard ?? [],
-      considering: savedValue.considering ?? [],
+    const migratedDeck = normalizeDeck(JSON.parse(legacyText), true)
+    if (!migratedDeck) {
+      return createEmptyLibrary()
     }
+
+    const migratedLibrary: StoredDeckLibrary = {
+      version: DECK_LIBRARY_VERSION,
+      activeDeckId: migratedDeck.id,
+      decks: [migratedDeck],
+    }
+
+    if (saveDeckLibrary(migratedLibrary)) {
+      localStorage.removeItem(LEGACY_DECK_STORAGE_KEY)
+    }
+
+    return migratedLibrary
   } catch (error) {
-    // Parsing can fail because browser storage may contain malformed text.
-    console.warn('The saved deck was invalid and could not be loaded.', error)
-    clearSavedDeck()
-    return null
+    console.warn('Saved deck data was invalid and could not be loaded.', error)
+    return createEmptyLibrary()
   }
 }
 
-export function clearSavedDeck(): boolean {
+export function clearDeckLibrary(): boolean {
   try {
-    localStorage.removeItem(DECK_STORAGE_KEY)
+    localStorage.removeItem(DECK_LIBRARY_STORAGE_KEY)
     return true
   } catch (error) {
-    console.warn('The saved deck could not be removed.', error)
+    console.warn('The deck library could not be removed.', error)
     return false
   }
 }

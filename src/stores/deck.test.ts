@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import type { Deck } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
-import { saveDeck } from '../utils/deckStorage'
-import { getTotalDeckCardCount } from '../utils/deckValidation'
+import { DECK_LIBRARY_STORAGE_KEY } from '../utils/deckStorage'
 import { useDeckStore } from './deck'
 
 function createCard(
@@ -43,197 +41,162 @@ const island = createCard(
 )
 
 beforeEach(() => {
+  localStorage.clear()
   setActivePinia(createPinia())
 })
 
-describe('deck store', () => {
-  it('starts with the default empty deck', () => {
+describe('deck library store', () => {
+  it('creates, opens, and persists decks', () => {
     const store = useDeckStore()
+    const first = store.createDeck(' First ')
+    const second = store.createDeck('Second')
 
-    expect(store.deck).toEqual({
-      commander: null,
-      cards: [],
-      sideboard: [],
-      maybeboard: [],
-      considering: [],
-      name: 'Untitled Deck',
-    })
+    expect(store.library.decks).toHaveLength(2)
+    expect(store.deck.id).toBe(second.id)
+    expect(store.openDeck(first.id)).toBe(true)
+    expect(store.deck.name).toBe('First')
+    expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).toContain(first.id)
   })
 
-  it('loads a valid saved deck', () => {
-    const savedDeck: Deck = {
-      commander,
-      cards: [{ card: artifact, quantity: 1 }],
-      sideboard: [],
-      maybeboard: [],
-      considering: [],
-      name: 'Saved Deck',
-    }
-    saveDeck(savedDeck)
-    setActivePinia(createPinia())
+  it('renames a deck, trims its name, and rejects an empty name', () => {
+    const store = useDeckStore()
+    const deck = store.createDeck('Original')
+    const oldUpdatedAt = deck.updatedAt
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2027-01-01T00:00:00.000Z'))
 
-    expect(useDeckStore().deck).toEqual(savedDeck)
+    expect(store.renameDeck(deck.id, '  Renamed  ')).toBe(true)
+    expect(deck.name).toBe('Renamed')
+    expect(deck.updatedAt).not.toBe(oldUpdatedAt)
+    expect(store.renameDeck(deck.id, '   ')).toBe(false)
+    expect(deck.name).toBe('Renamed')
+    vi.useRealTimers()
   })
 
-  it('sets and clears the commander', () => {
+  it('duplicates without sharing mutable board data', () => {
     const store = useDeckStore()
+    const source = store.createDeck('Source')
+    store.addCardToBoard(artifact, 'sideboard', 2)
 
+    const duplicate = store.duplicateDeck(source.id)
+
+    expect(duplicate?.id).not.toBe(source.id)
+    expect(duplicate?.name).toBe('Source Copy')
+    expect(duplicate?.sideboard).not.toBe(source.sideboard)
+    duplicate!.sideboard[0]!.quantity = 9
+    expect(source.sideboard[0]?.quantity).toBe(2)
+  })
+
+  it('deletes a non-active deck without changing the active deck', () => {
+    const store = useDeckStore()
+    const first = store.createDeck('First')
+    const second = store.createDeck('Second')
+
+    expect(store.deleteDeck(first.id)).toBe(true)
+    expect(store.deck.id).toBe(second.id)
+    expect(store.library.decks).toHaveLength(1)
+  })
+
+  it('selects a fallback after deleting the active deck', () => {
+    const store = useDeckStore()
+    const first = store.createDeck('First')
+    const second = store.createDeck('Second')
+
+    store.deleteDeck(second.id)
+    expect(store.deck.id).toBe(first.id)
+
+    store.deleteDeck(first.id)
+    expect(store.hasActiveDeck).toBe(false)
+  })
+
+  it('editor actions affect only the active deck', () => {
+    const store = useDeckStore()
+    const first = store.createDeck('First')
     store.setCommander(commander)
-    expect(store.deck.commander).toEqual(commander)
+    const second = store.createDeck('Second')
 
-    store.clearCommander()
-    expect(store.deck.commander).toBeNull()
-  })
-
-  it('adds a legal card and rejects a duplicate printing', () => {
-    const store = useDeckStore()
-    store.setCommander(commander)
-
-    expect(store.addCard(artifact).allowed).toBe(true)
-    expect(store.addCard({ ...artifact, id: 'other-printing' }).allowed).toBe(
-      false,
-    )
-    expect(store.deck.cards).toHaveLength(1)
-  })
-
-  it('adds, increases, and decreases a basic land quantity', () => {
-    const store = useDeckStore()
-    store.setCommander(commander)
-    store.addCard(island)
-    store.addCard({ ...island, id: 'other-island-printing' })
-
-    expect(store.deck.cards[0]?.quantity).toBe(2)
-
-    store.increaseBoardQuantity('island-oracle', 'mainboard')
-    expect(store.deck.cards[0]?.quantity).toBe(3)
-
-    store.decreaseBoardQuantity('island-oracle', 'mainboard')
-    expect(store.deck.cards[0]?.quantity).toBe(2)
-  })
-
-  it('removes an entry when its quantity reaches zero', () => {
-    const store = useDeckStore()
-    store.setCommander(commander)
-    store.addCard(island)
-
-    store.decreaseBoardQuantity('island-oracle', 'mainboard')
-
-    expect(store.deck.cards).toHaveLength(0)
-  })
-
-  it('removes a selected card', () => {
-    const store = useDeckStore()
     store.setCommander(commander)
     store.addCard(artifact)
 
-    store.removeCardFromBoard('artifact-oracle', 'mainboard')
-
-    expect(store.deck.cards).toHaveLength(0)
+    expect(second.cards).toHaveLength(1)
+    expect(first.cards).toHaveLength(0)
   })
 
-  it('resets the deck and clears saved data', () => {
+  it('handles quantities, board moves, and removal on the active deck', () => {
     const store = useDeckStore()
+    store.createDeck()
     store.setCommander(commander)
-    store.addCard(artifact)
-    store.addCardToBoard(artifact, 'sideboard')
-    store.addCardToBoard(artifact, 'maybeboard')
-    store.addCardToBoard(artifact, 'considering')
+    store.addCard(island)
+    store.addCard({ ...island, id: 'another-island' })
+    expect(store.deck.cards[0]?.quantity).toBe(2)
 
-    store.resetDeck()
-
-    expect(store.deck.commander).toBeNull()
-    expect(store.deck.cards).toHaveLength(0)
+    store.addCardToBoard(artifact, 'sideboard', 2)
+    store.moveCardBetweenBoards('artifact-oracle', 'sideboard', 'maybeboard')
     expect(store.deck.sideboard).toHaveLength(0)
+    expect(store.deck.maybeboard[0]?.quantity).toBe(2)
+
+    store.removeCardFromBoard('artifact-oracle', 'maybeboard')
     expect(store.deck.maybeboard).toHaveLength(0)
-    expect(store.deck.considering).toHaveLength(0)
-    expect(localStorage.getItem('doomsday-mtg-current-deck')).toBeNull()
   })
 
-  it('replaces and persists an imported deck', () => {
+  it('reset preserves identity and name but clears content', () => {
     const store = useDeckStore()
-    const importedDeck: Deck = {
-      name: 'Imported Deck',
+    const deck = store.createDeck('Keep Me')
+    store.setCommander(commander)
+    store.addCard(artifact)
+
+    store.resetActiveDeck()
+
+    expect(store.deck.id).toBe(deck.id)
+    expect(store.deck.createdAt).toBe(deck.createdAt)
+    expect(store.deck.name).toBe('Keep Me')
+    expect(store.deck.commander).toBeNull()
+    expect(store.deck.cards).toEqual([])
+  })
+
+  it('replaces only the active deck while preserving its identity', () => {
+    const store = useDeckStore()
+    const original = store.createDeck('Original')
+    const other = store.createDeck('Other')
+    store.openDeck(original.id)
+
+    store.replaceActiveDeck({
+      ...original,
+      id: 'import-id',
+      name: 'Imported',
       commander,
       cards: [{ card: artifact, quantity: 1 }],
-      sideboard: [],
-      maybeboard: [],
-      considering: [],
-    }
+    })
 
-    store.replaceDeck(importedDeck)
-
-    expect(store.deck).toEqual(importedDeck)
-    expect(store.saveSucceeded).toBe(true)
-    expect(localStorage.getItem('doomsday-mtg-current-deck')).toContain(
-      'Imported Deck',
-    )
+    expect(store.deck.id).toBe(original.id)
+    expect(store.deck.createdAt).toBe(original.createdAt)
+    expect(store.deck.name).toBe('Imported')
+    expect(
+      store.library.decks.find((deck) => deck.id === other.id),
+    ).toEqual(other)
   })
 
-  it('tracks successful and failed persistence attempts', () => {
+  it('does not persist temporary preview state', () => {
     const store = useDeckStore()
-
+    store.createDeck()
+    store.setPreviewCard(artifact)
     store.setCommander(commander)
-    expect(store.saveSucceeded).toBe(true)
 
+    expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).not.toContain(
+      'previewCard',
+    )
+    store.clearPreviewCard()
+    expect(store.previewCard).toBeNull()
+  })
+
+  it('reports persistence failures without throwing', () => {
+    const store = useDeckStore()
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('Storage unavailable')
     })
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
-    store.clearCommander()
+    store.createDeck()
     expect(store.saveSucceeded).toBe(false)
-  })
-
-  it('sets and clears preview state without persisting it', () => {
-    const store = useDeckStore()
-    store.setPreviewCard(artifact)
-    store.setCommander(commander)
-
-    const savedText = localStorage.getItem('doomsday-mtg-current-deck')
-
-    expect(store.previewCard).toEqual(artifact)
-    expect(savedText).not.toContain('previewCard')
-
-    store.clearPreviewCard()
-    expect(store.previewCard).toBeNull()
-  })
-
-  it('adds quantities to auxiliary boards and persists them', () => {
-    const store = useDeckStore()
-
-    store.addCardToBoard(artifact, 'sideboard', 2)
-    store.addCardToBoard(artifact, 'sideboard', 3)
-
-    expect(store.deck.sideboard).toEqual([
-      { card: artifact, quantity: 5 },
-    ])
-    expect(localStorage.getItem('doomsday-mtg-current-deck')).toContain(
-      '"sideboard"',
-    )
-  })
-
-  it('moves cards between auxiliary boards', () => {
-    const store = useDeckStore()
-    store.addCardToBoard(artifact, 'maybeboard', 2)
-
-    const result = store.moveCardBetweenBoards(
-      'artifact-oracle',
-      'maybeboard',
-      'considering',
-    )
-
-    expect(result.allowed).toBe(true)
-    expect(store.deck.maybeboard).toHaveLength(0)
-    expect(store.deck.considering[0]?.quantity).toBe(2)
-  })
-
-  it('does not count auxiliary boards toward Commander deck size', () => {
-    const store = useDeckStore()
-    store.setCommander(commander)
-    store.addCardToBoard(artifact, 'sideboard', 20)
-    store.addCardToBoard(artifact, 'maybeboard', 10)
-    store.addCardToBoard(artifact, 'considering', 5)
-
-    expect(getTotalDeckCardCount(store.deck)).toBe(1)
   })
 })

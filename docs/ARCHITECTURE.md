@@ -14,7 +14,7 @@ Vue route-level view
         │       └── read shared Pinia state
         │
         ├── Pinia deck store
-        │       ├── owns the active Deck
+        │       ├── owns the local Deck library and active Deck ID
         │       ├── performs mutations
         │       └── saves meaningful mutations
         │
@@ -39,15 +39,17 @@ use those Vue components instead of remote symbol images or raw font classes.
 `src/models/deck.ts` defines the application-owned `Deck` and `DeckCard`
 shapes. A Deck contains:
 
+- a stable application ID and created/updated timestamps;
 - one optional Commander;
 - `cards`, the mainboard retained under its legacy property name;
 - sideboard, maybeboard, and considering boards;
 - a user-facing deck name.
 
-Pinia's `useDeckStore` is the single source of truth for the active Deck.
-Components may read the store and call actions, but they should not introduce
-a second copy of deck state. Import previews are temporary and intentionally
-remain inside the import component until the user confirms replacement.
+Pinia's `useDeckStore` is the single source of truth for the browser-local
+Deck collection, active Deck selection, and editor mutations. Components may
+read the store and call actions, but they should not introduce a second copy
+of deck state. Import previews are temporary and intentionally remain inside
+the import component until the user confirms replacement.
 
 Card equality uses `oracle_id` when available so different printings still
 represent one game card. The printed `id` is only a fallback/display identity.
@@ -121,11 +123,13 @@ never partially mutates the active Deck.
 
 ## Persistence and migration
 
-`src/utils/deckStorage.ts` is the only localStorage adapter. Stored JSON is
-untrusted: loading validates the Commander, every card shape, and every
-positive integer quantity. Older saves without auxiliary boards are migrated
-by supplying empty arrays. Invalid data is discarded rather than allowed into
-Pinia.
+`src/utils/deckStorage.ts` is the only localStorage adapter. Version 1 uses the
+`doomsday-mtg-deck-library` key and stores the Deck collection plus the active
+Deck ID. Stored JSON is untrusted: loading validates unique Deck IDs,
+timestamps, the Commander, every card shape, and every positive integer
+quantity. The previous `doomsday-mtg-current-deck` save is migrated once,
+receiving an ID, timestamps, and any missing board arrays. The old key is
+removed only after the new library saves successfully.
 
 Temporary UI state—search text, previews, dialogs, and import issues—is never
 stored with the Deck.

@@ -343,7 +343,7 @@ function moveCard(identity: string, destination: TrackedDeckBoard | null) {
 }
 
 function confirmReset() {
-  deckStore.resetDeck()
+  deckStore.resetActiveDeck()
   showResetDialog.value = false
 }
 </script>

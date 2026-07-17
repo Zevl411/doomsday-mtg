@@ -20,6 +20,10 @@ export type TrackedDeckBoard =
 // Deck belongs to our application because it combines Scryfall card data with
 // deck-building state that the Scryfall API does not own.
 export interface Deck {
+  // Deck IDs belong to DoomsdayMTG and are unrelated to Scryfall card IDs.
+  id: string
+  createdAt: string
+  updatedAt: string
   commander: ScryfallCard | null
   // Quantity belongs beside the card so one entry represents all of its copies
   // instead of duplicating the same Scryfall card object throughout the array.

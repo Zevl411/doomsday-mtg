@@ -15,6 +15,14 @@
           <v-btn
             active-color="primary"
             size="small"
+            :to="{ name: 'deck-library' }"
+            variant="text"
+          >
+            Decks
+          </v-btn>
+          <v-btn
+            active-color="primary"
+            size="small"
             :to="{ name: 'home' }"
             variant="text"
           >

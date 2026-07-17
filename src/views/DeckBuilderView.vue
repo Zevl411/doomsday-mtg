@@ -1,6 +1,10 @@
 <template>
   <v-row align="start">
     <v-col cols="12">
+      <DeckBuilderHeader />
+    </v-col>
+
+    <v-col cols="12">
       <DeckImportExport />
     </v-col>
 
@@ -62,6 +66,7 @@
 import { ref } from 'vue'
 import CardPreview from '../components/CardPreview.vue'
 import CommanderPanel from '../components/CommanderPanel.vue'
+import DeckBuilderHeader from '../components/DeckBuilderHeader.vue'
 import DeckImportExport from '../components/DeckImportExport.vue'
 import DeckPanel from '../components/DeckPanel.vue'
 import { useDeckStore } from '../stores/deck'
@@ -69,6 +74,11 @@ import type { TrackedDeckBoard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 
 const deckStore = useDeckStore()
+// Opening the builder directly creates a first local deck when the library is
+// empty. Returning later reuses the active deck held by Pinia.
+if (!deckStore.hasActiveDeck) {
+  deckStore.createDeck()
+}
 const pendingIllegalCard = ref<ScryfallCard | null>(null)
 const pendingIllegalReason = ref('')
 const showIllegalCardDialog = ref(false)

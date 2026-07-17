@@ -356,7 +356,7 @@ async function processImport() {
     if (hasImportErrors(prepared)) {
       preparedImport.value = prepared
     } else {
-      deckStore.replaceDeck(prepared.deck)
+      deckStore.replaceActiveDeck(prepared.deck)
       closeImportDialog()
     }
   } catch (error) {
@@ -377,7 +377,7 @@ function confirmImport() {
     return
   }
 
-  deckStore.replaceDeck(preparedImport.value.deck)
+  deckStore.replaceActiveDeck(preparedImport.value.deck)
   closeImportDialog()
 }
 

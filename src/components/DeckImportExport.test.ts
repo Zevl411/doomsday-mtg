@@ -26,6 +26,7 @@ const solRing: ScryfallCard = {
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  useDeckStore().createDeck()
   vi.mocked(prepareDeckImport).mockReset()
 })
 
@@ -77,6 +78,9 @@ describe('DeckImportExport', () => {
     const store = useDeckStore()
     vi.mocked(prepareDeckImport).mockResolvedValue({
       deck: {
+        id: store.deck.id,
+        createdAt: store.deck.createdAt,
+        updatedAt: store.deck.updatedAt,
         name: 'Imported Deck',
         commander,
         cards: [{ card: solRing, quantity: 1 }],
@@ -125,6 +129,9 @@ describe('DeckImportExport', () => {
     const store = useDeckStore()
     vi.mocked(prepareDeckImport).mockResolvedValue({
       deck: {
+        id: store.deck.id,
+        createdAt: store.deck.createdAt,
+        updatedAt: store.deck.updatedAt,
         name: 'Clean Import',
         commander,
         cards: [{ card: solRing, quantity: 1 }],
@@ -158,6 +165,9 @@ describe('DeckImportExport', () => {
     const store = useDeckStore()
     vi.mocked(prepareDeckImport).mockResolvedValue({
       deck: {
+        id: store.deck.id,
+        createdAt: store.deck.createdAt,
+        updatedAt: store.deck.updatedAt,
         name: 'Should Not Import',
         commander,
         cards: [],

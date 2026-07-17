@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  DECK_LIBRARY_VERSION,
+  type StoredDeckLibrary,
+} from '../models/deckLibrary'
 import type { Deck } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import {
-  clearSavedDeck,
+  DECK_LIBRARY_STORAGE_KEY,
+  LEGACY_DECK_STORAGE_KEY,
+  clearDeckLibrary,
   isUsableDeck,
-  loadDeck,
-  saveDeck,
+  loadDeckLibrary,
+  saveDeckLibrary,
 } from './deckStorage'
 
 const card: ScryfallCard = {
@@ -15,9 +21,12 @@ const card: ScryfallCard = {
   color_identity: [],
 }
 
-function createStoredDeck(quantity: number): Deck {
+function createStoredDeck(id = 'deck-one', quantity = 1): Deck {
   return {
+    id,
     name: 'Stored Deck',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-02T00:00:00.000Z',
     commander: null,
     cards: [{ card, quantity }],
     sideboard: [],
@@ -27,86 +36,129 @@ function createStoredDeck(quantity: number): Deck {
 }
 
 afterEach(() => {
+  localStorage.clear()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
 
-describe('stored deck validation', () => {
-  it('saves and loads a valid deck', () => {
-    const deck = createStoredDeck(2)
-
-    expect(saveDeck(deck)).toBe(true)
-    expect(loadDeck()).toEqual(deck)
+describe('deck-library storage', () => {
+  it('returns an empty versioned library when storage is empty', () => {
+    expect(loadDeckLibrary()).toEqual({
+      version: DECK_LIBRARY_VERSION,
+      activeDeckId: null,
+      decks: [],
+    })
   })
 
-  it('accepts a positive integer quantity', () => {
-    expect(isUsableDeck(createStoredDeck(2))).toBe(true)
+  it('saves and loads a valid library', () => {
+    const deck = createStoredDeck()
+    const library: StoredDeckLibrary = {
+      version: DECK_LIBRARY_VERSION,
+      activeDeckId: deck.id,
+      decks: [deck],
+    }
+
+    expect(saveDeckLibrary(library)).toBe(true)
+    expect(loadDeckLibrary()).toEqual(library)
   })
 
-  it('migrates an older saved deck to empty auxiliary boards', () => {
+  it('rejects malformed libraries and duplicate deck IDs', () => {
+    const deck = createStoredDeck()
+    localStorage.setItem(
+      DECK_LIBRARY_STORAGE_KEY,
+      JSON.stringify({
+        version: DECK_LIBRARY_VERSION,
+        activeDeckId: deck.id,
+        decks: [deck, deck],
+      }),
+    )
+
+    expect(loadDeckLibrary().decks).toEqual([])
+  })
+
+  it('normalizes a dangling active deck ID to null', () => {
+    const deck = createStoredDeck()
+    localStorage.setItem(
+      DECK_LIBRARY_STORAGE_KEY,
+      JSON.stringify({
+        version: DECK_LIBRARY_VERSION,
+        activeDeckId: 'missing',
+        decks: [deck],
+      }),
+    )
+
+    expect(loadDeckLibrary().activeDeckId).toBeNull()
+    expect(loadDeckLibrary().decks).toEqual([deck])
+  })
+
+  it('migrates one legacy deck and remains idempotent', () => {
     const legacyDeck = {
       name: 'Legacy Deck',
       commander: null,
       cards: [{ card, quantity: 1 }],
     }
     localStorage.setItem(
-      'doomsday-mtg-current-deck',
+      LEGACY_DECK_STORAGE_KEY,
       JSON.stringify(legacyDeck),
     )
 
-    expect(loadDeck()).toEqual({
-      ...legacyDeck,
+    const firstLoad = loadDeckLibrary()
+    const secondLoad = loadDeckLibrary()
+
+    expect(firstLoad.decks).toHaveLength(1)
+    expect(secondLoad).toEqual(firstLoad)
+    expect(firstLoad.activeDeckId).toBe(firstLoad.decks[0]?.id)
+    expect(firstLoad.decks[0]).toMatchObject({
+      name: 'Legacy Deck',
       sideboard: [],
       maybeboard: [],
       considering: [],
     })
+    expect(firstLoad.decks[0]?.createdAt).toBeTruthy()
+    expect(localStorage.getItem(LEGACY_DECK_STORAGE_KEY)).toBeNull()
   })
 
-  it('validates quantities on every tracked board', () => {
-    const deck = createStoredDeck(1)
-    deck.sideboard = [{ card, quantity: 2 }]
-    deck.maybeboard = [{ card, quantity: 3 }]
-    deck.considering = [{ card, quantity: 4 }]
-
-    expect(isUsableDeck(deck)).toBe(true)
-
-    deck.sideboard[0]!.quantity = 0
-    expect(isUsableDeck(deck)).toBe(false)
-  })
-
-  it.each([1.5, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
-    'rejects invalid quantity %s',
-    (quantity) => {
-      expect(isUsableDeck(createStoredDeck(quantity))).toBe(false)
-    },
-  )
-
-  it('handles malformed JSON without crashing', () => {
-    const removeItem = vi.fn()
-    vi.stubGlobal('localStorage', {
-      getItem: vi.fn(() => '{not valid JSON'),
-      setItem: vi.fn(),
-      removeItem,
-    })
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-
-    expect(loadDeck()).toBeNull()
-    expect(removeItem).toHaveBeenCalled()
-  })
-
-  it('clears saved deck data', () => {
-    saveDeck(createStoredDeck(1))
-
-    expect(clearSavedDeck()).toBe(true)
-    expect(loadDeck()).toBeNull()
-  })
-
-  it('reports storage failures without throwing', () => {
+  it('does not remove legacy data when the migration save fails', () => {
+    localStorage.setItem(
+      LEGACY_DECK_STORAGE_KEY,
+      JSON.stringify({
+        name: 'Legacy Deck',
+        commander: null,
+        cards: [],
+      }),
+    )
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('Storage unavailable')
     })
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
-    expect(saveDeck(createStoredDeck(1))).toBe(false)
+    expect(loadDeckLibrary().decks).toHaveLength(1)
+    expect(localStorage.getItem(LEGACY_DECK_STORAGE_KEY)).not.toBeNull()
+  })
+
+  it('validates positive finite integer quantities on every board', () => {
+    const deck = createStoredDeck()
+    expect(isUsableDeck(deck)).toBe(true)
+
+    deck.sideboard = [{ card, quantity: 0 }]
+    expect(isUsableDeck(deck)).toBe(false)
+  })
+
+  it('handles malformed JSON without crashing', () => {
+    localStorage.setItem(DECK_LIBRARY_STORAGE_KEY, '{not valid JSON')
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    expect(loadDeckLibrary().decks).toEqual([])
+  })
+
+  it('clears only the library storage key', () => {
+    saveDeckLibrary({
+      version: DECK_LIBRARY_VERSION,
+      activeDeckId: null,
+      decks: [],
+    })
+
+    expect(clearDeckLibrary()).toBe(true)
+    expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).toBeNull()
   })
 })

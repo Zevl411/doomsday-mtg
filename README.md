@@ -33,11 +33,14 @@ The end goal is a tool capable of answering questions like:
 - Commander color identity restrictions
 - Deck model written in TypeScript
 - Responsive Vue 3 interface
-- Current deck saved locally in the browser
+- Multiple decks saved locally in the browser
 - Plaintext decklist import and export
 
-The current deck remains only in this browser. Clearing browser storage can
-remove it, and accounts or cloud synchronization are not yet supported.
+The deck library remains only in this browser. You can create, open, rename,
+duplicate, reset, and delete decks from the Decks screen. Existing single-deck
+save data migrates into the library automatically. Clearing browser site
+storage deletes the local library, and accounts or cloud synchronization are
+not yet supported.
 
 ### Plaintext decklists
 
@@ -198,6 +201,7 @@ migration, and testing conventions, see
 Available routes:
 
 - `#/` — Home
+- `#/decks` — Local deck library
 - `#/deck-builder` — Deck Builder
 
 Hash-based routing is used so direct links and page refreshes work when the

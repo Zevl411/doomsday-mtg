@@ -3,6 +3,12 @@ import type { Deck } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import { formatDecklist } from './decklistFormatter'
 
+const deckMetadata = {
+  id: 'test-deck',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+}
+
 function createCard(id: string, name: string): ScryfallCard {
   return {
     id,
@@ -15,6 +21,7 @@ function createCard(id: string, name: string): ScryfallCard {
 describe('formatDecklist', () => {
   it('formats Commander, sorted deck entries, and quantities', () => {
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Test Deck',
       commander: createCard('commander', "Atraxa, Praetors' Voice"),
       cards: [
@@ -42,6 +49,7 @@ describe('formatDecklist', () => {
 
   it('omits the Commander section when no Commander exists', () => {
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Test Deck',
       commander: null,
       cards: [{ card: createCard('sol-ring', 'Sol Ring'), quantity: 1 }],
@@ -55,6 +63,7 @@ describe('formatDecklist', () => {
 
   it('does not mutate deck entry order while sorting output', () => {
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Test Deck',
       commander: null,
       cards: [
@@ -76,6 +85,7 @@ describe('formatDecklist', () => {
 
   it('preserves and sorts every non-empty tracked board', () => {
     const deck: Deck = {
+      ...deckMetadata,
       name: 'Boards',
       commander: null,
       cards: [],

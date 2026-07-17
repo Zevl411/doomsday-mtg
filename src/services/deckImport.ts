@@ -143,6 +143,9 @@ export async function prepareDeckImport(
   }
 
   const deck: Deck = {
+    id: currentDeck.id,
+    createdAt: currentDeck.createdAt,
+    updatedAt: currentDeck.updatedAt,
     name: currentDeck.name,
     commander,
     cards: [],

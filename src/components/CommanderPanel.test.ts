@@ -15,6 +15,7 @@ const commander: ScryfallCard = {
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  useDeckStore().createDeck()
 })
 
 function mountPanel() {

@@ -30,6 +30,7 @@ const island: ScryfallCard = {
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  useDeckStore().createDeck()
 })
 
 function mountPanel() {

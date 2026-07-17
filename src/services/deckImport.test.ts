@@ -44,6 +44,9 @@ const island = createCard(
   ['U'],
 )
 const currentDeck: Deck = {
+  id: 'current-deck',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
   name: 'Current Deck',
   commander,
   cards: [],

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { cloneDeck, createEmptyDeck } from '../models/createDeck'
 import {
   getDeckBoardEntries,
   type Deck,
@@ -13,44 +14,138 @@ import {
   isBasicLand,
   validateCardAddition,
 } from '../utils/deckLegality'
-import {
-  clearSavedDeck,
-  loadDeck,
-  saveDeck,
-} from '../utils/deckStorage'
+import { loadDeckLibrary, saveDeckLibrary } from '../utils/deckStorage'
 
-function createEmptyDeck(): Deck {
-  return {
-    commander: null,
-    cards: [],
-    sideboard: [],
-    maybeboard: [],
-    considering: [],
-    name: 'Untitled Deck',
-  }
-}
-
-// defineStore() creates one shared source of deck state for the application.
+// defineStore() creates one shared source of deck-library state.
 export const useDeckStore = defineStore('deck', {
   // State contains the values that components can read reactively.
   state: () => ({
-    deck: loadDeck() ?? createEmptyDeck(),
+    library: loadDeckLibrary(),
     rejectionMessage: '',
     previewCard: null as ScryfallCard | null,
     saveSucceeded: null as boolean | null,
   }),
 
+  // Getters calculate convenient values from state without duplicating data.
+  getters: {
+    decks(state): Deck[] {
+      return state.library.decks
+    },
+
+    activeDeckId(state): string | null {
+      return state.library.activeDeckId
+    },
+
+    activeDeck(state): Deck | null {
+      return (
+        state.library.decks.find(
+          (deck) => deck.id === state.library.activeDeckId,
+        ) ?? null
+      )
+    },
+
+    /**
+     * Editor components only render after the builder guarantees an active
+     * deck. Keeping this alias avoids passing the same deck through every
+     * presentation component.
+     */
+    deck(): Deck {
+      if (!this.activeDeck) {
+        throw new Error('No active deck is available.')
+      }
+
+      return this.activeDeck
+    },
+
+    hasActiveDeck(): boolean {
+      return this.activeDeck !== null
+    },
+
+    deckSummaries(state) {
+      return state.library.decks.map((deck) => ({
+        id: deck.id,
+        name: deck.name,
+        commanderName: deck.commander?.name ?? null,
+        updatedAt: deck.updatedAt,
+      }))
+    },
+  },
+
   // Actions are the store's named methods for changing its state.
   actions: {
-    // Commander actions remain separate because the Commander is not a board.
+    createDeck(name?: string): Deck {
+      const deck = createEmptyDeck(name)
+      this.library.decks.push(deck)
+      this.library.activeDeckId = deck.id
+      this.rejectionMessage = ''
+      this.persistLibrary()
+      return deck
+    },
+
+    openDeck(deckId: string): boolean {
+      if (!this.library.decks.some((deck) => deck.id === deckId)) {
+        return false
+      }
+
+      this.library.activeDeckId = deckId
+      this.rejectionMessage = ''
+      this.persistLibrary()
+      return true
+    },
+
+    renameDeck(deckId: string, name: string): boolean {
+      const deck = this.library.decks.find((item) => item.id === deckId)
+      const trimmedName = name.trim()
+
+      if (!deck || !trimmedName) {
+        return false
+      }
+
+      deck.name = trimmedName
+      deck.updatedAt = new Date().toISOString()
+      this.persistLibrary()
+      return true
+    },
+
+    duplicateDeck(deckId: string): Deck | null {
+      const source = this.library.decks.find((deck) => deck.id === deckId)
+      if (!source) {
+        return null
+      }
+
+      const duplicate = cloneDeck(source)
+      this.library.decks.push(duplicate)
+      this.persistLibrary()
+      return duplicate
+    },
+
+    deleteDeck(deckId: string): boolean {
+      const deckIndex = this.library.decks.findIndex(
+        (deck) => deck.id === deckId,
+      )
+      if (deckIndex === -1) {
+        return false
+      }
+
+      this.library.decks.splice(deckIndex, 1)
+
+      if (this.library.activeDeckId === deckId) {
+        this.library.activeDeckId = this.library.decks[0]?.id ?? null
+      }
+
+      this.rejectionMessage = ''
+      this.persistLibrary()
+      return true
+    },
+
     setCommander(card: ScryfallCard) {
       this.deck.commander = card
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistActiveDeck()
     },
 
     clearCommander() {
       this.deck.commander = null
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistActiveDeck()
     },
 
     addCard(
@@ -82,7 +177,7 @@ export const useDeckStore = defineStore('deck', {
       }
 
       this.rejectionMessage = ''
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistActiveDeck()
       return { allowed: true }
     },
 
@@ -102,12 +197,11 @@ export const useDeckStore = defineStore('deck', {
       if (board === 'mainboard') {
         const result = this.addCard(card, allowColorIdentityViolation)
 
-        // Basic lands can add several copies in one explicit board action.
         if (result.allowed && quantity > 1 && isBasicLand(card)) {
           const entry = findBoardEntry(this.deck.cards, card)
           if (entry) {
             entry.quantity += quantity - 1
-            this.saveSucceeded = saveDeck(this.deck)
+            this.persistActiveDeck()
           }
         }
         return result
@@ -123,17 +217,15 @@ export const useDeckStore = defineStore('deck', {
       }
 
       this.rejectionMessage = ''
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistActiveDeck()
       return { allowed: true }
     },
 
     removeCardFromBoard(identity: string, board: TrackedDeckBoard) {
-      const entries = getDeckBoardEntries(this.deck, board)
-      const remainingEntries = entries.filter(
+      const remainingEntries = getDeckBoardEntries(this.deck, board).filter(
         (entry) => getCardIdentity(entry.card) !== identity,
       )
 
-      // Assigning the correct property keeps Pinia reactivity explicit.
       if (board === 'mainboard') {
         this.deck.cards = remainingEntries
       } else {
@@ -141,7 +233,7 @@ export const useDeckStore = defineStore('deck', {
       }
 
       this.rejectionMessage = ''
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistActiveDeck()
     },
 
     increaseBoardQuantity(identity: string, board: TrackedDeckBoard) {
@@ -154,7 +246,7 @@ export const useDeckStore = defineStore('deck', {
       }
 
       entry.quantity += 1
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistActiveDeck()
     },
 
     decreaseBoardQuantity(identity: string, board: TrackedDeckBoard) {
@@ -172,7 +264,7 @@ export const useDeckStore = defineStore('deck', {
       }
 
       entry.quantity -= 1
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistActiveDeck()
     },
 
     moveCardBetweenBoards(
@@ -215,30 +307,55 @@ export const useDeckStore = defineStore('deck', {
         destination.push({ ...sourceEntry })
       }
 
-      this.removeCardFromBoard(identity, fromBoard)
+      const source = getDeckBoardEntries(this.deck, fromBoard)
+      const remaining = source.filter(
+        (entry) => getCardIdentity(entry.card) !== identity,
+      )
+      if (fromBoard === 'mainboard') {
+        this.deck.cards = remaining
+      } else {
+        this.deck[fromBoard] = remaining
+      }
+
+      this.rejectionMessage = ''
+      this.persistActiveDeck()
       return { allowed: true }
     },
 
     removeIllegalCards() {
       const illegalCards = getColorIdentityViolations(this.deck)
-
       this.deck.cards = this.deck.cards.filter(
         (deckCard) => !illegalCards.includes(deckCard),
       )
       this.rejectionMessage = ''
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistActiveDeck()
     },
 
-    resetDeck() {
-      this.deck = createEmptyDeck()
-      this.rejectionMessage = ''
-      this.saveSucceeded = clearSavedDeck()
+    resetActiveDeck() {
+      const replacement = createEmptyDeck(this.deck.name)
+      replacement.id = this.deck.id
+      replacement.createdAt = this.deck.createdAt
+      this.replaceActiveDeck(replacement)
     },
 
-    replaceDeck(deck: Deck) {
-      this.deck = deck
+    replaceActiveDeck(deck: Deck) {
+      const activeIndex = this.library.decks.findIndex(
+        (item) => item.id === this.library.activeDeckId,
+      )
+      if (activeIndex === -1) {
+        return
+      }
+
+      const current = this.library.decks[activeIndex]
+      this.library.decks[activeIndex] = {
+        ...deck,
+        id: current.id,
+        name: deck.name.trim() || current.name,
+        createdAt: current.createdAt,
+        updatedAt: new Date().toISOString(),
+      }
       this.rejectionMessage = ''
-      this.saveSucceeded = saveDeck(this.deck)
+      this.persistLibrary()
     },
 
     setPreviewCard(card: ScryfallCard) {
@@ -247,6 +364,23 @@ export const useDeckStore = defineStore('deck', {
 
     clearPreviewCard() {
       this.previewCard = null
+    },
+
+    persistActiveDeck() {
+      this.updateActiveDeckTimestamp()
+      this.persistLibrary()
+    },
+
+    updateActiveDeckTimestamp() {
+      this.deck.updatedAt = new Date().toISOString()
+    },
+
+    saveActiveDeck() {
+      this.persistActiveDeck()
+    },
+
+    persistLibrary() {
+      this.saveSucceeded = saveDeckLibrary(this.library)
     },
   },
 })
