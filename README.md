@@ -192,7 +192,11 @@ Frontend
 - Vuetify
 - Pinia
 - Vitest
+- Vue Test Utils
 - Mana font, exposed through local Vue mana-symbol components
+- Scryfall API
+- GitHub Actions
+- GitHub Pages
 
 For module boundaries, state ownership, the import pipeline, persistence
 migration, and testing conventions, see
@@ -231,6 +235,12 @@ Create a production build:
 
 ```bash
 npm run build
+```
+
+Preview the production build locally:
+
+```bash
+npm run preview
 ```
 
 GitHub Pages deployment is configured at
@@ -274,6 +284,21 @@ Data Sources
 - [ ] Deck statistics
 - [x] Import/Export decklists
 - [x] Save decks locally
+
+### v0.1.0 release readiness
+
+- [x] Automated tests passing
+- [x] Production build passing
+- [ ] GitHub Pages deployment smoke tested after release
+- [ ] Import and export manually smoke tested
+- [x] Existing single-deck migration covered by automated tests
+- [ ] Narrow-screen mobile flow manually smoke tested
+- [x] README and architecture documentation current
+- [x] Known MVP limitations documented
+
+Known v0.1.0 limitations include one Commander only (no Partners or Background
+pairing), no banned-list enforcement, no special oracle-text quantity
+exceptions, browser-local storage only, and no account or cloud sync.
 
 ---
 

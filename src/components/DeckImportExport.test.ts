@@ -214,6 +214,24 @@ describe('DeckImportExport', () => {
     wrapper.unmount()
   })
 
+  it('aborts an active import when the component unmounts', async () => {
+    let receivedSignal: AbortSignal | undefined
+    vi.mocked(prepareDeckImport).mockImplementation(
+      (_text, _deck, signal) => {
+        receivedSignal = signal
+        return new Promise(() => undefined)
+      },
+    )
+    const wrapper = mountComponent()
+
+    await findButton(wrapper, 'Import Decklist')?.trigger('click')
+    await wrapper.find('textarea').setValue('Deck\n1 Sol Ring')
+    await findButton(wrapper, 'Process Import')?.trigger('click')
+    wrapper.unmount()
+
+    expect(receivedSignal?.aborted).toBe(true)
+  })
+
   it('copies export text and reports clipboard failure', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     vi.stubGlobal('navigator', {

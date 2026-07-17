@@ -136,6 +136,24 @@ describe('parseDecklist', () => {
     )
   })
 
+  it('skips an obvious generic category heading before quantified cards', () => {
+    const parsed = parseDecklist('Artifacts\n1 Sol Ring\n1 Arcane Signet')
+
+    expect(parsed.lines.map((line) => line.cardName)).toEqual([
+      'Sol Ring',
+      'Arcane Signet',
+    ])
+    expect(parsed.skippedCategoryHeadings).toEqual([
+      expect.objectContaining({ input: 'Artifacts' }),
+    ])
+  })
+
+  it('keeps an unknown plausible card name for Scryfall resolution', () => {
+    const parsed = parseDecklist('Unfamiliar Future Card\n1 Sol Ring')
+
+    expect(parsed.lines[0]?.cardName).toBe('Unfamiliar Future Card')
+  })
+
   it('removes Moxfield printing and foil annotations from card names', () => {
     const parsed = parseDecklist(
       [

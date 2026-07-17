@@ -139,6 +139,25 @@ describe('deck library store', () => {
     expect(store.deck.maybeboard).toHaveLength(0)
   })
 
+  it('merges matching auxiliary entries when moving without losing quantity', () => {
+    const store = useDeckStore()
+    store.createDeck()
+    store.addCardToBoard(artifact, 'sideboard', 2)
+    store.addCardToBoard(artifact, 'maybeboard', 3)
+
+    const result = store.moveCardBetweenBoards(
+      'artifact-oracle',
+      'sideboard',
+      'maybeboard',
+    )
+
+    expect(result.allowed).toBe(true)
+    expect(store.deck.sideboard).toEqual([])
+    expect(store.deck.maybeboard).toEqual([
+      { card: artifact, quantity: 5 },
+    ])
+  })
+
   it('reset preserves identity and name but clears content', () => {
     const store = useDeckStore()
     const deck = store.createDeck('Keep Me')
@@ -187,6 +206,23 @@ describe('deck library store', () => {
     )
     store.clearPreviewCard()
     expect(store.previewCard).toBeNull()
+  })
+
+  it('does not update timestamps for no-op editor and selection actions', () => {
+    const store = useDeckStore()
+    const deck = store.createDeck('Stable')
+    const updatedAt = deck.updatedAt
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2028-01-01T00:00:00.000Z'))
+    store.openDeck(deck.id)
+    store.renameDeck(deck.id, ' Stable ')
+    store.clearCommander()
+    store.removeCardFromBoard('missing-card', 'mainboard')
+    store.removeIllegalCards()
+
+    expect(deck.updatedAt).toBe(updatedAt)
+    vi.useRealTimers()
   })
 
   it('reports persistence failures without throwing', () => {

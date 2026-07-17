@@ -8,21 +8,22 @@ export function detectDecklistFormat(text: string): DecklistFormat {
     .filter(Boolean)
   const headings = lines.map(normalizeDecklistHeading)
 
-  // Arena metadata appears only at the end of a card line with a set code and
-  // collector number, making it the strongest format signal.
-  if (lines.some((line) => /\s+\([a-z0-9]{2,6}\)\s+\S+\s*$/i.test(line))) {
-    return 'arena'
-  }
-
   const uppercaseHeadings = lines.map((line) =>
     line.replace(/:$/, '').trim(),
   )
 
+  // Archidekt and Arena both append set and collector metadata. Check
+  // Archidekt's decorated headings first so the broader Arena signal does not
+  // make this branch unreachable.
   if (
     lines.some((line) => /^\s*(?:\*\*|#{1,6}\s|\[).+(?:\*\*|\])?\s*$/.test(line)) &&
     lines.some((line) => /\s+\([A-Z0-9]{2,6}\)\s+\S+/.test(line))
   ) {
     return 'archidekt'
+  }
+
+  if (lines.some((line) => /\s+\([a-z0-9]{2,6}\)\s+\S+\s*$/i.test(line))) {
+    return 'arena'
   }
 
   if (

@@ -29,4 +29,24 @@ describe('getCardIdentity', () => {
     expect(getCardIdentity(firstCard)).toBe('sol ring')
     expect(getCardIdentity(firstCard)).toBe(getCardIdentity(secondCard))
   })
+
+  it('normalizes whitespace and face separators when oracle_id is absent', () => {
+    expect(
+      getCardIdentity({
+        id: 'printing-one',
+        name: '  Fire / Ice ',
+        type_line: 'Instant',
+        color_identity: ['U', 'R'],
+      }),
+    ).toBe('fire // ice')
+
+    expect(
+      getCardIdentity({
+        id: 'printing-two',
+        name: 'Fire  //  Ice',
+        type_line: 'Instant',
+        color_identity: ['U', 'R'],
+      }),
+    ).toBe('fire // ice')
+  })
 })

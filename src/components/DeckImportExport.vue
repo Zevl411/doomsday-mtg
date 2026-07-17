@@ -215,7 +215,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { prepareDeckImport } from '../services/deckImport'
 import { useDeckStore } from '../stores/deck'
 import type { PreparedDeckImport } from '../types/deckImport'
@@ -326,6 +326,12 @@ function closeImportDialog() {
   isImporting.value = false
   showImportDialog.value = false
 }
+
+// Route changes can unmount this component while Scryfall is still resolving
+// a large import. Abort that work instead of leaving a background request.
+onUnmounted(() => {
+  importController?.abort()
+})
 
 function handleImportDialogVisibility(isOpen: boolean) {
   if (isOpen) {

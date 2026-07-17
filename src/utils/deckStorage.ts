@@ -4,7 +4,11 @@ import {
   DECK_LIBRARY_VERSION,
   type StoredDeckLibrary,
 } from '../models/deckLibrary'
-import type { ScryfallCard } from '../types/card'
+import type {
+  ScryfallCard,
+  ScryfallCardFace,
+  ScryfallImageUris,
+} from '../types/card'
 
 export const DECK_LIBRARY_STORAGE_KEY = 'doomsday-mtg-deck-library'
 export const LEGACY_DECK_STORAGE_KEY = 'doomsday-mtg-current-deck'
@@ -34,14 +38,118 @@ function normalizeCard(value: unknown): ScryfallCard | null {
     return null
   }
 
+  const optionalStringFields = [
+    'oracle_id',
+    'flavor_name',
+    'printed_name',
+    'mana_cost',
+    'oracle_text',
+  ]
   if (
-    value.oracle_id !== undefined &&
-    typeof value.oracle_id !== 'string'
+    optionalStringFields.some(
+      (field) =>
+        value[field] !== undefined && typeof value[field] !== 'string',
+    )
   ) {
     return null
   }
 
-  return value as unknown as ScryfallCard
+  const imageUris = normalizeImageUris(value.image_uris)
+  const cardFaces = normalizeCardFaces(value.card_faces)
+
+  if (imageUris === null || cardFaces === null) {
+    return null
+  }
+
+  return {
+    id: value.id,
+    oracle_id: getOptionalString(value, 'oracle_id'),
+    name: value.name,
+    flavor_name: getOptionalString(value, 'flavor_name'),
+    printed_name: getOptionalString(value, 'printed_name'),
+    type_line: value.type_line,
+    color_identity: [...value.color_identity],
+    mana_cost: getOptionalString(value, 'mana_cost'),
+    oracle_text: getOptionalString(value, 'oracle_text'),
+    image_uris: imageUris,
+    card_faces: cardFaces,
+  }
+}
+
+function normalizeImageUris(
+  value: unknown,
+): ScryfallImageUris | undefined | null {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (
+    !isObject(value) ||
+    typeof value.small !== 'string' ||
+    typeof value.normal !== 'string' ||
+    typeof value.large !== 'string'
+  ) {
+    return null
+  }
+
+  return {
+    small: value.small,
+    normal: value.normal,
+    large: value.large,
+  }
+}
+
+function normalizeCardFaces(
+  value: unknown,
+): ScryfallCardFace[] | undefined | null {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!Array.isArray(value)) {
+    return null
+  }
+
+  const faces: ScryfallCardFace[] = []
+
+  for (const face of value) {
+    if (
+      !isObject(face) ||
+      typeof face.name !== 'string' ||
+      typeof face.type_line !== 'string' ||
+      (face.printed_name !== undefined &&
+        typeof face.printed_name !== 'string') ||
+      (face.mana_cost !== undefined && typeof face.mana_cost !== 'string') ||
+      (face.oracle_text !== undefined &&
+        typeof face.oracle_text !== 'string')
+    ) {
+      return null
+    }
+
+    const imageUris = normalizeImageUris(face.image_uris)
+    if (imageUris === null) {
+      return null
+    }
+
+    faces.push({
+      name: face.name,
+      printed_name: getOptionalString(face, 'printed_name'),
+      mana_cost: getOptionalString(face, 'mana_cost'),
+      type_line: face.type_line,
+      oracle_text: getOptionalString(face, 'oracle_text'),
+      image_uris: imageUris,
+    })
+  }
+
+  return faces
+}
+
+function getOptionalString(
+  object: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = object[key]
+  return typeof value === 'string' ? value : undefined
 }
 
 function normalizeBoard(value: unknown): DeckCard[] | null {

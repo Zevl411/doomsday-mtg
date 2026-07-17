@@ -94,7 +94,6 @@ export function parseDecklist(
     }
 
     if (
-      (format === 'moxfield' || format === 'archidekt') &&
       lineSection === 'mainboard' &&
       isLikelyCategoryHeading(cardInput, originalLines, index)
     ) {

@@ -76,6 +76,23 @@ describe('deck-library storage', () => {
     expect(loadDeckLibrary().decks).toEqual([])
   })
 
+  it('fails safely for an unsupported library version', () => {
+    localStorage.setItem(
+      DECK_LIBRARY_STORAGE_KEY,
+      JSON.stringify({
+        version: 99,
+        activeDeckId: null,
+        decks: [createStoredDeck()],
+      }),
+    )
+
+    expect(loadDeckLibrary()).toEqual({
+      version: DECK_LIBRARY_VERSION,
+      activeDeckId: null,
+      decks: [],
+    })
+  })
+
   it('normalizes a dangling active deck ID to null', () => {
     const deck = createStoredDeck()
     localStorage.setItem(
@@ -141,6 +158,24 @@ describe('deck-library storage', () => {
     expect(isUsableDeck(deck)).toBe(true)
 
     deck.sideboard = [{ card, quantity: 0 }]
+    expect(isUsableDeck(deck)).toBe(false)
+  })
+
+  it('accepts legacy-compatible cards without oracle IDs', () => {
+    const deck = createStoredDeck()
+    delete deck.cards[0]?.card.oracle_id
+
+    expect(isUsableDeck(deck)).toBe(true)
+  })
+
+  it('rejects malformed optional nested card data', () => {
+    const deck = createStoredDeck()
+    const malformedCard = deck.cards[0]?.card as unknown as Record<
+      string,
+      unknown
+    >
+    malformedCard.card_faces = 'not-an-array'
+
     expect(isUsableDeck(deck)).toBe(false)
   })
 

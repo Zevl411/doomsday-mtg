@@ -87,6 +87,10 @@ export const useDeckStore = defineStore('deck', {
         return false
       }
 
+      if (this.library.activeDeckId === deckId) {
+        return true
+      }
+
       this.library.activeDeckId = deckId
       this.rejectionMessage = ''
       this.persistLibrary()
@@ -99,6 +103,10 @@ export const useDeckStore = defineStore('deck', {
 
       if (!deck || !trimmedName) {
         return false
+      }
+
+      if (deck.name === trimmedName) {
+        return true
       }
 
       deck.name = trimmedName
@@ -144,6 +152,10 @@ export const useDeckStore = defineStore('deck', {
     },
 
     clearCommander() {
+      if (!this.deck.commander) {
+        return
+      }
+
       this.deck.commander = null
       this.persistActiveDeck()
     },
@@ -222,9 +234,14 @@ export const useDeckStore = defineStore('deck', {
     },
 
     removeCardFromBoard(identity: string, board: TrackedDeckBoard) {
-      const remainingEntries = getDeckBoardEntries(this.deck, board).filter(
+      const entries = getDeckBoardEntries(this.deck, board)
+      const remainingEntries = entries.filter(
         (entry) => getCardIdentity(entry.card) !== identity,
       )
+
+      if (remainingEntries.length === entries.length) {
+        return
+      }
 
       if (board === 'mainboard') {
         this.deck.cards = remainingEntries
@@ -324,6 +341,10 @@ export const useDeckStore = defineStore('deck', {
 
     removeIllegalCards() {
       const illegalCards = getColorIdentityViolations(this.deck)
+      if (!illegalCards.length) {
+        return
+      }
+
       this.deck.cards = this.deck.cards.filter(
         (deckCard) => !illegalCards.includes(deckCard),
       )
