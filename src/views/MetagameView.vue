@@ -3,8 +3,14 @@
     <div class="mb-6">
       <h1 class="text-h4 font-weight-bold">Commander metagame</h1>
       <p class="text-medium-emphasis">
-        Tournament results imported from EDHTop16. Percentages include their
-        sample sizes and reflect the selected filters.
+        Normalized tournament results from TopDeck and EDHTop16. Percentages
+        include their sample sizes and reflect the selected filters.
+      </p>
+      <p class="text-caption">
+        Data provided by
+        <a href="https://topdeck.gg" target="_blank" rel="noopener noreferrer">TopDeck.gg</a>
+        and
+        <a href="https://edhtop16.com" target="_blank" rel="noopener noreferrer">EDHTop16</a>.
       </p>
     </div>
 
@@ -35,6 +41,34 @@
         <v-col class="d-flex ga-2" cols="12" md="2">
           <v-btn color="primary" @click="load">Apply</v-btn>
           <v-btn variant="text" @click="reset">Reset</v-btn>
+        </v-col>
+      </v-row>
+      <v-row v-if="locationOptions.regions.length">
+        <v-col cols="12" sm="4">
+          <v-select
+            v-model="countryCode"
+            clearable
+            :items="locationOptions.countries"
+            label="Event country"
+          />
+        </v-col>
+        <v-col cols="12" sm="4">
+          <v-select
+            v-model="stateRegion"
+            clearable
+            :items="locationOptions.states"
+            label="Event state/province"
+          />
+        </v-col>
+        <v-col cols="12" sm="4">
+          <v-select
+            v-model="onlineFilter"
+            clearable
+            :items="onlineItems"
+            item-title="title"
+            item-value="value"
+            label="Event setting"
+          />
         </v-col>
       </v-row>
     </v-card>
@@ -93,7 +127,10 @@
 import { onMounted, ref } from 'vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import type { CommanderMetagameStats } from '../models/tournament'
-import { tournamentRepository } from '../repositories/tournamentRepository'
+import {
+  tournamentRepository,
+  type TournamentLocationOptions,
+} from '../repositories/tournamentRepository'
 
 const stats = ref<CommanderMetagameStats[]>([])
 const loading = ref(false)
@@ -103,6 +140,16 @@ const endDate = ref('')
 const minimumPlayers = ref(0)
 const minimumEntries = ref(1)
 const topFinishThreshold = 16
+const countryCode = ref<string>()
+const stateRegion = ref<string>()
+const onlineFilter = ref<boolean>()
+const locationOptions = ref<TournamentLocationOptions>({
+  countries: [], states: [], regions: [], hasOnline: false,
+})
+const onlineItems = [
+  { title: 'Online', value: true },
+  { title: 'In person', value: false },
+]
 
 async function load() {
   loading.value = true
@@ -114,6 +161,9 @@ async function load() {
       minimumPlayers: minimumPlayers.value,
       minimumEntries: minimumEntries.value,
       topFinishThreshold,
+      countryCode: countryCode.value,
+      stateRegion: stateRegion.value,
+      isOnline: onlineFilter.value,
     })
   } catch (error) {
     errorMessage.value =
@@ -128,6 +178,9 @@ function reset() {
   endDate.value = ''
   minimumPlayers.value = 0
   minimumEntries.value = 1
+  countryCode.value = undefined
+  stateRegion.value = undefined
+  onlineFilter.value = undefined
   void load()
 }
 
@@ -135,5 +188,12 @@ function percent(value: number) {
   return `${(value * 100).toFixed(1)}%`
 }
 
-onMounted(load)
+onMounted(async () => {
+  try {
+    locationOptions.value = await tournamentRepository.getLocationOptions()
+  } catch {
+    // Regional filters stay hidden when location metadata is unavailable.
+  }
+  await load()
+})
 </script>

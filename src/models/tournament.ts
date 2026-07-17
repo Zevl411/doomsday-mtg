@@ -1,5 +1,8 @@
 /** Provider-neutral tournament records keep external API shapes out of Vue. */
 export type TournamentSource = 'edhtop16' | 'topdeck'
+export type LocationPrecision =
+  | 'exact' | 'venue' | 'city' | 'state' | 'country'
+  | 'online' | 'unknown'
 
 export interface Tournament {
   id: string
@@ -12,6 +15,13 @@ export interface Tournament {
   importedAt: string
   sourceUpdatedAt?: string
   entryCount?: number
+  venueName?: string
+  city?: string
+  stateRegion?: string
+  countryCode?: string
+  locationPrecision?: LocationPrecision
+  isOnline: boolean
+  regionKey: string
 }
 
 export interface TournamentEntry {
@@ -72,4 +82,19 @@ export interface MetagameFilters {
   minimumPlayers?: number
   minimumEntries?: number
   topFinishThreshold?: number
+  countryCode?: string
+  stateRegion?: string
+  regionKey?: string
+  isOnline?: boolean
+}
+
+export interface RegionalMetagameStats {
+  regionKey: string
+  displayName: string
+  tournaments: number
+  entries: number
+  uniqueCommanders: number
+  topCommander: string | null
+  topCommanderEntries: number
+  averageTournamentSize: number
 }

@@ -70,10 +70,15 @@
             <v-card-text>
               <v-select
                 v-model="provider"
-                :items="['edhtop16']"
+                :items="providerItems"
+                item-title="title"
+                item-value="value"
                 label="Provider"
                 variant="outlined"
               />
+              <v-alert class="mb-4" type="info" variant="tonal">
+                {{ providerDescription }}
+              </v-alert>
               <v-row>
                 <v-col cols="12" sm="6">
                   <v-text-field
@@ -98,6 +103,47 @@
                 min="0"
                 type="number"
                 variant="outlined"
+              />
+              <v-row v-if="provider === 'topdeck'">
+                <v-col cols="12" sm="6">
+                  <v-text-field
+                    v-model.number="maximumPlayers"
+                    clearable
+                    label="Maximum players (optional)"
+                    min="0"
+                    type="number"
+                    variant="outlined"
+                  />
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <v-text-field
+                    v-model.number="lastDays"
+                    clearable
+                    label="Last number of days (optional)"
+                    min="1"
+                    type="number"
+                    variant="outlined"
+                  />
+                </v-col>
+              </v-row>
+              <v-textarea
+                v-model="tournamentIds"
+                label="Tournament IDs (optional)"
+                placeholder="One TopDeck TID per line"
+                rows="2"
+                variant="outlined"
+              />
+              <v-switch
+                v-if="provider === 'topdeck'"
+                v-model="includeRounds"
+                color="primary"
+                label="Include rounds (larger response)"
+              />
+              <v-switch
+                v-if="provider === 'topdeck'"
+                v-model="enrichLocation"
+                color="primary"
+                label="Enrich missing locations"
               />
               <v-switch
                 v-model="dryRun"
@@ -175,6 +221,138 @@
         </v-col>
       </v-row>
 
+      <v-card border class="mt-6" color="surface" variant="flat">
+        <v-card-item>
+          <v-card-title>Historical backfill</v-card-title>
+          <v-card-subtitle>
+            Creates resumable seven-day jobs processed safely in the background
+          </v-card-subtitle>
+        </v-card-item>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" sm="3">
+              <v-text-field
+                v-model="jobStartDate"
+                label="Historical start"
+                type="date"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12" sm="3">
+              <v-text-field
+                v-model="jobEndDate"
+                label="Historical end"
+                type="date"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12" sm="2">
+              <v-text-field
+                v-model.number="jobWindowDays"
+                label="Batch days"
+                max="15"
+                min="1"
+                type="number"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12" sm="2">
+              <v-text-field
+                v-model.number="jobMinimumPlayers"
+                label="Minimum players"
+                min="0"
+                type="number"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col class="d-flex align-center" cols="12" sm="2">
+              <v-btn
+                block
+                color="primary"
+                :disabled="!jobStartDate || !jobEndDate"
+                :loading="creatingJob"
+                @click="createHistoricalJob"
+              >
+                Create job
+              </v-btn>
+            </v-col>
+          </v-row>
+
+          <v-alert v-if="jobError" class="mb-4" type="error" variant="tonal">
+            {{ jobError }}
+          </v-alert>
+          <v-alert v-if="jobMessage" class="mb-4" type="success" variant="tonal">
+            {{ jobMessage }}
+          </v-alert>
+
+          <v-list v-if="jobs.length" border>
+            <v-list-item v-for="job in jobs" :key="job.id">
+              <v-list-item-title>
+                {{ job.provider }} · {{ job.startDate }} to {{ job.endDate }}
+              </v-list-item-title>
+              <v-list-item-subtitle>
+                {{ job.completedBatches }} / {{ job.totalBatches }} batches ·
+                {{ job.failedBatches }} failed · {{ job.status }}
+              </v-list-item-subtitle>
+              <v-progress-linear
+                class="mt-2"
+                color="primary"
+                :model-value="jobProgress(job)"
+              />
+              <v-alert
+                v-if="job.lastError"
+                class="mt-2"
+                density="compact"
+                type="warning"
+                variant="tonal"
+              >
+                {{ job.lastError }}
+              </v-alert>
+              <template #append>
+                <div class="d-flex ga-1">
+                  <v-btn
+                    v-if="job.status === 'running' || job.status === 'pending'"
+                    size="small"
+                    variant="text"
+                    @click="changeJob(job.id, 'pause-job')"
+                  >
+                    Pause
+                  </v-btn>
+                  <v-btn
+                    v-if="job.status === 'paused'"
+                    size="small"
+                    variant="text"
+                    @click="changeJob(job.id, 'resume-job')"
+                  >
+                    Resume
+                  </v-btn>
+                  <v-btn
+                    v-if="job.failedBatches"
+                    size="small"
+                    variant="text"
+                    @click="changeJob(job.id, 'retry-job')"
+                  >
+                    Retry
+                  </v-btn>
+                  <v-btn
+                    v-if="!['completed', 'cancelled'].includes(job.status)"
+                    color="error"
+                    size="small"
+                    variant="text"
+                    @click="changeJob(job.id, 'cancel-job')"
+                  >
+                    Cancel
+                  </v-btn>
+                </div>
+              </template>
+            </v-list-item>
+          </v-list>
+          <p v-else class="text-medium-emphasis">
+            No historical ingestion jobs have been created.
+          </p>
+        </v-card-text>
+      </v-card>
+
       <v-card
         v-if="report"
         border
@@ -233,6 +411,7 @@ import { computed, onMounted, ref } from 'vue'
 import {
   ingestionRepository,
   type IngestionDashboardMetrics,
+  type IngestionJob,
   type IngestionReport,
 } from '../repositories/ingestionRepository'
 
@@ -242,13 +421,35 @@ const loadingMetrics = ref(false)
 const metrics = ref<IngestionDashboardMetrics | null>(null)
 const metricsError = ref('')
 const running = ref(false)
-const provider = ref<'edhtop16'>('edhtop16')
+const provider = ref<'edhtop16' | 'topdeck'>('topdeck')
 const startDate = ref('')
 const endDate = ref('')
 const minimumPlayers = ref(0)
+const maximumPlayers = ref<number>()
+const lastDays = ref<number>()
 const dryRun = ref(true)
+const tournamentIds = ref('')
+const includeRounds = ref(false)
+const enrichLocation = ref(false)
 const report = ref<IngestionReport | null>(null)
 const errorMessage = ref('')
+const jobs = ref<IngestionJob[]>([])
+const creatingJob = ref(false)
+const jobStartDate = ref('')
+const jobEndDate = ref('')
+const jobWindowDays = ref(7)
+const jobMinimumPlayers = ref(0)
+const jobError = ref('')
+const jobMessage = ref('')
+const providerItems = [
+  { title: 'TopDeck (recommended)', value: 'topdeck' },
+  { title: 'EDHTop16', value: 'edhtop16' },
+]
+const providerDescription = computed(() =>
+  provider.value === 'topdeck'
+    ? 'Direct tournament platform data with location and structured decklist support.'
+    : 'Aggregated cEDH data useful for historical and curated coverage.',
+)
 
 const metricCards = computed(() => [
   {
@@ -271,6 +472,36 @@ const metricCards = computed(() => [
     value: formatDate(metrics.value?.latestImportAt ?? null, true),
     detail: 'Most recent tournament refresh',
   },
+  {
+    label: 'TopDeck coverage',
+    value: metrics.value?.topDeckCount.toLocaleString() ?? '0',
+    detail: 'Direct provider records',
+  },
+  {
+    label: 'EDHTop16 coverage',
+    value: metrics.value?.edhTop16Count.toLocaleString() ?? '0',
+    detail: 'Aggregate provider records',
+  },
+  {
+    label: 'Known locations',
+    value: metrics.value?.locationCount.toLocaleString() ?? '0',
+    detail: `${metrics.value?.unknownLocationCount ?? 0} unknown`,
+  },
+  {
+    label: 'Extraction issues',
+    value: metrics.value?.commanderFailureCount.toLocaleString() ?? '0',
+    detail: `${metrics.value?.structuredDeckCount ?? 0} structured decklists`,
+  },
+  {
+    label: 'Possible matches',
+    value: metrics.value?.possibleMatchCount.toLocaleString() ?? '0',
+    detail: 'Moderate evidence; never auto-merged',
+  },
+  {
+    label: 'Source links',
+    value: metrics.value?.linkedEventCount.toLocaleString() ?? '0',
+    detail: 'Explicit provider identities',
+  },
 ])
 
 const reportItems = computed(() => {
@@ -283,6 +514,13 @@ const reportItems = computed(() => {
     { label: 'Entries added', value: report.value.entriesInserted },
     { label: 'Entries updated', value: report.value.entriesUpdated },
     { label: 'Entries skipped', value: report.value.entriesSkipped },
+    { label: 'Provider requests', value: report.value.requestsMade },
+    { label: 'Retries', value: report.value.retries },
+    { label: 'Rate limited', value: report.value.rateLimitedRequests },
+    {
+      label: 'Partial tournaments',
+      value: report.value.tournamentsPartiallyIngested,
+    },
     { label: 'Provider errors', value: report.value.providerErrors.length },
   ]
 })
@@ -300,7 +538,12 @@ async function loadMetrics() {
   loadingMetrics.value = true
   metricsError.value = ''
   try {
-    metrics.value = await ingestionRepository.getDashboardMetrics()
+    const [dashboard, historicalJobs] = await Promise.all([
+      ingestionRepository.getDashboardMetrics(),
+      ingestionRepository.getJobs(),
+    ])
+    metrics.value = dashboard
+    jobs.value = historicalJobs
   } catch (error) {
     metricsError.value =
       error instanceof Error
@@ -309,6 +552,48 @@ async function loadMetrics() {
   } finally {
     loadingMetrics.value = false
   }
+}
+
+async function createHistoricalJob() {
+  creatingJob.value = true
+  jobError.value = ''
+  jobMessage.value = ''
+  try {
+    await ingestionRepository.createJob({
+      provider: 'topdeck',
+      startDate: jobStartDate.value,
+      endDate: jobEndDate.value,
+      windowDays: jobWindowDays.value,
+      minimumPlayers: jobMinimumPlayers.value,
+      includeRounds: false,
+      enrichLocation: false,
+    })
+    jobMessage.value = 'Historical job created. The worker will process it in the background.'
+    jobs.value = await ingestionRepository.getJobs()
+  } catch (error) {
+    jobError.value = error instanceof Error ? error.message : 'Unable to create job.'
+  } finally {
+    creatingJob.value = false
+  }
+}
+
+async function changeJob(
+  jobId: string,
+  action: 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job',
+) {
+  jobError.value = ''
+  try {
+    await ingestionRepository.updateJob(jobId, action)
+    jobs.value = await ingestionRepository.getJobs()
+  } catch (error) {
+    jobError.value = error instanceof Error ? error.message : 'Unable to update job.'
+  }
+}
+
+function jobProgress(job: IngestionJob) {
+  return job.totalBatches
+    ? (job.completedBatches / job.totalBatches) * 100
+    : 0
 }
 
 async function ingest() {
@@ -320,7 +605,15 @@ async function ingest() {
       startDate: startDate.value || undefined,
       endDate: endDate.value || undefined,
       minimumPlayers: minimumPlayers.value,
+      maximumPlayers: maximumPlayers.value || undefined,
+      last: lastDays.value || undefined,
       dryRun: dryRun.value,
+      tournamentIds: tournamentIds.value
+        .split(/[\n,]/)
+        .map((id) => id.trim())
+        .filter(Boolean),
+      includeRounds: includeRounds.value,
+      enrichLocation: enrichLocation.value,
     })
     if (!dryRun.value && !report.value.providerErrors.length) {
       await loadMetrics()

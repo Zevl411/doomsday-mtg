@@ -44,6 +44,7 @@
             <v-list>
               <v-list-item :to="{ name: 'metagame' }" title="Metagame" />
               <v-list-item :to="{ name: 'tournaments' }" title="Tournaments" />
+              <v-list-item :to="{ name: 'regions' }" title="Regions" />
             </v-list>
           </v-menu>
           <v-menu v-if="auth.isSignedIn">

@@ -1,11 +1,16 @@
 import { supabase } from '../lib/supabase'
 
 export interface IngestionOptions {
-  provider: 'edhtop16'
+  provider: 'edhtop16' | 'topdeck'
   startDate?: string
   endDate?: string
   minimumPlayers: number
   dryRun: boolean
+  maximumPlayers?: number
+  tournamentIds?: string[]
+  last?: number
+  includeRounds?: boolean
+  enrichLocation?: boolean
 }
 
 export interface IngestionReport {
@@ -20,6 +25,11 @@ export interface IngestionReport {
   providerErrors: string[]
   durationMs: number
   dryRun: boolean
+  requestsMade: number
+  retries: number
+  rateLimitedRequests: number
+  exhaustedRequests: number
+  tournamentsPartiallyIngested: number
 }
 
 export interface AdminTournamentSummary {
@@ -36,7 +46,43 @@ export interface IngestionDashboardMetrics {
   entryCount: number
   linkedDecklistCount: number
   latestImportAt: string | null
+  topDeckCount: number
+  edhTop16Count: number
+  locationCount: number
+  unknownLocationCount: number
+  commanderFailureCount: number
+  structuredDeckCount: number
+  possibleMatchCount: number
+  linkedEventCount: number
   recentTournaments: AdminTournamentSummary[]
+}
+
+export type IngestionJobStatus =
+  | 'pending' | 'running' | 'completed' | 'completed_with_errors'
+  | 'paused' | 'cancelled'
+
+export interface IngestionJob {
+  id: string
+  provider: 'topdeck' | 'edhtop16'
+  startDate: string
+  endDate: string
+  windowDays: number
+  status: IngestionJobStatus
+  totalBatches: number
+  completedBatches: number
+  failedBatches: number
+  createdAt: string
+  lastError?: string
+}
+
+export interface CreateIngestionJobOptions {
+  provider: 'topdeck' | 'edhtop16'
+  startDate: string
+  endDate: string
+  windowDays: number
+  minimumPlayers: number
+  includeRounds: boolean
+  enrichLocation: boolean
 }
 
 /** Keeps Edge Function invocation and admin checks outside presentation code. */
@@ -80,6 +126,54 @@ export const ingestionRepository = {
     return data as IngestionReport
   },
 
+  async createJob(options: CreateIngestionJobOptions): Promise<string> {
+    const result = await invokeAuthenticatedFunction({
+      action: 'create-job',
+      ...options,
+    })
+    if (!isRecord(result) || typeof result.jobId !== 'string') {
+      throw new Error('The ingestion job response was invalid.')
+    }
+    return result.jobId
+  },
+
+  async updateJob(
+    jobId: string,
+    action: 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job',
+  ): Promise<void> {
+    await invokeAuthenticatedFunction({ action, jobId })
+  },
+
+  async getJobs(): Promise<IngestionJob[]> {
+    if (!supabase) throw new Error('Supabase is not configured.')
+    const { data, error } = await supabase
+      .from('tournament_ingestion_jobs')
+      .select(
+        '*, tournament_ingestion_batches(last_error, updated_at)',
+      )
+      .order('created_at', { ascending: false })
+      .limit(20)
+    if (error) throw new Error('Unable to load historical ingestion jobs.')
+    return ((data ?? []) as IngestionJobRow[]).map((row) => {
+      const errors = [...(row.tournament_ingestion_batches ?? [])]
+        .filter((batch) => batch.last_error)
+        .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
+      return {
+        id: row.id,
+        provider: row.provider,
+        startDate: row.start_date,
+        endDate: row.end_date,
+        windowDays: row.window_days,
+        status: row.status,
+        totalBatches: row.total_batches,
+        completedBatches: row.completed_batches,
+        failedBatches: row.failed_batches,
+        createdAt: row.created_at,
+        lastError: errors[0]?.last_error ?? undefined,
+      }
+    })
+  },
+
   /** Loads small aggregate counts and a bounded recent-import table. */
   async getDashboardMetrics(): Promise<IngestionDashboardMetrics> {
     if (!supabase) throw new Error('Supabase is not configured.')
@@ -89,6 +183,13 @@ export const ingestionRepository = {
       entriesResult,
       decklistsResult,
       recentResult,
+      topDeckResult,
+      edhTop16Result,
+      locationResult,
+      commanderFailuresResult,
+      structuredDecksResult,
+      possibleMatchesResult,
+      linkedEventsResult,
     ] = await Promise.all([
       supabase.from('tournaments').select('*', { count: 'exact', head: true }),
       supabase
@@ -105,6 +206,21 @@ export const ingestionRepository = {
         )
         .order('imported_at', { ascending: false })
         .limit(10),
+      supabase.from('tournaments').select('*', { count: 'exact', head: true })
+        .eq('source', 'topdeck'),
+      supabase.from('tournaments').select('*', { count: 'exact', head: true })
+        .eq('source', 'edhtop16'),
+      supabase.from('tournaments').select('*', { count: 'exact', head: true })
+        .not('region_key', 'is', null)
+        .neq('region_key', 'unknown'),
+      supabase.from('tournament_entries').select('*', { count: 'exact', head: true })
+        .in('commander_extraction_status', ['missing', 'invalid']),
+      supabase.from('tournament_entries').select('*', { count: 'exact', head: true })
+        .eq('decklist_availability', 'structured'),
+      supabase.from('possible_tournament_matches')
+        .select('*', { count: 'exact', head: true }),
+      supabase.from('linked_tournament_events')
+        .select('tournament_id', { count: 'exact', head: true }),
     ])
 
     const error =
@@ -112,6 +228,13 @@ export const ingestionRepository = {
       entriesResult.error ??
       decklistsResult.error ??
       recentResult.error
+      ?? topDeckResult.error
+      ?? edhTop16Result.error
+      ?? locationResult.error
+      ?? commanderFailuresResult.error
+      ?? structuredDecksResult.error
+      ?? possibleMatchesResult.error
+      ?? linkedEventsResult.error
     if (error) {
       console.warn('Unable to load ingestion dashboard metrics.', error)
       throw new Error('Unable to load admin dashboard metrics.')
@@ -134,8 +257,38 @@ export const ingestionRepository = {
       linkedDecklistCount: decklistsResult.count ?? 0,
       latestImportAt: recentTournaments[0]?.importedAt ?? null,
       recentTournaments,
+      topDeckCount: topDeckResult.count ?? 0,
+      edhTop16Count: edhTop16Result.count ?? 0,
+      locationCount: locationResult.count ?? 0,
+      unknownLocationCount:
+        (tournamentsResult.count ?? 0) - (locationResult.count ?? 0),
+      commanderFailureCount: commanderFailuresResult.count ?? 0,
+      structuredDeckCount: structuredDecksResult.count ?? 0,
+      possibleMatchCount: possibleMatchesResult.count ?? 0,
+      linkedEventCount: linkedEventsResult.count ?? 0,
     }
   },
+}
+
+async function invokeAuthenticatedFunction(
+  body: Record<string, unknown>,
+): Promise<unknown> {
+  if (!supabase) throw new Error('Supabase is not configured.')
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession()
+  const accessToken = sessionData.session?.access_token
+  if (sessionError || !accessToken) {
+    throw new Error('Your session has expired. Sign in again.')
+  }
+  const { data, error } = await supabase.functions.invoke(
+    'ingest-tournaments',
+    {
+      body,
+      headers: createAuthorizationHeaders(accessToken),
+    },
+  )
+  if (error) throw new Error(await getFunctionErrorMessage(error))
+  return data
 }
 
 /** Kept separate so authorization formatting can be tested without a request. */
@@ -152,6 +305,23 @@ interface AdminTournamentRow {
   event_date: string | null
   player_count: number | null
   imported_at: string
+}
+
+interface IngestionJobRow {
+  id: string
+  provider: 'topdeck' | 'edhtop16'
+  start_date: string
+  end_date: string
+  window_days: number
+  status: IngestionJobStatus
+  total_batches: number
+  completed_batches: number
+  failed_batches: number
+  created_at: string
+  tournament_ingestion_batches?: Array<{
+    last_error: string | null
+    updated_at: string
+  }>
 }
 
 /** Supabase attaches the Edge Function response to HTTP errors as context. */

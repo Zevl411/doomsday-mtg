@@ -48,6 +48,11 @@ const router = createRouter({
       component: () => import('../views/TournamentsView.vue'),
     },
     {
+      path: '/regions',
+      name: 'regions',
+      component: () => import('../views/RegionalMetagameView.vue'),
+    },
+    {
       path: '/tournaments/:tournamentId',
       name: 'tournament-detail',
       component: () => import('../views/TournamentDetailView.vue'),

@@ -218,6 +218,9 @@ Available routes:
 - `#/` — Home
 - `#/decks` — Guest draft or authenticated cloud deck library
 - `#/deck-builder` — Deck Builder
+- `#/metagame` — Commander metagame
+- `#/tournaments` — Tournament explorer
+- `#/regions` — Event-location regional summaries
 
 Hash-based routing is used so direct links and page refreshes work when the
 application is deployed to GitHub Pages.
@@ -284,9 +287,11 @@ in [Supabase operations](docs/SUPABASE_OPERATIONS.md).
 
 ### Tournament ingestion
 
-Tournament pages read normalized public data from Supabase. EDHTop16 requests
-run only inside an administrator-triggered Edge Function; the static Vue
-frontend receives neither provider response shapes nor private credentials.
+Tournament pages read normalized public data from Supabase. TopDeck is the
+preferred direct provider and EDHTop16 remains a secondary aggregate source.
+Provider requests run only inside an administrator-triggered Edge Function;
+the static Vue frontend receives neither provider response shapes nor private
+credentials.
 See [Tournament ingestion](docs/TOURNAMENT_INGESTION.md) for migrations, Edge
 Function deployment, admin setup, dry runs, attribution, limitations, and
 metric definitions.
@@ -371,18 +376,23 @@ refreshing before retrying.
 - [x] Provider-neutral tournament models
 - [x] Normalized tournament and entry tables
 - [x] Public read-only tournament RLS
-- [x] Admin-protected EDHTop16 ingestion boundary
+- [x] Admin-protected TopDeck and EDHTop16 ingestion boundary
 - [x] Idempotent tournament and entry identities
 - [x] Commander metagame aggregation
 - [x] Metagame, Commander, and tournament routes
 - [x] In-app viewing for linked tournament decklists
 - [ ] Validate the current EDHTop16 API contract with production fixtures
 - [ ] Deploy and run the first administrator dry run
-- [ ] Add TopDeck adapter after credentials and attribution requirements exist
+- [x] Add TopDeck adapter, visible attribution, and private credential handling
+- [x] Preserve event location and granular region keys
+- [x] Add regional filters and event-location summaries
 
-Current data limitations: provider fields may be absent, historical coverage
-depends on imported events, draws count in the match-rate denominator, and no
-card-level tournament deck contents are ingested.
+Current data limitations: provider and location fields may be absent,
+historical coverage depends on imported events, region means event location
+rather than player residence, and draws count in the match-rate denominator.
+Cross-provider linking automatically uses explicit shared IDs only. Exact
+coordinates are not shown publicly, and card-level inclusion analytics remain
+deferred.
 
 ---
 

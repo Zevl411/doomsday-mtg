@@ -13,8 +13,15 @@
           </h1>
           <p class="text-medium-emphasis">
             {{ detail.tournament.playerCount ?? 'Unknown' }} players ·
-            Source: {{ detail.tournament.source }}
+            {{ displayTournamentLocation(detail.tournament) }}
           </p>
+          <a
+            :href="sourceAttribution(detail.tournament.source).url"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {{ sourceAttribution(detail.tournament.source).label }}
+          </a>
         </div>
         <v-btn
           v-if="detail.tournament.url"
@@ -154,6 +161,10 @@ import type {
   TournamentEntry,
   TournamentEntryDecklist,
 } from '../models/tournament'
+import {
+  displayTournamentLocation,
+  sourceAttribution,
+} from '../utils/tournamentLocation'
 
 const route = useRoute()
 const detail = ref<TournamentDetail | null>(null)

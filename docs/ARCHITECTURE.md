@@ -199,7 +199,7 @@ npm run build
 Tournament data follows a server-side provider boundary:
 
 ```text
-EDHTop16
+TopDeck (preferred) / EDHTop16 (secondary)
     ↓
 provider-neutral Edge Function adapter
     ↓
@@ -214,6 +214,10 @@ route-level metagame and tournament views
 
 Provider credentials and raw response parsing never enter the GitHub Pages
 bundle. The normalized tournament model is separate from user-owned Decks;
-this phase intentionally does not fetch or parse card-level tournament lists.
+this phase preserves raw structured lists but does not compute card-level
+analytics. Provider-specific rows remain separate; strong shared IDs are
+recorded as source links, while moderate possible matches are diagnostics only.
+Location normalization is a pure server-side boundary and region keys remain
+granular so regional taxonomy can be changed later.
 Administrative ingestion is authorized by `admin_users` in both the UI and
 Edge Function, while RLS gives browser clients read-only tournament access.

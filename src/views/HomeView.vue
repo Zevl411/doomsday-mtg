@@ -83,7 +83,7 @@
       <v-col>
         <div class="text-h4 font-weight-bold">Tournament snapshot</div>
         <div class="text-body-2 text-medium-emphasis">
-          Recent cEDH results imported from EDHTop16.
+          Recent normalized cEDH results from TopDeck and EDHTop16.
         </div>
       </v-col>
       <v-col class="d-flex ga-2 justify-end" cols="auto">
@@ -174,6 +174,12 @@
         </v-card>
       </v-col>
     </v-row>
+    <p class="mt-3 text-caption text-medium-emphasis">
+      Data provided by
+      <a href="https://topdeck.gg" target="_blank" rel="noopener noreferrer">TopDeck.gg</a>
+      and
+      <a href="https://edhtop16.com" target="_blank" rel="noopener noreferrer">EDHTop16</a>.
+    </p>
   </v-container>
 </template>
 

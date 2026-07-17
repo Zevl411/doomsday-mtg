@@ -45,6 +45,10 @@ describe('tournamentRepository', () => {
       minimum_players: 32,
       minimum_entries: 3,
       top_finish_threshold: 16,
+      country_filter: null,
+      state_filter: null,
+      region_filter: null,
+      online_filter: null,
     })
     expect(result[0]).toMatchObject({
       commanderKey: 'kinnan',

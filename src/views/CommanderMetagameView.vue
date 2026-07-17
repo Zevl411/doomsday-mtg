@@ -25,7 +25,10 @@
         </v-list-item>
       </v-list>
       <p class="mt-4 text-caption text-medium-emphasis">
-        Results attributed to EDHTop16 and linked sources where available.
+        Data provided by
+        <a href="https://topdeck.gg" target="_blank" rel="noopener noreferrer">TopDeck.gg</a>
+        and
+        <a href="https://edhtop16.com" target="_blank" rel="noopener noreferrer">EDHTop16</a>.
       </p>
     </template>
   </v-container>

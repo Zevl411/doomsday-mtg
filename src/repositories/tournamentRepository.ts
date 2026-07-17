@@ -1,10 +1,12 @@
 import { supabase } from '../lib/supabase'
+import { displayRegionKey } from '../utils/tournamentLocation'
 import type {
   CommanderMetagameStats,
   MetagameFilters,
   Tournament,
   TournamentEntryDecklist,
   TournamentEntry,
+  RegionalMetagameStats,
 } from '../models/tournament'
 
 export interface TournamentDetail {
@@ -15,6 +17,13 @@ export interface TournamentDetail {
 export interface CommanderDetail {
   stats: CommanderMetagameStats | null
   entries: TournamentEntry[]
+}
+
+export interface TournamentLocationOptions {
+  countries: string[]
+  states: string[]
+  regions: string[]
+  hasOnline: boolean
 }
 
 const metagameCache = new Map<string, CommanderMetagameStats[]>()
@@ -37,6 +46,10 @@ export const tournamentRepository = {
       minimum_players: normalized.minimumPlayers,
       minimum_entries: normalized.minimumEntries,
       top_finish_threshold: normalized.topFinishThreshold,
+      country_filter: normalized.countryCode ?? null,
+      state_filter: normalized.stateRegion ?? null,
+      region_filter: normalized.regionKey ?? null,
+      online_filter: normalized.isOnline ?? null,
     })
     if (error) throw friendlyError('load Commander metagame', error)
 
@@ -69,6 +82,18 @@ export const tournamentRepository = {
     if (filters.minimumPlayers) {
       query = query.gte('tournaments.player_count', filters.minimumPlayers)
     }
+    if (filters.countryCode) {
+      query = query.eq('tournaments.country_code', filters.countryCode)
+    }
+    if (filters.stateRegion) {
+      query = query.eq('tournaments.state_region', filters.stateRegion)
+    }
+    if (filters.regionKey) {
+      query = query.eq('tournaments.region_key', filters.regionKey)
+    }
+    if (filters.isOnline !== undefined) {
+      query = query.eq('tournaments.is_online', filters.isOnline)
+    }
     const { data, error } = await query
     if (error) throw friendlyError('load Commander details', error)
 
@@ -92,9 +117,58 @@ export const tournamentRepository = {
     if (filters.minimumPlayers) {
       query = query.gte('player_count', filters.minimumPlayers)
     }
+    if (filters.countryCode) query = query.eq('country_code', filters.countryCode)
+    if (filters.stateRegion) query = query.eq('state_region', filters.stateRegion)
+    if (filters.regionKey) query = query.eq('region_key', filters.regionKey)
+    if (filters.isOnline !== undefined) {
+      query = query.eq('is_online', filters.isOnline)
+    }
     const { data, error } = await query
     if (error) throw friendlyError('load tournaments', error)
     return ((data ?? []) as TournamentRow[]).map(mapTournamentRow)
+  },
+
+  async getLocationOptions(): Promise<TournamentLocationOptions> {
+    requireSupabase()
+    const { data, error } = await supabase!
+      .from('tournaments')
+      .select('country_code, state_region, region_key, is_online')
+      .limit(5000)
+    if (error) throw friendlyError('load location filters', error)
+    const rows = (data ?? []) as Array<{
+      country_code?: string
+      state_region?: string
+      region_key?: string
+      is_online?: boolean
+    }>
+    return {
+      countries: unique(rows.map((row) => row.country_code)),
+      states: unique(rows.map((row) => row.state_region)),
+      regions: unique(rows.map((row) => row.region_key)),
+      hasOnline: rows.some((row) => row.is_online === true),
+    }
+  },
+
+  async getRegionalMetagame(
+    filters: MetagameFilters = {},
+  ): Promise<RegionalMetagameStats[]> {
+    requireSupabase()
+    const { data, error } = await supabase!.rpc('get_regional_metagame', {
+      start_date: filters.startDate || null,
+      end_date: filters.endDate || null,
+      minimum_players: Math.max(0, filters.minimumPlayers ?? 0),
+    })
+    if (error) throw friendlyError('load regional metagame', error)
+    return ((data ?? []) as RegionalRow[]).map((row) => ({
+      regionKey: row.region_key,
+      displayName: displayRegionKey(row.region_key),
+      tournaments: Number(row.tournaments),
+      entries: Number(row.entries),
+      uniqueCommanders: Number(row.unique_commanders),
+      topCommander: row.top_commander,
+      topCommanderEntries: Number(row.top_commander_entries),
+      averageTournamentSize: Number(row.average_tournament_size ?? 0),
+    }))
   },
 
   async getTournament(tournamentId: string): Promise<TournamentDetail | null> {
@@ -212,6 +286,10 @@ function normalizeFilters(filters: MetagameFilters) {
     minimumPlayers: Math.max(0, filters.minimumPlayers ?? 0),
     minimumEntries: Math.max(1, filters.minimumEntries ?? 1),
     topFinishThreshold: Math.max(1, filters.topFinishThreshold ?? 16),
+    countryCode: filters.countryCode || undefined,
+    stateRegion: filters.stateRegion || undefined,
+    regionKey: filters.regionKey || undefined,
+    isOnline: filters.isOnline,
   }
 }
 
@@ -242,6 +320,13 @@ interface TournamentRow {
   imported_at: string
   source_updated_at?: string
   tournament_entries?: Array<{ count: number }>
+  venue_name?: string
+  city?: string
+  state_region?: string
+  country_code?: string
+  location_precision?: Tournament['locationPrecision']
+  is_online?: boolean
+  region_key?: string
 }
 
 interface EntryRow {
@@ -294,6 +379,13 @@ function mapTournamentRow(row: TournamentRow): Tournament {
     importedAt: row.imported_at,
     sourceUpdatedAt: row.source_updated_at,
     entryCount: row.tournament_entries?.[0]?.count,
+    venueName: row.venue_name,
+    city: row.city,
+    stateRegion: row.state_region,
+    countryCode: row.country_code,
+    locationPrecision: row.location_precision,
+    isOnline: row.is_online ?? false,
+    regionKey: row.region_key ?? 'unknown',
   }
 }
 
@@ -329,4 +421,19 @@ function friendlyError(operation: string, error: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+interface RegionalRow {
+  region_key: string
+  tournaments: number
+  entries: number
+  unique_commanders: number
+  top_commander: string | null
+  top_commander_entries: number
+  average_tournament_size: number | null
+}
+
+function unique(values: Array<string | undefined>) {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))]
+    .sort((left, right) => left.localeCompare(right))
 }

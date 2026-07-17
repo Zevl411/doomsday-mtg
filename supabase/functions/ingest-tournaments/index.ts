@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { EdhTop16Provider } from './edhtop16.ts'
+import { TopDeckProvider } from './topdeck.ts'
 import type {
   ProviderTournament,
   ProviderTournamentEntry,
@@ -7,12 +8,28 @@ import type {
 } from './types.ts'
 
 interface IngestionRequest {
-  provider: 'edhtop16'
+  provider: 'edhtop16' | 'topdeck'
   startDate?: string
   endDate?: string
   minimumPlayers?: number
+  maximumPlayers?: number
   tournamentIds?: string[]
+  last?: number
+  includeRounds?: boolean
+  enrichLocation?: boolean
   dryRun?: boolean
+}
+
+interface JobActionRequest {
+  action: 'create-job' | 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job'
+  jobId?: string
+  provider?: 'edhtop16' | 'topdeck'
+  startDate?: string
+  endDate?: string
+  windowDays?: number
+  minimumPlayers?: number
+  includeRounds?: boolean
+  enrichLocation?: boolean
 }
 
 const corsHeaders = {
@@ -40,24 +57,42 @@ Deno.serve(async (request) => {
       throw new Error('Edge Function Supabase configuration is incomplete.')
     }
 
-    const userClient = createClient(url, anonKey, {
-      global: { headers: { Authorization: authorization } },
-    })
-    const { data: userData } = await userClient.auth.getUser()
-    if (!userData.user) return json({ error: 'Authentication required.' }, 401)
-    const { data: membership } = await userClient
-      .from('admin_users')
-      .select('user_id')
-      .eq('user_id', userData.user.id)
-      .maybeSingle()
-    if (!membership) return json({ error: 'Administrator access required.' }, 403)
+    const admin = createClient(url, serviceKey)
+    const workerSecret = Deno.env.get('INGESTION_WORKER_SECRET')
+    const isWorker = Boolean(
+      workerSecret &&
+      request.headers.get('x-ingestion-worker-secret') === workerSecret,
+    )
+    let userId: string | null = null
+    if (!isWorker) {
+      const userClient = createClient(url, anonKey, {
+        global: { headers: { Authorization: authorization } },
+      })
+      const { data: userData } = await userClient.auth.getUser()
+      if (!userData.user) return json({ error: 'Authentication required.' }, 401)
+      userId = userData.user.id
+      const { data: membership } = await userClient
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (!membership) return json({ error: 'Administrator access required.' }, 403)
+    }
 
-    const options = validateRequest(await request.json())
+    const requestBody: unknown = await request.json()
+    if (isJobAction(requestBody)) {
+      if (!userId) return json({ error: 'A user must manage ingestion jobs.' }, 403)
+      return json(await handleJobAction(admin, requestBody, userId))
+    }
+    const options = validateRequest(requestBody)
     const provider = getProvider(options.provider)
     const tournaments = await provider.listTournaments(options)
     report.tournamentsFetched = tournaments.length
-    const admin = createClient(url, serviceKey)
-
+    if (!tournaments.length) {
+      report.validationIssues.push(
+        createEmptyResultMessage(options),
+      )
+    }
     // A small worker pool prevents provider and database request bursts.
     await mapWithConcurrency(tournaments, 3, async (tournament) => {
       try {
@@ -81,6 +116,29 @@ Deno.serve(async (request) => {
         if (tournamentError) throw tournamentError
         if (existingTournament) report.tournamentsUpdated += 1
         else report.tournamentsInserted += 1
+
+        // Provider-specific rows remain separate in this milestone. The link
+        // records preserve explicit identities for safe future canonicalization;
+        // similar names are never automatically merged.
+        const { data: explicitMatch } = await admin
+          .from('tournaments')
+          .select('id')
+          .eq('source_tournament_id', tournament.sourceTournamentId)
+          .neq('source', provider.source)
+          .limit(1)
+          .maybeSingle()
+        const { error: linkError } = await admin
+          .from('tournament_source_links')
+          .upsert({
+            // An identical upstream ID is strong evidence. Names alone never
+            // select a canonical link.
+            tournament_id: explicitMatch?.id ?? storedTournament.id,
+            source: provider.source,
+            source_tournament_id: tournament.sourceTournamentId,
+            source_url: tournament.url,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'source,source_tournament_id' })
+        if (linkError) throw linkError
 
         const normalizedEntries = await Promise.all(
           entries.map((entry) => mapEntry(entry, storedTournament.id)),
@@ -111,10 +169,13 @@ Deno.serve(async (request) => {
           ).length
         }
       } catch (error) {
+        report.tournamentsPartiallyIngested += 1
         report.providerErrors.push(readError(error))
       }
     })
 
+    const metrics = provider.getMetrics?.()
+    if (metrics) Object.assign(report, metrics)
     report.durationMs = Date.now() - startedAt
     report.dryRun = options.dryRun
     return json(report)
@@ -125,7 +186,13 @@ Deno.serve(async (request) => {
   }
 })
 
-function getProvider(source: 'edhtop16'): TournamentProvider {
+function getProvider(source: 'edhtop16' | 'topdeck'): TournamentProvider {
+  if (source === 'topdeck') {
+    return new TopDeckProvider({
+      apiKey: Deno.env.get('TOPDECK_API_KEY') ?? '',
+      baseUrl: Deno.env.get('TOPDECK_API_BASE_URL'),
+    })
+  }
   if (source === 'edhtop16') {
     return new EdhTop16Provider(
       Deno.env.get('EDHTOP16_BASE_URL') ?? 'https://edhtop16.com',
@@ -138,12 +205,34 @@ function validateRequest(value: unknown): Required<
   Pick<IngestionRequest, 'provider' | 'minimumPlayers' | 'dryRun'>
 > &
   Omit<IngestionRequest, 'provider' | 'minimumPlayers' | 'dryRun'> {
-  if (!isRecord(value) || value.provider !== 'edhtop16') {
-    throw new Error('Provider must be edhtop16.')
+  if (
+    !isRecord(value) ||
+    (value.provider !== 'edhtop16' && value.provider !== 'topdeck')
+  ) {
+    throw new Error('Provider must be topdeck or edhtop16.')
   }
   const minimumPlayers = Number(value.minimumPlayers ?? 0)
   if (!Number.isInteger(minimumPlayers) || minimumPlayers < 0) {
     throw new Error('Minimum players must be a non-negative integer.')
+  }
+  const maximumPlayers = value.maximumPlayers === undefined ||
+      value.maximumPlayers === ''
+    ? undefined
+    : Number(value.maximumPlayers)
+  if (
+    maximumPlayers !== undefined &&
+    (!Number.isInteger(maximumPlayers) || maximumPlayers < minimumPlayers)
+  ) {
+    throw new Error('Maximum players must be an integer at least the minimum.')
+  }
+  const last = value.last === undefined || value.last === ''
+    ? undefined
+    : Number(value.last)
+  if (last !== undefined && (!Number.isInteger(last) || last < 1)) {
+    throw new Error('Last must be a positive integer.')
+  }
+  if (last !== undefined && (value.startDate || value.endDate)) {
+    throw new Error('Use either a date range or last days, not both.')
   }
   for (const field of ['startDate', 'endDate'] as const) {
     if (
@@ -160,13 +249,24 @@ function validateRequest(value: unknown): Required<
   ) {
     throw new Error('Tournament IDs must be strings.')
   }
+  const tournamentIds = Array.isArray(value.tournamentIds)
+    ? value.tournamentIds
+      .map((id) => id.trim())
+      .filter(Boolean)
+    : []
   return {
-    provider: 'edhtop16',
+    provider: value.provider,
     minimumPlayers,
+    maximumPlayers,
     dryRun: value.dryRun === true,
     startDate: value.startDate as string | undefined,
     endDate: value.endDate as string | undefined,
-    tournamentIds: value.tournamentIds as string[] | undefined,
+    // Empty arrays must become undefined. TopDeck interprets TID: [] as an
+    // explicit ID query and therefore ignores the discovery filters.
+    tournamentIds: tournamentIds.length ? tournamentIds : undefined,
+    last,
+    includeRounds: value.includeRounds === true,
+    enrichLocation: value.enrichLocation === true,
   }
 }
 
@@ -184,6 +284,17 @@ function mapTournament(
     source_payload: tournament.raw,
     imported_at: new Date().toISOString(),
     source_updated_at: tournament.sourceUpdatedAt,
+    venue_name: tournament.location?.venueName,
+    city: tournament.location?.city,
+    state_region: tournament.location?.stateRegion,
+    country_code: tournament.location?.countryCode,
+    latitude: tournament.location?.latitude,
+    longitude: tournament.location?.longitude,
+    location_precision: tournament.location?.locationPrecision ?? 'unknown',
+    is_online: tournament.location?.isOnline ?? false,
+    region_key: tournament.location?.regionKey ?? 'unknown',
+    location_source: tournament.location?.locationSource,
+    location_confidence: tournament.location?.locationConfidence,
   }
 }
 
@@ -211,6 +322,8 @@ async function mapEntry(
     win_rate: games ? entry.wins / games : null,
     decklist_url: entry.decklistUrl,
     source_payload: entry.raw,
+    commander_extraction_status: entry.commanderExtractionStatus,
+    decklist_availability: entry.decklistAvailability,
   }
 }
 
@@ -263,6 +376,11 @@ function createReport() {
     providerErrors: [] as string[],
     durationMs: 0,
     dryRun: false,
+    requestsMade: 0,
+    retries: 0,
+    rateLimitedRequests: 0,
+    exhaustedRequests: 0,
+    tournamentsPartiallyIngested: 0,
   }
 }
 
@@ -277,6 +395,118 @@ function readError(error: unknown) {
   return error instanceof Error ? error.message : 'Unknown ingestion error.'
 }
 
+function createEmptyResultMessage(options: {
+  provider: string
+  startDate?: string
+  endDate?: string
+  last?: number
+  minimumPlayers: number
+  maximumPlayers?: number
+  tournamentIds?: string[]
+}) {
+  const range = options.last
+    ? `the last ${options.last} days`
+    : options.startDate || options.endDate
+      ? `${options.startDate ?? 'any date'} through ${options.endDate ?? 'any date'}`
+      : 'the provider default range'
+  const ids = options.tournamentIds?.length
+    ? ` for ${options.tournamentIds.length} requested tournament ID(s)`
+    : ''
+  const maximum = options.maximumPlayers === undefined
+    ? ''
+    : ` and at most ${options.maximumPlayers}`
+  return `${options.provider} returned no completed tournaments${ids} for ${range} with at least ${options.minimumPlayers}${maximum} players. Try a known TID, minimum players 0, or a wider historical range.`
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function isJobAction(value: unknown): value is JobActionRequest {
+  return isRecord(value) && [
+    'create-job',
+    'pause-job',
+    'resume-job',
+    'cancel-job',
+    'retry-job',
+  ].includes(String(value.action))
+}
+
+async function handleJobAction(
+  admin: ReturnType<typeof createClient>,
+  request: JobActionRequest,
+  userId: string,
+) {
+  if (request.action === 'create-job') {
+    if (
+      request.provider !== 'topdeck' && request.provider !== 'edhtop16'
+    ) throw new Error('A supported provider is required.')
+    if (
+      !request.startDate || !request.endDate ||
+      Number.isNaN(Date.parse(request.startDate)) ||
+      Number.isNaN(Date.parse(request.endDate)) ||
+      request.endDate < request.startDate
+    ) throw new Error('A valid historical date range is required.')
+    const windowDays = Number(request.windowDays ?? 7)
+    if (!Number.isInteger(windowDays) || windowDays < 1 || windowDays > 15) {
+      throw new Error('Batch size must be between 1 and 15 days.')
+    }
+    const { data: job, error } = await admin
+      .from('tournament_ingestion_jobs')
+      .insert({
+        provider: request.provider,
+        start_date: request.startDate,
+        end_date: request.endDate,
+        window_days: windowDays,
+        minimum_players: Math.max(0, Number(request.minimumPlayers ?? 0)),
+        include_rounds: request.includeRounds === true,
+        enrich_location: request.enrichLocation === true,
+        created_by: userId,
+      })
+      .select('*')
+      .single()
+    if (error) throw error
+    const { error: batchError } = await admin.rpc(
+      'create_tournament_ingestion_batches',
+      { target_job_id: job.id },
+    )
+    if (batchError) throw batchError
+    return { jobId: job.id }
+  }
+
+  if (!request.jobId) throw new Error('An ingestion job ID is required.')
+  if (request.action === 'pause-job') {
+    const { error } = await admin.from('tournament_ingestion_jobs')
+      .update({ status: 'paused', updated_at: new Date().toISOString() })
+      .eq('id', request.jobId)
+    if (error) throw error
+  } else if (request.action === 'resume-job') {
+    const { error } = await admin.from('tournament_ingestion_jobs')
+      .update({ status: 'pending', completed_at: null, updated_at: new Date().toISOString() })
+      .eq('id', request.jobId)
+    if (error) throw error
+  } else if (request.action === 'cancel-job') {
+    const { error: batchError } = await admin
+      .from('tournament_ingestion_batches')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('job_id', request.jobId)
+      .eq('status', 'pending')
+    if (batchError) throw batchError
+    const { error } = await admin.from('tournament_ingestion_jobs')
+      .update({ status: 'cancelled', completed_at: new Date().toISOString() })
+      .eq('id', request.jobId)
+    if (error) throw error
+  } else {
+    const { error: batchError } = await admin
+      .from('tournament_ingestion_batches')
+      .update({ status: 'pending', last_error: null, completed_at: null })
+      .eq('job_id', request.jobId)
+      .eq('status', 'failed')
+    if (batchError) throw batchError
+    const { error } = await admin.from('tournament_ingestion_jobs')
+      .update({ status: 'pending', completed_at: null })
+      .eq('id', request.jobId)
+    if (error) throw error
+  }
+  return { jobId: request.jobId }
 }
