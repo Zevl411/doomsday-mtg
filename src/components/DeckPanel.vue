@@ -23,6 +23,18 @@
         </v-chip>
       </div>
 
+      <div class="d-flex align-center justify-space-between ga-3 mb-4">
+        <span class="text-caption text-medium-emphasis">Saved locally</span>
+        <v-btn
+          color="error"
+          size="small"
+          variant="text"
+          @click="showResetDialog = true"
+        >
+          Clear deck
+        </v-btn>
+      </div>
+
       <v-progress-linear
         :color="deckSizeStatus.overLimit ? 'error' : 'primary'"
         height="8"
@@ -164,6 +176,25 @@
       </v-sheet>
     </v-card-text>
   </v-card>
+
+  <v-dialog v-model="showResetDialog" max-width="520">
+    <v-card color="surface" rounded="lg">
+      <v-card-title class="px-5 pt-5">Clear this deck?</v-card-title>
+      <v-card-text class="px-5">
+        This will remove the current Commander, remove every deck card, and
+        delete the locally saved deck from this browser.
+      </v-card-text>
+      <v-card-actions class="px-5 pb-5">
+        <v-spacer />
+        <v-btn variant="text" @click="showResetDialog = false">
+          Cancel
+        </v-btn>
+        <v-btn color="error" variant="flat" @click="confirmReset">
+          Clear Deck
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
@@ -192,6 +223,7 @@ const deckSizeStatus = computed(() => getDeckSizeStatus(deckStore.deck))
 const colorIdentityViolations = computed(() =>
   getColorIdentityViolations(deckStore.deck),
 )
+const showResetDialog = ref(false)
 const limitToCommanderColors = ref(true)
 const colorIdentitySearchFilter = computed(() => {
   if (!limitToCommanderColors.value || !deckStore.deck.commander) {
@@ -214,5 +246,10 @@ const progressValue = computed(() => {
 
 function isColorIdentityViolation(deckCard: DeckCard): boolean {
   return colorIdentityViolations.value.includes(deckCard)
+}
+
+function confirmReset() {
+  deckStore.resetDeck()
+  showResetDialog.value = false
 }
 </script>

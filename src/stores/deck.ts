@@ -7,16 +7,25 @@ import {
   isBasicLand,
   validateCardAddition,
 } from '../utils/deckLegality'
+import {
+  clearSavedDeck,
+  loadDeck,
+  saveDeck,
+} from '../utils/deckStorage'
+
+function createEmptyDeck(): Deck {
+  return {
+    commander: null,
+    cards: [],
+    name: 'Untitled Deck',
+  }
+}
 
 // defineStore() creates one shared source of deck state for the application.
 export const useDeckStore = defineStore('deck', {
   // State contains the values that components can read reactively.
   state: () => ({
-    deck: {
-      commander: null,
-      cards: [],
-      name: 'Untitled Deck',
-    } as Deck,
+    deck: loadDeck() ?? createEmptyDeck(),
     rejectionMessage: '',
     previewCard: null as ScryfallCard | null,
   }),
@@ -25,10 +34,12 @@ export const useDeckStore = defineStore('deck', {
   actions: {
     setCommander(card: ScryfallCard) {
       this.deck.commander = card
+      saveDeck(this.deck)
     },
 
     clearCommander() {
       this.deck.commander = null
+      saveDeck(this.deck)
     },
 
     addCard(
@@ -59,6 +70,7 @@ export const useDeckStore = defineStore('deck', {
       }
 
       this.rejectionMessage = ''
+      saveDeck(this.deck)
       return { allowed: true }
     },
 
@@ -67,6 +79,7 @@ export const useDeckStore = defineStore('deck', {
         (_card, cardIndex) => cardIndex !== index,
       )
       this.rejectionMessage = ''
+      saveDeck(this.deck)
     },
 
     increaseQuantity(index: number) {
@@ -78,6 +91,7 @@ export const useDeckStore = defineStore('deck', {
 
       deckCard.quantity += 1
       this.rejectionMessage = ''
+      saveDeck(this.deck)
     },
 
     decreaseQuantity(index: number) {
@@ -94,6 +108,7 @@ export const useDeckStore = defineStore('deck', {
 
       deckCard.quantity -= 1
       this.rejectionMessage = ''
+      saveDeck(this.deck)
     },
 
     removeIllegalCards() {
@@ -103,6 +118,13 @@ export const useDeckStore = defineStore('deck', {
         (deckCard) => !illegalCards.includes(deckCard),
       )
       this.rejectionMessage = ''
+      saveDeck(this.deck)
+    },
+
+    resetDeck() {
+      this.deck = createEmptyDeck()
+      this.rejectionMessage = ''
+      clearSavedDeck()
     },
 
     setPreviewCard(card: ScryfallCard) {

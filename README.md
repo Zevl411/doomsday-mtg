@@ -33,6 +33,10 @@ The end goal is a tool capable of answering questions like:
 - Commander color identity restrictions
 - Deck model written in TypeScript
 - Responsive Vue 3 interface
+- Current deck saved locally in the browser
+
+The current deck remains only in this browser. Clearing browser storage can
+remove it, and accounts or cloud synchronization are not yet supported.
 
 ---
 
