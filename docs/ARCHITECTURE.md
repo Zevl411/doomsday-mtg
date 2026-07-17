@@ -157,6 +157,13 @@ The current MVP deliberately has no local/cloud reconciliation or automatic
 conflict-copy algorithm. Supabase's unique `(user_id, deck_id)` constraint
 makes saves idempotent, while Row Level Security is the ownership boundary.
 
+The earlier duplicate-deck bug came from treating both restored local libraries
+and cloud libraries as synchronization inputs during repeated login
+initialization. Reconciliation could manufacture conflict copies while
+`getSession` and auth events repeated the work. The v0.1 flow has one guarded
+auth-dependent initializer, no authenticated browser cache, and stable-ID
+upserts for the single permitted guest transfer.
+
 Temporary UI state—search text, previews, dialogs, and import issues—is never
 stored with the Deck.
 

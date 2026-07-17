@@ -19,12 +19,18 @@
           <v-alert v-if="auth.errorMessage" type="error" variant="tonal">
             {{ auth.errorMessage }}
           </v-alert>
+          <v-alert v-if="magicLinkSent" type="success" variant="tonal">
+            Check your email for the sign-in link.
+          </v-alert>
         </v-card-text>
         <v-card-actions class="px-6 pb-6">
           <v-btn :to="{ name: 'deck-library' }" variant="text">Cancel</v-btn>
           <v-spacer />
           <v-btn :loading="auth.loading" variant="outlined" @click="submit(true)">
             Register
+          </v-btn>
+          <v-btn :loading="auth.loading" variant="text" @click="sendMagicLink">
+            Email Link
           </v-btn>
           <v-btn color="primary" :loading="auth.loading" @click="submit(false)">
             Sign In
@@ -44,11 +50,16 @@ const auth = useAuthStore()
 const router = useRouter()
 const email = ref('')
 const password = ref('')
+const magicLinkSent = ref(false)
 
 async function submit(register: boolean) {
   const succeeded = register
     ? await auth.register(email.value.trim(), password.value)
     : await auth.signIn(email.value.trim(), password.value)
   if (succeeded) await router.push({ name: 'deck-library' })
+}
+
+async function sendMagicLink() {
+  magicLinkSent.value = await auth.sendMagicLink(email.value.trim())
 }
 </script>

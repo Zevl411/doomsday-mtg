@@ -13,6 +13,7 @@ vi.mock('../repositories/supabaseDeckRepository', () => ({
 }))
 
 const loadDecks = vi.fn()
+const loadDeck = vi.fn()
 const saveDeck = vi.fn()
 const deleteDeck = vi.fn()
 
@@ -20,10 +21,12 @@ beforeEach(() => {
   localStorage.clear()
   setActivePinia(createPinia())
   loadDecks.mockReset().mockResolvedValue([])
+  loadDeck.mockReset().mockResolvedValue(null)
   saveDeck.mockReset().mockResolvedValue(undefined)
   deleteDeck.mockReset().mockResolvedValue(undefined)
   vi.mocked(createSupabaseDeckRepository).mockReturnValue({
     loadDecks,
+    loadDeck,
     saveDeck,
     deleteDeck,
   })
@@ -167,16 +170,61 @@ describe('deck synchronization store', () => {
 
     await sync.handleUser(null)
 
-    expect(useDeckStore().decks).toEqual([])
+    expect(useDeckStore().decks).toHaveLength(1)
+    expect(useDeckStore().deck.name).toBe('Untitled Deck')
     expect(useDeckStore().storageMode).toBe('guest')
     expect(deleteDeck).not.toHaveBeenCalled()
-    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).not.toBeNull()
+  })
+
+  it('does not let a stale cloud load overwrite guest state after logout', async () => {
+    let finishLoad: ((decks: ReturnType<typeof createEmptyDeck>[]) => void) | undefined
+    loadDecks.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishLoad = resolve
+      }),
+    )
+    const sync = useDeckSyncStore()
+    const signIn = sync.handleUser('user-a')
+
+    await sync.handleUser(null)
+    finishLoad?.([createEmptyDeck('Stale Private Deck')])
+    await signIn
+
+    expect(useDeckStore().storageMode).toBe('guest')
+    expect(useDeckStore().decks).toHaveLength(1)
+    expect(useDeckStore().deck.name).toBe('Untitled Deck')
   })
 })
 
 describe('meaningful guest draft detection', () => {
-  it('ignores a new empty draft and accepts a renamed draft', () => {
+  it('ignores a new empty draft', () => {
     expect(isMeaningfulGuestDraft(createEmptyDeck())).toBe(false)
+  })
+
+  it('accepts a Commander, renamed deck, or card on every tracked board', () => {
+    const commanderDeck = createEmptyDeck()
+    commanderDeck.commander = {
+      id: 'commander',
+      name: 'Commander',
+      type_line: 'Legendary Creature',
+      color_identity: [],
+    }
+    expect(isMeaningfulGuestDraft(commanderDeck)).toBe(true)
     expect(isMeaningfulGuestDraft(createEmptyDeck('Named Deck'))).toBe(true)
+
+    for (const board of ['cards', 'sideboard', 'maybeboard', 'considering'] as const) {
+      const deck = createEmptyDeck()
+      deck[board] = [{
+        card: {
+          id: `${board}-card`,
+          name: 'Card',
+          type_line: 'Artifact',
+          color_identity: [],
+        },
+        quantity: 1,
+      }]
+      expect(isMeaningfulGuestDraft(deck)).toBe(true)
+    }
   })
 })

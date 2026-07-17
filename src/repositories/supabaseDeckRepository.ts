@@ -5,6 +5,7 @@ import { isUsableDeck } from '../utils/deckStorage'
 
 export interface SupabaseDeckRepository {
   loadDecks(): Promise<Deck[]>
+  loadDeck(deckId: string): Promise<Deck | null>
   saveDeck(deck: Deck): Promise<void>
   deleteDeck(deckId: string): Promise<void>
 }
@@ -36,6 +37,28 @@ export function createSupabaseDeckRepository(
         }
         return [record.deck_data]
       })
+    },
+
+    async loadDeck(deckId) {
+      const { data, error } = await client
+        .from('decks')
+        .select('*')
+        .eq('deck_id', deckId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (error) throw repositoryError('load', error)
+      if (!data) return null
+
+      const record = data as CloudDeckRecord
+      if (
+        record.user_id !== userId ||
+        record.deck_id !== record.deck_data?.id ||
+        !isUsableDeck(record.deck_data)
+      ) {
+        console.warn('An invalid cloud deck record was ignored.', record.id)
+        return null
+      }
+      return record.deck_data
     },
 
     async saveDeck(deck) {

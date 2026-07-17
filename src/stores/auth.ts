@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
+let initializationPromise: Promise<void> | null = null
+let authListenerRegistered = false
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
@@ -16,21 +19,33 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async initialize() {
-      if (!supabase || this.initialized) {
+      if (this.initialized) return
+      if (initializationPromise) return initializationPromise
+      if (!supabase) {
         this.initialized = true
         return
       }
 
-      const { data, error } = await supabase.auth.getSession()
-      if (error) {
-        console.warn('Supabase session initialization failed.', error)
-      }
-      this.user = data.session?.user ?? null
-      this.initialized = true
+      initializationPromise = (async () => {
+        const { data, error } = await supabase.auth.getSession()
+        if (error) {
+          console.warn('Supabase session initialization failed.', error)
+        }
+        this.user = data.session?.user ?? null
+        this.initialized = true
 
-      supabase.auth.onAuthStateChange((_event, session) => {
-        this.user = session?.user ?? null
-      })
+        if (!authListenerRegistered) {
+          supabase.auth.onAuthStateChange((_event, session) => {
+            this.user = session?.user ?? null
+          })
+          authListenerRegistered = true
+        }
+      })()
+      try {
+        await initializationPromise
+      } finally {
+        initializationPromise = null
+      }
     },
 
     async signIn(email: string, password: string): Promise<boolean> {
@@ -70,6 +85,27 @@ export const useAuthStore = defineStore('auth', {
       if (error) {
         console.warn('Supabase registration failed.', error)
         this.errorMessage = 'Unable to create the account. Please try again.'
+        return false
+      }
+      return true
+    },
+
+    async sendMagicLink(email: string): Promise<boolean> {
+      if (!supabase) {
+        this.errorMessage = 'Cloud sign-in is not configured.'
+        return false
+      }
+      this.loading = true
+      this.errorMessage = ''
+      const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}#/auth/callback`
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: redirectTo },
+      })
+      this.loading = false
+      if (error) {
+        console.warn('Supabase magic-link sign-in failed.', error)
+        this.errorMessage = 'Unable to send a sign-in link. Please try again.'
         return false
       }
       return true

@@ -7,7 +7,16 @@ function createClient(records: unknown[] = [], error: Error | null = null) {
   const result = { data: records, error }
   const finalEq = vi.fn().mockResolvedValue(result)
   const firstEq = vi.fn(() => ({ eq: finalEq }))
-  const select = vi.fn(() => ({ eq: vi.fn().mockResolvedValue(result) }))
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: records[0] ?? null,
+    error,
+  })
+  const selectEq = vi.fn((field: string) =>
+    field === 'user_id'
+      ? Promise.resolve(result)
+      : { eq: vi.fn(() => ({ maybeSingle })) },
+  )
+  const select = vi.fn(() => ({ eq: selectEq }))
   const upsert = vi.fn().mockResolvedValue(result)
   const remove = vi.fn(() => ({ eq: firstEq }))
   return {
@@ -17,6 +26,7 @@ function createClient(records: unknown[] = [], error: Error | null = null) {
     upsert,
     firstEq,
     finalEq,
+    maybeSingle,
   }
 }
 
@@ -50,6 +60,17 @@ describe('supabaseDeckRepository', () => {
       }),
       { onConflict: 'user_id,deck_id' },
     )
+  })
+
+  it('loads one valid user-owned deck by stable ID', async () => {
+    const deck = createEmptyDeck('Cloud')
+    const { client } = createClient([
+      { id: 'row', user_id: 'user-a', deck_id: deck.id, deck_data: deck },
+    ])
+
+    await expect(
+      createSupabaseDeckRepository(client, 'user-a').loadDeck(deck.id),
+    ).resolves.toEqual(deck)
   })
 
   it('scopes deletion to deck and user IDs', async () => {

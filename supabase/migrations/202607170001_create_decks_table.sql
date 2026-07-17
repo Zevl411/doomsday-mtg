@@ -36,19 +36,23 @@ alter table public.decks enable row level security;
 
 -- RLS is the authoritative ownership boundary. The browser also filters by
 -- user_id for clarity, but it is never trusted as the only authorization.
+drop policy if exists "Users can read their own decks" on public.decks;
 create policy "Users can read their own decks"
 on public.decks for select to authenticated
 using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can insert their own decks" on public.decks;
 create policy "Users can insert their own decks"
 on public.decks for insert to authenticated
 with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can update their own decks" on public.decks;
 create policy "Users can update their own decks"
 on public.decks for update to authenticated
 using ((select auth.uid()) = user_id)
 with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can delete their own decks" on public.decks;
 create policy "Users can delete their own decks"
 on public.decks for delete to authenticated
 using ((select auth.uid()) = user_id);

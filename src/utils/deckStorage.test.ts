@@ -7,11 +7,14 @@ import type { Deck } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import {
   DECK_LIBRARY_STORAGE_KEY,
+  GUEST_DRAFT_STORAGE_KEY,
   LEGACY_DECK_STORAGE_KEY,
   LEGACY_LIBRARY_STORAGE_KEY,
   clearDeckLibrary,
   isUsableDeck,
   loadDeckLibrary,
+  loadGuestDraft,
+  saveGuestDraft,
   saveDeckLibrary,
 } from './deckStorage'
 
@@ -29,7 +32,7 @@ function createStoredDeck(id = 'deck-one', quantity = 1): Deck {
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-02T00:00:00.000Z',
     commander: null,
-    cards: [{ card, quantity }],
+    cards: [{ card: structuredClone(card), quantity }],
     sideboard: [],
     maybeboard: [],
     considering: [],
@@ -212,5 +215,38 @@ describe('deck-library storage', () => {
 
     expect(clearDeckLibrary()).toBe(true)
     expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).toBeNull()
+  })
+})
+
+describe('guest draft storage', () => {
+  it('round-trips one versioned guest deck', () => {
+    const deck = createStoredDeck()
+    expect(saveGuestDraft(deck)).toBe(true)
+    expect(loadGuestDraft()).toEqual(deck)
+  })
+
+  it.each([0, -1, 1.5, Number.POSITIVE_INFINITY])(
+    'rejects an invalid quantity of %s',
+    (quantity) => {
+      const deck = createStoredDeck('invalid-quantity', quantity)
+      localStorage.setItem(
+        GUEST_DRAFT_STORAGE_KEY,
+        JSON.stringify({ version: 1, deck }),
+      )
+      expect(loadGuestDraft()).toBeNull()
+    },
+  )
+
+  it('rejects malformed JSON and invalid timestamps without crashing', () => {
+    localStorage.setItem(GUEST_DRAFT_STORAGE_KEY, '{broken')
+    expect(loadGuestDraft()).toBeNull()
+
+    const deck = createStoredDeck()
+    deck.updatedAt = 'not-a-date'
+    localStorage.setItem(
+      GUEST_DRAFT_STORAGE_KEY,
+      JSON.stringify({ version: 1, deck }),
+    )
+    expect(loadGuestDraft()).toBeNull()
   })
 })

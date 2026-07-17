@@ -48,6 +48,10 @@ has not reached Supabase.
 Persistence remains behind repository modules, so Vue components and deck
 rules do not call localStorage or Supabase directly.
 
+Accounts support password and email-link authentication. A meaningful guest
+draft transfers automatically on sign-in; there is no manual library migration
+or whole-library local/cloud reconciliation.
+
 ### Plaintext decklists
 
 Import accepts card names with an optional positive quantity:
@@ -269,6 +273,14 @@ In Supabase Authentication URL Configuration, add:
 - Redirect URL: `https://zevl411.github.io/doomsday-mtg/#/auth/callback`
 - Local redirect: `http://localhost:5173/doomsday-mtg/#/auth/callback`
 
+For GitHub Pages builds, add `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY` under **Repository Settings → Secrets and
+variables → Actions → Variables**. The CI and deployment workflows pass these
+browser-publishable values to Vite without hard-coding them.
+
+Detailed schema, RLS, duplicate-diagnostic, and two-user verification steps are
+in [Supabase operations](docs/SUPABASE_OPERATIONS.md).
+
 Cloud records store a complete Deck JSON document for this MVP. This is not
 end-to-end encrypted. RLS restricts records to their authenticated owner;
 future tournament analytics will use separate normalized data. Account
@@ -304,7 +316,7 @@ Data Sources
 
 # Roadmap
 
-## Phase 1 — MVP 🚧 *(Current)*
+## Phase 1 — MVP ✅
 
 - [x] Vue project setup
 - [x] TypeScript models
@@ -315,21 +327,31 @@ Data Sources
 - [ ] Deck statistics
 - [x] Import/Export decklists
 - [x] Save decks locally
+- [x] Authenticated Supabase deck CRUD
+- [x] Refresh-safe temporary guest draft
+- [x] Idempotent guest-to-cloud transfer
+- [x] v0.1 stabilization
 
 ### v0.1.0 release readiness
 
 - [x] Automated tests passing
 - [x] Production build passing
 - [ ] GitHub Pages deployment smoke tested after release
+- [ ] Local email-link authentication smoke tested
+- [ ] Production email-link authentication smoke tested
+- [ ] Guest draft confirmed to transfer exactly once
+- [ ] Repeated login confirmed to create no duplicate Decks
+- [ ] Two test users confirmed unable to access each other's rows
 - [ ] Import and export manually smoke tested
-- [x] Existing single-deck migration covered by automated tests
+- [ ] All tracked boards manually confirmed after cloud reload
 - [ ] Narrow-screen mobile flow manually smoke tested
 - [x] README and architecture documentation current
 - [x] Known MVP limitations documented
 
 Known v0.1.0 limitations include one Commander only (no Partners or Background
 pairing), no banned-list enforcement, no special oracle-text quantity
-exceptions, browser-local storage only, and no account or cloud sync.
+exceptions, and no authenticated offline cache. An authenticated edit that has
+not reached Supabase can be lost by refreshing before retrying.
 
 ---
 

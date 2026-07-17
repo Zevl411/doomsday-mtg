@@ -20,6 +20,7 @@ export type SyncStatus =
 
 let initializationPromise: Promise<void> | null = null
 let initializedUserId: string | null = null
+let sessionGeneration = 0
 
 export const useDeckSyncStore = defineStore('deck-sync', {
   state: () => ({
@@ -42,23 +43,32 @@ export const useDeckSyncStore = defineStore('deck-sync', {
         return
       }
 
+      const generation = ++sessionGeneration
       this.userId = userId
-      initializationPromise = this.initializeMode(userId)
+      const currentInitialization = this.initializeMode(userId, generation)
+      initializationPromise = currentInitialization
       try {
-        await initializationPromise
-        initializedUserId = userId
+        await currentInitialization
+        if (generation === sessionGeneration) {
+          initializedUserId = userId
+        }
       } finally {
-        initializationPromise = null
+        if (initializationPromise === currentInitialization) {
+          initializationPromise = null
+        }
       }
     },
 
-    async initializeMode(userId: string | null) {
+    async initializeMode(userId: string | null, generation: number) {
       const deckStore = useDeckStore()
       this.syncError = ''
       this.cloudDeckIds = []
 
       if (!userId || !supabase) {
         deckStore.useRepository(guestDraftRepository, 'guest')
+        if (!deckStore.hasActiveDeck) {
+          deckStore.createDeck()
+        }
         this.syncStatus = 'local-only'
         this.needsInitializationRetry = false
         return
@@ -71,11 +81,13 @@ export const useDeckSyncStore = defineStore('deck-sync', {
       try {
         const repository = createSupabaseDeckRepository(supabase, userId)
         let cloudDecks = await repository.loadDecks()
+        if (generation !== sessionGeneration) return
 
         if (guestDraft && isMeaningfulGuestDraft(guestDraft)) {
           this.transferringGuestDraft = true
           await repository.saveDeck(guestDraft)
           cloudDecks = await repository.loadDecks()
+          if (generation !== sessionGeneration) return
 
           if (cloudDecks.some((deck) => deck.id === guestDraft.id)) {
             guestDraftRepository.clearLibrary()
@@ -95,6 +107,7 @@ export const useDeckSyncStore = defineStore('deck-sync', {
         this.syncStatus = 'synced'
         this.lastSyncedAt = new Date().toISOString()
       } catch (error) {
+        if (generation !== sessionGeneration) return
         console.warn('Cloud deck initialization failed.', error)
         this.hasUnsyncedChanges = Boolean(guestDraft)
         this.syncStatus = 'error'
@@ -102,7 +115,9 @@ export const useDeckSyncStore = defineStore('deck-sync', {
         this.needsInitializationRetry = true
         initializedUserId = null
       } finally {
-        this.transferringGuestDraft = false
+        if (generation === sessionGeneration) {
+          this.transferringGuestDraft = false
+        }
       }
     },
 
