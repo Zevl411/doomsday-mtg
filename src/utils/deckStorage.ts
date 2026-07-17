@@ -34,12 +34,23 @@ export function isUsableDeck(value: unknown): value is Deck {
   if (
     typeof value.name !== 'string' ||
     !commanderIsValid ||
-    !Array.isArray(value.cards)
+    !isUsableBoard(value.cards)
   ) {
     return false
   }
 
-  return value.cards.every((entry) => {
+  return ['sideboard', 'maybeboard', 'considering'].every((boardName) => {
+    const board = value[boardName]
+    return board === undefined || isUsableBoard(board)
+  })
+}
+
+function isUsableBoard(value: unknown): boolean {
+  if (!Array.isArray(value)) {
+    return false
+  }
+
+  return value.every((entry) => {
     if (!isObject(entry)) {
       return false
     }
@@ -81,7 +92,14 @@ export function loadDeck(): Deck | null {
       return null
     }
 
-    return savedValue
+    // Older saved decks predate auxiliary boards. Loading supplies their
+    // defaults so the rest of the application always receives a complete Deck.
+    return {
+      ...savedValue,
+      sideboard: savedValue.sideboard ?? [],
+      maybeboard: savedValue.maybeboard ?? [],
+      considering: savedValue.considering ?? [],
+    }
   } catch (error) {
     // Parsing can fail because browser storage may contain malformed text.
     console.warn('The saved deck was invalid and could not be loaded.', error)

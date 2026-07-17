@@ -34,9 +34,46 @@ The end goal is a tool capable of answering questions like:
 - Deck model written in TypeScript
 - Responsive Vue 3 interface
 - Current deck saved locally in the browser
+- Plaintext decklist import and export
 
 The current deck remains only in this browser. Clearing browser storage can
 remove it, and accounts or cloud synchronization are not yet supported.
+
+### Plaintext decklists
+
+Import accepts card names with an optional positive quantity:
+
+```text
+1 Sol Ring
+1x Arcane Signet
+4 Island
+Command Tower
+```
+
+Generic plaintext, Moxfield-style, Archidekt, MTG Arena, and Magic Online text
+are supported through automatic detection or a manual format choice.
+`Commander`, `Command Zone`, `Deck`, `Main`, `Mainboard`, and `Maindeck`
+headings are recognized case-insensitively, including decorative forms such as
+`~~Commanders~~`, `**Mainboard**`, and `-- Sideboard --`. Arena, Moxfield, and
+Archidekt printing annotations such as `(ONE) 196` are removed before lookup.
+
+The deck stores mainboard, sideboard, maybeboard, and considering cards.
+Auxiliary boards are preserved through local storage, editing, import, and
+export, but only the mainboard is checked for Commander color identity,
+singleton legality, and the 100-card total. Companion, acquireboard, and token
+sections are recognized and summarized but remain untracked.
+
+For a headerless Moxfield-style list, commander inference is attempted only
+when the list resembles a Commander deck and Scryfall confirms that its first
+card is Commander-eligible. Otherwise the current Commander is retained or the
+preview asks for a Commander.
+
+Import replaces the current deck only after confirmation. Partner Commanders
+and file-based import/export are not supported yet.
+
+Future EDHTop16 tournament JSON will use a dedicated structured-data adapter
+that normalizes into the same Deck model; EDHTop16 is intentionally not a
+plaintext paste format and is not queried by the current importer.
 
 ---
 

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import type { Deck } from '../models/deck'
+import type { Deck, DeckCard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
+import type { DeckBoard } from '../types/deckImport'
 import type { DeckLegalityResult } from '../utils/deckLegality'
 import { getCardIdentity } from '../utils/cardIdentity'
 import {
@@ -18,6 +19,9 @@ function createEmptyDeck(): Deck {
   return {
     commander: null,
     cards: [],
+    sideboard: [],
+    maybeboard: [],
+    considering: [],
     name: 'Untitled Deck',
   }
 }
@@ -77,6 +81,131 @@ export const useDeckStore = defineStore('deck', {
       return { allowed: true }
     },
 
+    addCardToBoard(
+      card: ScryfallCard,
+      board: TrackedCardBoard,
+      quantity = 1,
+      allowColorIdentityViolation = false,
+    ): DeckLegalityResult {
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        return {
+          allowed: false,
+          reason: 'Quantity must be a positive whole number.',
+        }
+      }
+
+      if (board === 'mainboard') {
+        const result = this.addCard(card, allowColorIdentityViolation)
+
+        // Basic lands can add several copies in one explicit board action.
+        if (result.allowed && quantity > 1 && isBasicLand(card)) {
+          const entry = findBoardEntry(this.deck.cards, card)
+          if (entry) {
+            entry.quantity += quantity - 1
+            this.saveSucceeded = saveDeck(this.deck)
+          }
+        }
+        return result
+      }
+
+      const entries = getBoardEntries(this.deck, board)
+      const existing = findBoardEntry(entries, card)
+
+      if (existing) {
+        existing.quantity += quantity
+      } else {
+        entries.push({ card, quantity })
+      }
+
+      this.rejectionMessage = ''
+      this.saveSucceeded = saveDeck(this.deck)
+      return { allowed: true }
+    },
+
+    removeCardFromBoard(identity: string, board: TrackedCardBoard) {
+      const key = getDeckBoardKey(board)
+      this.deck[key] = this.deck[key].filter(
+        (entry) => getCardIdentity(entry.card) !== identity,
+      )
+      this.rejectionMessage = ''
+      this.saveSucceeded = saveDeck(this.deck)
+    },
+
+    increaseBoardQuantity(identity: string, board: TrackedCardBoard) {
+      const entry = getBoardEntries(this.deck, board).find(
+        (item) => getCardIdentity(item.card) === identity,
+      )
+
+      if (!entry || (board === 'mainboard' && !isBasicLand(entry.card))) {
+        return
+      }
+
+      entry.quantity += 1
+      this.saveSucceeded = saveDeck(this.deck)
+    },
+
+    decreaseBoardQuantity(identity: string, board: TrackedCardBoard) {
+      const entry = getBoardEntries(this.deck, board).find(
+        (item) => getCardIdentity(item.card) === identity,
+      )
+
+      if (!entry) {
+        return
+      }
+
+      if (entry.quantity <= 1) {
+        this.removeCardFromBoard(identity, board)
+        return
+      }
+
+      entry.quantity -= 1
+      this.saveSucceeded = saveDeck(this.deck)
+    },
+
+    moveCardBetweenBoards(
+      identity: string,
+      fromBoard: TrackedCardBoard,
+      toBoard: TrackedCardBoard,
+    ): DeckLegalityResult {
+      const sourceEntry = getBoardEntries(this.deck, fromBoard).find(
+        (entry) => getCardIdentity(entry.card) === identity,
+      )
+
+      if (!sourceEntry || fromBoard === toBoard) {
+        return { allowed: false, reason: 'That card could not be moved.' }
+      }
+
+      if (toBoard === 'mainboard') {
+        const result = validateCardAddition(sourceEntry.card, this.deck)
+        if (!result.allowed) {
+          this.rejectionMessage =
+            result.reason ?? 'That card cannot be moved to the mainboard.'
+          return result
+        }
+
+        if (sourceEntry.quantity > 1 && !isBasicLand(sourceEntry.card)) {
+          const result = {
+            allowed: false,
+            reason: 'Only one copy of a non-basic card may enter the mainboard.',
+          }
+          this.rejectionMessage = result.reason
+          return result
+        }
+      }
+
+      const destination = getBoardEntries(this.deck, toBoard)
+      const existing = findBoardEntry(destination, sourceEntry.card)
+
+      if (existing) {
+        existing.quantity += sourceEntry.quantity
+      } else {
+        destination.push({ ...sourceEntry })
+      }
+
+      this.removeCardFromBoard(identity, fromBoard)
+      return { allowed: true }
+    },
+
     removeCard(index: number) {
       this.deck.cards = this.deck.cards.filter(
         (_card, cardIndex) => cardIndex !== index,
@@ -130,6 +259,12 @@ export const useDeckStore = defineStore('deck', {
       this.saveSucceeded = clearSavedDeck()
     },
 
+    replaceDeck(deck: Deck) {
+      this.deck = deck
+      this.rejectionMessage = ''
+      this.saveSucceeded = saveDeck(this.deck)
+    },
+
     setPreviewCard(card: ScryfallCard) {
       this.previewCard = card
     },
@@ -139,3 +274,30 @@ export const useDeckStore = defineStore('deck', {
     },
   },
 })
+
+export type TrackedCardBoard = Extract<
+  DeckBoard,
+  'mainboard' | 'sideboard' | 'maybeboard' | 'considering'
+>
+
+function getDeckBoardKey(
+  board: TrackedCardBoard,
+): 'cards' | 'sideboard' | 'maybeboard' | 'considering' {
+  return board === 'mainboard' ? 'cards' : board
+}
+
+function getBoardEntries(
+  deck: Deck,
+  board: TrackedCardBoard,
+): DeckCard[] {
+  return deck[getDeckBoardKey(board)]
+}
+
+function findBoardEntry(
+  entries: DeckCard[],
+  card: ScryfallCard,
+): DeckCard | undefined {
+  return entries.find(
+    (entry) => getCardIdentity(entry.card) === getCardIdentity(card),
+  )
+}

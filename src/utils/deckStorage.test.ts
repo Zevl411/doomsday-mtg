@@ -20,6 +20,9 @@ function createStoredDeck(quantity: number): Deck {
     name: 'Stored Deck',
     commander: null,
     cards: [{ card, quantity }],
+    sideboard: [],
+    maybeboard: [],
+    considering: [],
   }
 }
 
@@ -38,6 +41,37 @@ describe('stored deck validation', () => {
 
   it('accepts a positive integer quantity', () => {
     expect(isUsableDeck(createStoredDeck(2))).toBe(true)
+  })
+
+  it('migrates an older saved deck to empty auxiliary boards', () => {
+    const legacyDeck = {
+      name: 'Legacy Deck',
+      commander: null,
+      cards: [{ card, quantity: 1 }],
+    }
+    localStorage.setItem(
+      'doomsday-mtg-current-deck',
+      JSON.stringify(legacyDeck),
+    )
+
+    expect(loadDeck()).toEqual({
+      ...legacyDeck,
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
+    })
+  })
+
+  it('validates quantities on every tracked board', () => {
+    const deck = createStoredDeck(1)
+    deck.sideboard = [{ card, quantity: 2 }]
+    deck.maybeboard = [{ card, quantity: 3 }]
+    deck.considering = [{ card, quantity: 4 }]
+
+    expect(isUsableDeck(deck)).toBe(true)
+
+    deck.sideboard[0]!.quantity = 0
+    expect(isUsableDeck(deck)).toBe(false)
   })
 
   it.each([1.5, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(

@@ -1,18 +1,18 @@
 <template>
   <v-row align="start">
-    <v-col cols="12" lg="4">
-      <SearchPanel />
+    <v-col cols="12">
+      <DeckImportExport />
     </v-col>
 
-    <v-col cols="12" sm="6" lg="2">
+    <v-col cols="12" md="6" lg="4">
       <CommanderPanel />
     </v-col>
 
-    <v-col cols="12" sm="6" lg="3">
+    <v-col cols="12" md="6" lg="4">
       <DeckPanel @card-selected="addDeckCard" />
     </v-col>
 
-    <v-col cols="12" lg="3">
+    <v-col cols="12" lg="4">
       <CardPreview :card="deckStore.previewCard" />
     </v-col>
   </v-row>
@@ -62,9 +62,10 @@
 import { ref } from 'vue'
 import CardPreview from '../components/CardPreview.vue'
 import CommanderPanel from '../components/CommanderPanel.vue'
+import DeckImportExport from '../components/DeckImportExport.vue'
 import DeckPanel from '../components/DeckPanel.vue'
-import SearchPanel from '../components/SearchPanel.vue'
 import { useDeckStore } from '../stores/deck'
+import type { TrackedCardBoard } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 
 const deckStore = useDeckStore()
@@ -73,8 +74,8 @@ const pendingIllegalReason = ref('')
 const showIllegalCardDialog = ref(false)
 const validationCanBeOverridden = ref(false)
 
-function addDeckCard(card: ScryfallCard) {
-  const result = deckStore.addCard(card)
+function addDeckCard(card: ScryfallCard, board: TrackedCardBoard) {
+  const result = deckStore.addCardToBoard(card, board)
 
   if (!result.allowed) {
     pendingIllegalCard.value = result.overridable ? card : null

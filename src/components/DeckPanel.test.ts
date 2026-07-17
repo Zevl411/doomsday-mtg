@@ -84,7 +84,7 @@ describe('DeckPanel', () => {
     expect(store.deck.cards[0]?.quantity).toBe(2)
 
     await wrapper
-      .find('[aria-label="Remove Island from deck"]')
+      .find('[aria-label="Remove Island from mainboard"]')
       .trigger('click')
     expect(store.deck.cards).toHaveLength(0)
     wrapper.unmount()
@@ -115,6 +115,27 @@ describe('DeckPanel', () => {
     store.saveSucceeded = false
     await wrapper.vm.$nextTick()
     expect(wrapper.text()).toContain('Unable to save locally')
+    wrapper.unmount()
+  })
+
+  it('renders board tabs with quantity-based counts', () => {
+    const store = useDeckStore()
+    store.deck.sideboard = [{ card: artifact, quantity: 3 }]
+    store.deck.maybeboard = [{ card: island, quantity: 2 }]
+    const wrapper = mountPanel()
+
+    expect(wrapper.text()).toContain('Mainboard (0)')
+    expect(wrapper.text()).toContain('Sideboard (3)')
+    expect(wrapper.text()).toContain('Maybeboard (2)')
+    expect(wrapper.text()).toContain('Considering (0)')
+    wrapper.unmount()
+  })
+
+  it('defaults the search destination to the mainboard', () => {
+    const wrapper = mountPanel()
+
+    expect(wrapper.text()).toContain('Add search results to')
+    expect(wrapper.text()).toContain('Mainboard')
     wrapper.unmount()
   })
 

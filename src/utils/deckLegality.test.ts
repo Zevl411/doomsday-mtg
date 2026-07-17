@@ -32,6 +32,9 @@ describe('deck legality identity checks', () => {
       name: 'Test Deck',
       commander: null,
       cards: [],
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
     }
 
     expect(validateCardAddition(card, deck).allowed).toBe(false)
@@ -54,6 +57,9 @@ describe('deck legality identity checks', () => {
       name: 'Test Deck',
       commander,
       cards: [],
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
     }
 
     expect(validateCardAddition(otherPrinting, deck).allowed).toBe(false)
@@ -81,6 +87,9 @@ describe('deck legality identity checks', () => {
       name: 'Test Deck',
       commander,
       cards: [{ card: firstPrinting, quantity: 1 }],
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
     }
 
     expect(validateCardAddition(secondPrinting, deck).allowed).toBe(false)
@@ -137,6 +146,9 @@ describe('deck legality identity checks', () => {
       name: 'Test Deck',
       commander,
       cards: [],
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
     }
 
     expect(validateCardAddition(redCard, deck)).toMatchObject({
@@ -164,6 +176,9 @@ describe('deck legality identity checks', () => {
       name: 'Test Deck',
       commander,
       cards: [],
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
     }
 
     expect(validateCardAddition(blueCard, deck).allowed).toBe(true)

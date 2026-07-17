@@ -31,11 +31,7 @@
           size="x-small"
           variant="tonal"
         >
-          {{
-            deckStore.saveSucceeded
-              ? 'Saved locally'
-              : 'Unable to save locally'
-          }}
+          {{ deckStore.saveSucceeded ? 'Saved locally' : 'Unable to save locally' }}
         </v-chip>
         <span v-else />
         <v-btn
@@ -54,30 +50,16 @@
         :model-value="progressValue"
         rounded
       />
-
       <v-alert
-        v-if="deckSizeStatus.overLimit"
         class="mt-3"
         density="compact"
-        type="error"
-        variant="tonal"
-      >
-        {{ deckSizeStatus.message }}
-      </v-alert>
-      <v-alert
-        v-else-if="deckSizeStatus.complete"
-        class="mt-3"
-        density="compact"
-        type="success"
-        variant="tonal"
-      >
-        {{ deckSizeStatus.message }}
-      </v-alert>
-      <v-alert
-        v-else
-        class="mt-3"
-        density="compact"
-        type="info"
+        :type="
+          deckSizeStatus.overLimit
+            ? 'error'
+            : deckSizeStatus.complete
+              ? 'success'
+              : 'info'
+        "
         variant="tonal"
       >
         {{ deckSizeStatus.message }}
@@ -85,14 +67,22 @@
 
       <v-divider class="my-5" />
 
+      <v-select
+        v-model="searchDestination"
+        :items="boardOptions"
+        label="Add search results to"
+        variant="outlined"
+      />
+
       <CardSearch
         :search-filter="colorIdentitySearchFilter"
-        :selected-card-ids="deck.cards.map((deckCard) => deckCard.card.id)"
+        :selected-card-ids="selectedDestinationCards.map((entry) => entry.card.id)"
         @card-hovered="deckStore.setPreviewCard"
-        @card-selected="emit('card-selected', $event)"
+        @card-selected="emit('card-selected', $event, searchDestination)"
       >
         <template #actions>
           <v-switch
+            v-if="searchDestination === 'mainboard'"
             v-model="limitToCommanderColors"
             aria-label="Limit search to Commander color identity"
             color="primary"
@@ -127,50 +117,92 @@
         </div>
       </v-alert>
 
+      <v-tabs v-model="selectedBoard" class="mt-5" color="primary" grow>
+        <v-tab
+          v-for="option in boardOptions"
+          :key="option.value"
+          :value="option.value"
+        >
+          {{ option.title }} ({{ getBoardCount(option.value) }})
+        </v-tab>
+      </v-tabs>
+
       <v-list
-        v-if="deck.cards.length"
-        class="mt-5 pa-0"
+        v-if="selectedBoardCards.length"
+        class="mt-3 pa-0"
         bg-color="transparent"
       >
         <v-list-item
-          v-for="(deckCard, index) in deck.cards"
-          :key="deckCard.card.id"
+          v-for="deckCard in selectedBoardCards"
+          :key="getCardIdentity(deckCard.card)"
           border="b"
           class="px-0"
           :class="{
-            'deck-card--illegal': isColorIdentityViolation(deckCard),
+            'deck-card--illegal':
+              selectedBoard === 'mainboard' &&
+              isColorIdentityViolation(deckCard),
           }"
           :title="`${deckCard.quantity}× ${deckCard.card.name}`"
           @focusin="deckStore.setPreviewCard(deckCard.card)"
           @mouseenter="deckStore.setPreviewCard(deckCard.card)"
         >
           <template #append>
-            <div class="d-flex align-center ga-1">
+            <div class="d-flex flex-wrap align-center ga-1">
               <v-btn
                 :aria-label="`Decrease quantity of ${deckCard.card.name}`"
                 color="secondary"
                 size="small"
                 variant="text"
-                @click="deckStore.decreaseQuantity(index)"
+                @click="
+                  deckStore.decreaseBoardQuantity(
+                    getCardIdentity(deckCard.card),
+                    selectedBoard,
+                  )
+                "
               >
                 −
               </v-btn>
               <v-btn
                 :aria-label="`Increase quantity of ${deckCard.card.name}`"
                 color="secondary"
-                :disabled="!isBasicLand(deckCard.card)"
+                :disabled="
+                  selectedBoard === 'mainboard' &&
+                  !isBasicLand(deckCard.card)
+                "
                 size="small"
                 variant="text"
-                @click="deckStore.increaseQuantity(index)"
+                @click="
+                  deckStore.increaseBoardQuantity(
+                    getCardIdentity(deckCard.card),
+                    selectedBoard,
+                  )
+                "
               >
                 +
               </v-btn>
+              <v-select
+                :aria-label="`Move ${deckCard.card.name} to another board`"
+                class="move-select"
+                density="compact"
+                hide-details
+                :items="moveOptions"
+                label="Move to"
+                variant="outlined"
+                @update:model-value="
+                  moveCard(getCardIdentity(deckCard.card), $event)
+                "
+              />
               <v-btn
-                :aria-label="`Remove ${deckCard.card.name} from deck`"
+                :aria-label="`Remove ${deckCard.card.name} from ${selectedBoard}`"
                 color="error"
                 size="small"
                 variant="text"
-                @click="deckStore.removeCard(index)"
+                @click="
+                  deckStore.removeCardFromBoard(
+                    getCardIdentity(deckCard.card),
+                    selectedBoard,
+                  )
+                "
               >
                 Remove
               </v-btn>
@@ -185,7 +217,7 @@
         color="transparent"
         rounded="lg"
       >
-        Your deck is empty.
+        This board is empty.
       </v-sheet>
     </v-card-text>
   </v-card>
@@ -194,14 +226,11 @@
     <v-card color="surface" rounded="lg">
       <v-card-title class="px-5 pt-5">Clear this deck?</v-card-title>
       <v-card-text class="px-5">
-        This will remove the current Commander, remove every deck card, and
-        delete the locally saved deck from this browser.
+        This removes the Commander and cards from every tracked board.
       </v-card-text>
       <v-card-actions class="px-5 pb-5">
         <v-spacer />
-        <v-btn variant="text" @click="showResetDialog = false">
-          Cancel
-        </v-btn>
+        <v-btn variant="text" @click="showResetDialog = false">Cancel</v-btn>
         <v-btn color="error" variant="flat" @click="confirmReset">
           Clear Deck
         </v-btn>
@@ -214,8 +243,12 @@
 import { computed, ref } from 'vue'
 import CardSearch from './CardSearch.vue'
 import type { Deck, DeckCard } from '../models/deck'
-import { useDeckStore } from '../stores/deck'
+import {
+  useDeckStore,
+  type TrackedCardBoard,
+} from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
+import { getCardIdentity } from '../utils/cardIdentity'
 import {
   getColorIdentityViolations,
   isBasicLand,
@@ -226,39 +259,82 @@ import {
 } from '../utils/deckValidation'
 
 const emit = defineEmits<{
-  'card-selected': [card: ScryfallCard]
+  'card-selected': [card: ScryfallCard, board: TrackedCardBoard]
 }>()
+
+const boardOptions: Array<{ title: string; value: TrackedCardBoard }> = [
+  { title: 'Mainboard', value: 'mainboard' },
+  { title: 'Sideboard', value: 'sideboard' },
+  { title: 'Maybeboard', value: 'maybeboard' },
+  { title: 'Considering', value: 'considering' },
+]
 
 const deckStore = useDeckStore()
 const deck = computed<Deck>(() => deckStore.deck)
+const selectedBoard = ref<TrackedCardBoard>('mainboard')
+const searchDestination = ref<TrackedCardBoard>('mainboard')
+const showResetDialog = ref(false)
+const limitToCommanderColors = ref(true)
 const mainDeckCardCount = computed(() => getMainDeckCardCount(deckStore.deck))
 const deckSizeStatus = computed(() => getDeckSizeStatus(deckStore.deck))
 const colorIdentityViolations = computed(() =>
   getColorIdentityViolations(deckStore.deck),
 )
-const showResetDialog = ref(false)
-const limitToCommanderColors = ref(true)
+const selectedBoardCards = computed(() =>
+  getBoardCards(selectedBoard.value),
+)
+const selectedDestinationCards = computed(() =>
+  getBoardCards(searchDestination.value),
+)
+const moveOptions = computed(() =>
+  boardOptions.filter((option) => option.value !== selectedBoard.value),
+)
 const colorIdentitySearchFilter = computed(() => {
-  if (!limitToCommanderColors.value || !deckStore.deck.commander) {
+  if (
+    searchDestination.value !== 'mainboard' ||
+    !limitToCommanderColors.value ||
+    !deckStore.deck.commander
+  ) {
     return ''
   }
 
   const colorIdentity = deckStore.deck.commander.color_identity
     .join('')
     .toLowerCase()
-
-  // Scryfall's `id<=` syntax includes cards contained within these colors.
   return colorIdentity ? `id<=${colorIdentity}` : 'id:c'
 })
-const progressValue = computed(() => {
-  const percentage =
-    (deckSizeStatus.value.total / deckSizeStatus.value.target) * 100
+const progressValue = computed(() =>
+  Math.min(
+    (deckSizeStatus.value.total / deckSizeStatus.value.target) * 100,
+    100,
+  ),
+)
 
-  return Math.min(percentage, 100)
-})
+function getBoardCards(board: TrackedCardBoard): DeckCard[] {
+  return board === 'mainboard'
+    ? deckStore.deck.cards
+    : deckStore.deck[board]
+}
+
+function getBoardCount(board: TrackedCardBoard): number {
+  return getBoardCards(board).reduce(
+    (total, entry) => total + entry.quantity,
+    0,
+  )
+}
 
 function isColorIdentityViolation(deckCard: DeckCard): boolean {
   return colorIdentityViolations.value.includes(deckCard)
+}
+
+function moveCard(identity: string, destination: TrackedCardBoard | null) {
+  if (destination) {
+    deckStore.moveCardBetweenBoards(
+      identity,
+      selectedBoard.value,
+      destination,
+    )
+  }
 }
 
 function confirmReset() {
@@ -266,3 +342,9 @@ function confirmReset() {
   showResetDialog.value = false
 }
 </script>
+
+<style scoped>
+.move-select {
+  min-width: 125px;
+}
+</style>

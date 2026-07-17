@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import type { Deck } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import { saveDeck } from '../utils/deckStorage'
+import { getTotalDeckCardCount } from '../utils/deckValidation'
 import { useDeckStore } from './deck'
 
 function createCard(
@@ -52,6 +53,9 @@ describe('deck store', () => {
     expect(store.deck).toEqual({
       commander: null,
       cards: [],
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
       name: 'Untitled Deck',
     })
   })
@@ -60,6 +64,9 @@ describe('deck store', () => {
     const savedDeck: Deck = {
       commander,
       cards: [{ card: artifact, quantity: 1 }],
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
       name: 'Saved Deck',
     }
     saveDeck(savedDeck)
@@ -128,12 +135,38 @@ describe('deck store', () => {
     const store = useDeckStore()
     store.setCommander(commander)
     store.addCard(artifact)
+    store.addCardToBoard(artifact, 'sideboard')
+    store.addCardToBoard(artifact, 'maybeboard')
+    store.addCardToBoard(artifact, 'considering')
 
     store.resetDeck()
 
     expect(store.deck.commander).toBeNull()
     expect(store.deck.cards).toHaveLength(0)
+    expect(store.deck.sideboard).toHaveLength(0)
+    expect(store.deck.maybeboard).toHaveLength(0)
+    expect(store.deck.considering).toHaveLength(0)
     expect(localStorage.getItem('doomsday-mtg-current-deck')).toBeNull()
+  })
+
+  it('replaces and persists an imported deck', () => {
+    const store = useDeckStore()
+    const importedDeck: Deck = {
+      name: 'Imported Deck',
+      commander,
+      cards: [{ card: artifact, quantity: 1 }],
+      sideboard: [],
+      maybeboard: [],
+      considering: [],
+    }
+
+    store.replaceDeck(importedDeck)
+
+    expect(store.deck).toEqual(importedDeck)
+    expect(store.saveSucceeded).toBe(true)
+    expect(localStorage.getItem('doomsday-mtg-current-deck')).toContain(
+      'Imported Deck',
+    )
   })
 
   it('tracks successful and failed persistence attempts', () => {
@@ -163,5 +196,44 @@ describe('deck store', () => {
 
     store.clearPreviewCard()
     expect(store.previewCard).toBeNull()
+  })
+
+  it('adds quantities to auxiliary boards and persists them', () => {
+    const store = useDeckStore()
+
+    store.addCardToBoard(artifact, 'sideboard', 2)
+    store.addCardToBoard(artifact, 'sideboard', 3)
+
+    expect(store.deck.sideboard).toEqual([
+      { card: artifact, quantity: 5 },
+    ])
+    expect(localStorage.getItem('doomsday-mtg-current-deck')).toContain(
+      '"sideboard"',
+    )
+  })
+
+  it('moves cards between auxiliary boards', () => {
+    const store = useDeckStore()
+    store.addCardToBoard(artifact, 'maybeboard', 2)
+
+    const result = store.moveCardBetweenBoards(
+      'artifact-oracle',
+      'maybeboard',
+      'considering',
+    )
+
+    expect(result.allowed).toBe(true)
+    expect(store.deck.maybeboard).toHaveLength(0)
+    expect(store.deck.considering[0]?.quantity).toBe(2)
+  })
+
+  it('does not count auxiliary boards toward Commander deck size', () => {
+    const store = useDeckStore()
+    store.setCommander(commander)
+    store.addCardToBoard(artifact, 'sideboard', 20)
+    store.addCardToBoard(artifact, 'maybeboard', 10)
+    store.addCardToBoard(artifact, 'considering', 5)
+
+    expect(getTotalDeckCardCount(store.deck)).toBe(1)
   })
 })

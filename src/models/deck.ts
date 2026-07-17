@@ -12,6 +12,10 @@ export interface Deck {
   commander: ScryfallCard | null
   // Quantity belongs beside the card so one entry represents all of its copies
   // instead of duplicating the same Scryfall card object throughout the array.
+  // `cards` remains the mainboard name to avoid a broad application rename.
   cards: DeckCard[]
+  sideboard: DeckCard[]
+  maybeboard: DeckCard[]
+  considering: DeckCard[]
   name: string
 }
