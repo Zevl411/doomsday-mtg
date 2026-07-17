@@ -25,7 +25,7 @@
         <v-btn
           color="secondary"
           variant="outlined"
-          @click="emit('clear-commander')"
+          @click="deckStore.clearCommander"
         >
           Clear commander
         </v-btn>
@@ -39,15 +39,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 
-defineProps<{
-  commander: ScryfallCard | null
-}>()
-
-const emit = defineEmits<{
-  'clear-commander': []
-}>()
+const deckStore = useDeckStore()
+const commander = computed(() => deckStore.deck.commander)
 
 function getCardImage(card: ScryfallCard): string | undefined {
   return card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal

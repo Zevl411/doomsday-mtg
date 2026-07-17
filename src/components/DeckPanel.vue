@@ -63,7 +63,7 @@
       <CardSearch
         :search-filter="colorIdentitySearchFilter"
         :selected-card-ids="deck.cards.map((deckCard) => deckCard.card.id)"
-        @card-hovered="emit('card-hovered', $event)"
+        @card-hovered="deckStore.setPreviewCard"
         @card-selected="emit('card-selected', $event)"
       >
         <template #actions>
@@ -95,7 +95,7 @@
             color="error"
             size="small"
             variant="outlined"
-            @click="emit('remove-illegal-cards')"
+            @click="deckStore.removeIllegalCards"
           >
             Remove all illegal cards
           </v-btn>
@@ -116,8 +116,8 @@
             'deck-card--illegal': isColorIdentityViolation(deckCard),
           }"
           :title="`${deckCard.quantity}× ${deckCard.card.name}`"
-          @focusin="emit('card-hovered', deckCard.card)"
-          @mouseenter="emit('card-hovered', deckCard.card)"
+          @focusin="deckStore.setPreviewCard(deckCard.card)"
+          @mouseenter="deckStore.setPreviewCard(deckCard.card)"
         >
           <template #append>
             <div class="d-flex align-center ga-1">
@@ -126,7 +126,7 @@
                 color="secondary"
                 size="small"
                 variant="text"
-                @click="emit('decrease-quantity', index)"
+                @click="deckStore.decreaseQuantity(index)"
               >
                 −
               </v-btn>
@@ -136,7 +136,7 @@
                 :disabled="!isBasicLand(deckCard.card)"
                 size="small"
                 variant="text"
-                @click="emit('increase-quantity', index)"
+                @click="deckStore.increaseQuantity(index)"
               >
                 +
               </v-btn>
@@ -145,7 +145,7 @@
                 color="error"
                 size="small"
                 variant="text"
-                @click="emit('remove-card', index)"
+                @click="deckStore.removeCard(index)"
               >
                 Remove
               </v-btn>
@@ -170,6 +170,7 @@
 import { computed, ref } from 'vue'
 import CardSearch from './CardSearch.vue'
 import type { Deck, DeckCard } from '../models/deck'
+import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 import {
   getColorIdentityViolations,
@@ -180,32 +181,24 @@ import {
   getMainDeckCardCount,
 } from '../utils/deckValidation'
 
-const props = defineProps<{
-  deck: Deck
-}>()
-
-// These events let App.vue handle changes while this panel only displays them.
 const emit = defineEmits<{
-  'card-hovered': [card: ScryfallCard]
   'card-selected': [card: ScryfallCard]
-  'decrease-quantity': [index: number]
-  'increase-quantity': [index: number]
-  'remove-card': [index: number]
-  'remove-illegal-cards': []
 }>()
 
-const mainDeckCardCount = computed(() => getMainDeckCardCount(props.deck))
-const deckSizeStatus = computed(() => getDeckSizeStatus(props.deck))
+const deckStore = useDeckStore()
+const deck = computed<Deck>(() => deckStore.deck)
+const mainDeckCardCount = computed(() => getMainDeckCardCount(deckStore.deck))
+const deckSizeStatus = computed(() => getDeckSizeStatus(deckStore.deck))
 const colorIdentityViolations = computed(() =>
-  getColorIdentityViolations(props.deck),
+  getColorIdentityViolations(deckStore.deck),
 )
 const limitToCommanderColors = ref(true)
 const colorIdentitySearchFilter = computed(() => {
-  if (!limitToCommanderColors.value || !props.deck.commander) {
+  if (!limitToCommanderColors.value || !deckStore.deck.commander) {
     return ''
   }
 
-  const colorIdentity = props.deck.commander.color_identity
+  const colorIdentity = deckStore.deck.commander.color_identity
     .join('')
     .toLowerCase()
 
