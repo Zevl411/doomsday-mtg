@@ -1,5 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// Supplying `any` preserves the flexible table names used by this server-only
+// admin client. Without it, Deno can infer every table operation as `never`.
+type AdminClient = ReturnType<typeof createClient<any>>
+
 const jsonHeaders = { 'Content-Type': 'application/json' }
 
 /**
@@ -99,7 +103,7 @@ Deno.serve(async (request) => {
 })
 
 async function failBatch(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   batch: Record<string, unknown>,
   message: string,
 ) {
@@ -107,12 +111,12 @@ async function failBatch(
     status: Number(batch.attempts) >= 3 ? 'failed' : 'pending',
     last_error: message.slice(0, 1000),
     updated_at: new Date().toISOString(),
-  }).eq('id', batch.id)
+  }).eq('id', String(batch.id))
   await refreshJob(admin, String(batch.job_id))
 }
 
 async function refreshJob(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   jobId: string,
 ) {
   await admin.rpc('refresh_tournament_ingestion_job', {

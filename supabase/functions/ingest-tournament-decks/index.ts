@@ -123,10 +123,11 @@ Deno.serve(async (request) => {
       if (candidateError) {
         throw databaseError('load Deck ingestion candidates', candidateError)
       }
-      candidateEntryIds = (candidates ?? []).map(
+      const loadedCandidateEntryIds = (candidates ?? []).map(
         (candidate: { id: string }) => candidate.id,
       )
-      if (!candidateEntryIds.length) {
+      candidateEntryIds = loadedCandidateEntryIds
+      if (!loadedCandidateEntryIds.length) {
         report.durationMs = Date.now() - startedAt
         return json(report)
       }

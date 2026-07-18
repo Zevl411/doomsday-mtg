@@ -12,6 +12,11 @@ import type {
   TournamentProvider,
 } from './types.ts'
 
+// Supplying `any` here preserves the ungenerated Supabase schema behavior.
+// Plain `ReturnType<typeof createClient>` loses the generic and Deno infers
+// every table row as `never`, even though the runtime client is valid.
+type AdminClient = ReturnType<typeof createClient<any>>
+
 interface IngestionRequest {
   provider: 'edhtop16' | 'topdeck'
   startDate?: string
@@ -495,7 +500,7 @@ function isJobAction(value: unknown): value is JobActionRequest {
 }
 
 async function handleJobAction(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   request: JobActionRequest,
   userId: string,
 ) {
@@ -588,7 +593,7 @@ async function handleJobAction(
 }
 
 async function purgeCasualEvents(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   request: JobActionRequest,
 ) {
   for (const value of [request.startDate, request.endDate]) {

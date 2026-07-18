@@ -37,8 +37,13 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Check tournament ingestion function
-        run: deno check supabase/functions/ingest-tournaments/index.ts
+      - name: Check Supabase Edge Functions
+        run: |
+          deno check \
+            supabase/functions/ingest-tournaments/index.ts \
+            supabase/functions/ingest-tournament-decks/index.ts \
+            supabase/functions/process-tournament-ingestion/index.ts \
+            supabase/functions/tournament-decklist/index.ts
 
       - name: Run tests
         run: npm run test
