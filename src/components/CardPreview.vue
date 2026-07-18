@@ -2,11 +2,13 @@
   <v-card
     border
     class="preview-panel"
-    color="surface"
+    color="surface-bright"
     rounded="lg"
     variant="flat"
   >
-    <v-card-title class="px-5 pt-5">Card Preview</v-card-title>
+    <v-card-title class="widget-header-bar px-5 py-3">
+      Card Preview
+    </v-card-title>
 
     <template v-if="card">
       <v-img

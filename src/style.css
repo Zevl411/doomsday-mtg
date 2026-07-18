@@ -16,6 +16,11 @@ body {
   margin: 0;
 }
 
+.widget-header-bar {
+  background: rgb(var(--v-theme-accent));
+  border-bottom: 1px solid rgba(var(--v-theme-secondary), 0.48);
+}
+
 .content-container {
   max-width: 1440px;
 }

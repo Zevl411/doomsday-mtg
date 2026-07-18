@@ -13,18 +13,19 @@ const commander: ScryfallCard = {
 }
 
 describe('DeckLibraryCard', () => {
-  it('shows active status, commander, and quantity-based board counts', () => {
+  it('shows commander and quantity-based board counts', () => {
     const deck = createEmptyDeck('Library Deck')
     deck.commander = commander
     deck.cards = [{ card: commander, quantity: 3 }]
     deck.sideboard = [{ card: commander, quantity: 2 }]
 
     const wrapper = mount(DeckLibraryCard, {
-      props: { deck, active: true, canCompare: true },
+      props: { deck, canCompare: true },
       global: { plugins: [vuetify] },
     })
 
-    expect(wrapper.text()).toContain('Active')
+    expect(wrapper.text()).not.toContain('Active')
+    expect(wrapper.find('.deck-card-actions').exists()).toBe(true)
     expect(wrapper.text()).toContain('Library Deck')
     expect(wrapper.text()).toContain('The Commander')
     expect(wrapper.text()).toContain('Main 3')
@@ -35,7 +36,7 @@ describe('DeckLibraryCard', () => {
   it('emits management intentions without mutating the deck', async () => {
     const deck = createEmptyDeck('Actions')
     const wrapper = mount(DeckLibraryCard, {
-      props: { deck, active: false, canCompare: false },
+      props: { deck, canCompare: false },
       global: { plugins: [vuetify] },
     })
 
@@ -53,7 +54,7 @@ describe('DeckLibraryCard', () => {
   it('emits comparison only when the parent marks the Deck eligible', async () => {
     const deck = createEmptyDeck('Comparison')
     const wrapper = mount(DeckLibraryCard, {
-      props: { deck, active: false, canCompare: true },
+      props: { deck, canCompare: true },
       global: { plugins: [vuetify] },
     })
     const compare = wrapper.findAll('button')
@@ -77,7 +78,7 @@ describe('DeckLibraryCard', () => {
       },
     }
     const wrapper = mount(DeckLibraryCard, {
-      props: { deck, active: false, canCompare: true },
+      props: { deck, canCompare: true },
       global: { plugins: [vuetify] },
     })
 

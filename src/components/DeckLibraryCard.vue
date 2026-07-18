@@ -2,7 +2,7 @@
   <v-card
     border
     class="d-flex flex-column h-100"
-    :color="active ? 'surface-light' : 'surface'"
+    color="surface"
     rounded="lg"
     variant="flat"
   >
@@ -30,11 +30,6 @@
     </v-sheet>
 
     <v-card-item>
-      <template #prepend>
-        <v-chip v-if="active" color="primary" size="x-small" variant="tonal">
-          Active
-        </v-chip>
-      </template>
       <v-card-title>{{ deck.name }}</v-card-title>
       <v-card-subtitle>
         {{ deck.commander?.name ?? 'No commander' }}
@@ -68,7 +63,7 @@
       </div>
     </v-card-text>
 
-    <v-card-actions class="flex-wrap px-4 pb-4">
+    <v-card-actions class="deck-card-actions flex-wrap px-4 py-3">
       <v-btn color="primary" variant="flat" @click="openDeck">
         Open
       </v-btn>
@@ -103,7 +98,6 @@ import { getTotalDeckCardCount } from '../utils/deckValidation'
 
 const props = defineProps<{
   deck: Deck
-  active: boolean
   canCompare: boolean
 }>()
 
@@ -148,6 +142,11 @@ function openDeck() {
   padding: 0;
   text-align: inherit;
   width: 100%;
+}
+
+.deck-card-actions {
+  background: rgb(var(--v-theme-surface-light));
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
 .deck-summary-art:focus-visible {

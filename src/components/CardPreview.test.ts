@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import CardPreview from './CardPreview.vue'
 import vuetify from '../plugins/vuetify'
 import type { ScryfallCard } from '../types/card'
+import { createEmptyDeck } from '../models/createDeck'
 
 function mountPreview(card: ScryfallCard | null) {
   return mount(CardPreview, {
@@ -17,7 +18,20 @@ describe('CardPreview', () => {
   it('renders the empty placeholder', () => {
     const wrapper = mountPreview(null)
 
+    expect(wrapper.find('.widget-header-bar').text()).toBe('Card Preview')
     expect(wrapper.text()).toContain('Hover over a search result')
+    wrapper.unmount()
+  })
+
+  it('renders the empty state for a deck without a commander', () => {
+    const deck = createEmptyDeck('Commanderless Deck')
+    const wrapper = mountPreview(deck.commander)
+
+    expect(deck.commander).toBeNull()
+    expect(wrapper.text()).toContain(
+      'Hover over a search result or deck card to inspect it.',
+    )
+    expect(wrapper.find('img').exists()).toBe(false)
     wrapper.unmount()
   })
 

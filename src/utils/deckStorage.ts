@@ -51,7 +51,11 @@ function normalizeCard(value: unknown): ScryfallCard | null {
     optionalStringFields.some(
       (field) =>
         value[field] !== undefined && typeof value[field] !== 'string',
-    )
+    ) ||
+    (value.cmc !== undefined &&
+      (typeof value.cmc !== 'number' ||
+        !Number.isFinite(value.cmc) ||
+        value.cmc < 0))
   ) {
     return null
   }
@@ -78,8 +82,17 @@ function normalizeCard(value: unknown): ScryfallCard | null {
       Object.assign(card, { [field]: optionalValue })
     }
   }
+  if (typeof value.cmc === 'number') card.cmc = value.cmc
   if (imageUris !== undefined) card.image_uris = imageUris
   if (cardFaces !== undefined) card.card_faces = cardFaces
+  if (
+    isObject(value.legalities) &&
+    Object.values(value.legalities).every(
+      (legality) => typeof legality === 'string',
+    )
+  ) {
+    card.legalities = { ...(value.legalities as Record<string, string>) }
+  }
   return card
 }
 

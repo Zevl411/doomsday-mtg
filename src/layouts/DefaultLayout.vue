@@ -92,6 +92,7 @@
                 title="Data Health"
               />
               <v-divider />
+              <v-list-item title="Preferences" @click="openPreferences" />
               <v-list-item title="Sign Out" @click="auth.signOut" />
             </v-list>
           </v-menu>
@@ -113,21 +114,91 @@
         <slot />
       </v-container>
     </v-main>
+
+    <v-dialog v-model="showPreferences" max-width="560">
+      <v-card>
+        <v-card-title>User Preferences</v-card-title>
+        <v-card-text>
+          <v-select
+            v-model="preferenceDraft.defaultDeckDisplay"
+            :items="displayOptions"
+            label="Default deck display"
+          />
+          <v-select
+            v-model="preferenceDraft.defaultPrimaryGrouping"
+            :items="groupingOptions"
+            label="Default grouping"
+          />
+          <v-select
+            v-model="preferenceDraft.defaultSecondaryGrouping"
+            :items="secondaryGroupingOptions"
+            label="Default secondary grouping"
+          />
+          <v-select
+            v-model="preferenceDraft.defaultDeckVisibility"
+            :items="visibilityOptions"
+            label="Default new-deck visibility"
+          />
+          <v-switch
+            v-model="preferenceDraft.defaultCommanderColorFilter"
+            color="primary"
+            label="Limit card search to Commander colors by default"
+          />
+          <v-alert v-if="preferenceError" type="error" variant="tonal">
+            {{ preferenceError }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="showPreferences = false">Cancel</v-btn>
+          <v-btn color="primary" variant="flat" @click="savePreferences">
+            Save
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { appConfig } from '../config/app'
 import { dataHealthRepository } from '../repositories/dataHealthRepository'
 import { useAuthStore } from '../stores/auth'
 import { RouterLink, useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/deck'
+import { useUserPreferencesStore } from '../stores/userPreferences'
+import type { UserPreferences } from '../models/userPreferences'
 
 const auth = useAuthStore()
 const deckStore = useDeckStore()
+const preferencesStore = useUserPreferencesStore()
 const router = useRouter()
 const isAdmin = ref(false)
+const showPreferences = ref(false)
+const preferenceError = ref('')
+const preferenceDraft = reactive<UserPreferences>({
+  ...preferencesStore.values,
+})
+const displayOptions = [
+  { title: 'Grid', value: 'grid' },
+  { title: 'List', value: 'list' },
+]
+const groupingOptions = [
+  { title: 'Name', value: 'name' },
+  { title: 'Mana cost', value: 'mana' },
+  { title: 'Card type', value: 'type' },
+  { title: 'Color', value: 'color' },
+]
+const secondaryGroupingOptions = [
+  { title: 'None', value: 'none' },
+  ...groupingOptions,
+]
+const visibilityOptions = [
+  { title: 'Private', value: 'private' },
+  { title: 'Unlisted', value: 'unlisted' },
+  { title: 'Public', value: 'public' },
+]
 
 // Navigation is hidden for non-admins; route and database checks still enforce
 // authorization because presentation alone is never a security boundary.
@@ -147,5 +218,17 @@ const brandLogoUrl =
 function createNewDeck() {
   deckStore.createDeck(undefined, auth.username)
   void router.push({ name: 'deck-builder' })
+}
+
+function openPreferences() {
+  Object.assign(preferenceDraft, preferencesStore.values)
+  preferenceError.value = ''
+  showPreferences.value = true
+}
+
+async function savePreferences() {
+  const saved = await preferencesStore.save({ ...preferenceDraft })
+  preferenceError.value = saved ? '' : 'Unable to save preferences.'
+  if (saved) showPreferences.value = false
 }
 </script>

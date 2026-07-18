@@ -4,11 +4,14 @@
     v-model="query"
     autocomplete="off"
     color="primary"
+    :density="compact ? 'compact' : 'default'"
+    :hide-details="compact"
     label="Search for a Magic card"
     placeholder="Card name"
     type="search"
     variant="outlined"
     :clearable="clearable"
+    @click:clear="emit('cleared')"
   >
     <template v-if="$slots.actions" #append>
       <slot name="actions" />
@@ -55,7 +58,7 @@
         rounded="lg"
         tag="button"
         type="button"
-        @click="emit('card-selected', card)"
+        @click="selectCard(card)"
         @focus="emit('card-hovered', card)"
         @mouseenter="emit('card-hovered', card)"
       >
@@ -99,6 +102,8 @@ const props = withDefaults(
     selectedCardIds?: string[]
     modelValue?: string
     clearable?: boolean
+    compact?: boolean
+    clearOnSelect?: boolean
   }>(),
   {
     commanderOnly: false,
@@ -106,6 +111,8 @@ const props = withDefaults(
     selectedCardIds: () => [],
     modelValue: '',
     clearable: false,
+    compact: false,
+    clearOnSelect: false,
   },
 )
 
@@ -136,7 +143,6 @@ let activeController: AbortController | null = null
 // Watching both values also refreshes results when a parent changes the filter.
 watch([query, () => props.searchFilter], ([newQuery]) => {
   emit('update:modelValue', newQuery)
-  if (!newQuery) emit('cleared')
   window.clearTimeout(searchTimer)
   activeController?.abort()
   activeController = null
@@ -212,6 +218,11 @@ onUnmounted(() => {
 
 function isCardSelected(card: ScryfallCard): boolean {
   return selectedCardIdSet.value.has(card.id)
+}
+
+function selectCard(card: ScryfallCard) {
+  emit('card-selected', card)
+  if (props.clearOnSelect) query.value = ''
 }
 
 function getFallbackColorIdentity(searchFilter: string): string[] | undefined {

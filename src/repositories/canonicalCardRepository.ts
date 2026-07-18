@@ -13,6 +13,7 @@ interface CanonicalCardRow {
   card_name: string
   type_line?: string | null
   color_identity?: string[] | null
+  mana_value?: number | null
 }
 
 /**
@@ -86,6 +87,7 @@ function toScryfallCard(row: CanonicalCardRow): ScryfallCard {
     name: row.card_name,
     type_line: row.type_line ?? 'Type unavailable',
     color_identity: row.color_identity ?? [],
+    cmc: row.mana_value ?? undefined,
     image_uris: {
       small: `${imageBase}&version=small`,
       normal: `${imageBase}&version=normal`,

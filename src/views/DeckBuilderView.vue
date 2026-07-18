@@ -1,32 +1,48 @@
 <template>
+  <div class="deck-builder-page">
   <v-row align="start">
     <v-col cols="12">
       <DeckBuilderHeader
         @export="importExport?.openExportDialog()"
         @import="importExport?.openImportDialog()"
-      />
+      >
+        <template #searches>
+          <v-row align="start" dense>
+            <v-col cols="12" md="6">
+              <CommanderPanel search-only />
+            </v-col>
+            <v-col cols="12" md="6">
+              <DeckCardSearch
+                embedded
+                @card-selected="addDeckCard($event, 'mainboard')"
+              />
+            </v-col>
+          </v-row>
+        </template>
+      </DeckBuilderHeader>
     </v-col>
 
-    <v-col cols="12">
-      <DeckImportExport ref="importExport" :show-controls="false" />
-    </v-col>
-
-    <v-col cols="12" md="6" lg="4">
-      <CommanderPanel />
-    </v-col>
-
-    <v-col cols="12" md="6" lg="8">
-      <DeckCardSearch @card-selected="addDeckCard($event, 'mainboard')" />
-    </v-col>
-
-    <v-col cols="12" lg="9">
-      <DeckPanel />
-    </v-col>
-
-    <v-col class="preview-column" cols="12" lg="3">
-      <CardPreview :card="deckStore.previewCard" />
-    </v-col>
   </v-row>
+
+  <div class="builder-workspace">
+    <div class="workspace-commander d-flex">
+      <CommanderPanel display-only />
+    </div>
+
+    <div class="workspace-statistics d-flex">
+      <DeckStatisticsPanel />
+    </div>
+
+    <div class="workspace-deck">
+      <DeckPanel />
+    </div>
+
+    <div class="workspace-preview">
+      <CardPreview :card="deckStore.previewCard" />
+    </div>
+  </div>
+
+  <DeckImportExport ref="importExport" :show-controls="false" />
 
   <v-dialog
     :model-value="showIllegalCardDialog"
@@ -67,16 +83,18 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import CardPreview from '../components/CardPreview.vue'
 import CommanderPanel from '../components/CommanderPanel.vue'
 import DeckBuilderHeader from '../components/DeckBuilderHeader.vue'
 import DeckCardSearch from '../components/DeckCardSearch.vue'
 import DeckImportExport from '../components/DeckImportExport.vue'
 import DeckPanel from '../components/DeckPanel.vue'
+import DeckStatisticsPanel from '../components/DeckStatisticsPanel.vue'
 import { useDeckStore } from '../stores/deck'
 import { useAuthStore } from '../stores/auth'
 import type { TrackedDeckBoard } from '../models/deck'
@@ -90,6 +108,16 @@ const importExport = ref<InstanceType<typeof DeckImportExport> | null>(null)
 if (!deckStore.hasActiveDeck) {
   deckStore.createDeck(undefined, auth.username)
 }
+watch(
+  () => deckStore.deck.id,
+  () => {
+    deckStore.clearPreviewCard()
+    if (!deckStore.previewCard && deckStore.deck.commander) {
+      deckStore.setPreviewCard(deckStore.deck.commander)
+    }
+  },
+  { immediate: true },
+)
 const pendingIllegalCard = ref<ScryfallCard | null>(null)
 const pendingIllegalReason = ref('')
 const showIllegalCardDialog = ref(false)
@@ -143,3 +171,63 @@ function closeIllegalCardDialog() {
   validationCanBeOverridden.value = false
 }
 </script>
+
+<style scoped>
+.deck-builder-page :deep(.v-field),
+.deck-builder-page :deep(.v-btn-group .v-btn) {
+  background: color-mix(
+    in srgb,
+    rgb(var(--v-theme-background)) 40%,
+    rgb(var(--v-theme-surface)) 60%
+  );
+}
+
+@media (min-width: 1280px) {
+  .builder-workspace {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 3fr 6fr 3fr;
+    margin-top: 16px;
+  }
+
+  .workspace-commander {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .workspace-statistics {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .workspace-deck {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
+
+  .workspace-preview {
+    align-self: start;
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    max-height: calc(100vh - 116px);
+    overflow-y: auto;
+    position: sticky;
+    top: 100px;
+  }
+
+  .workspace-preview :deep(.preview-panel) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 1279px) {
+  .builder-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+  }
+}
+</style>

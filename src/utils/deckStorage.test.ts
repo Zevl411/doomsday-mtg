@@ -23,6 +23,8 @@ const card: ScryfallCard = {
   name: 'Test Card',
   type_line: 'Artifact',
   color_identity: [],
+  cmc: 3,
+  mana_cost: '{3}',
 }
 
 function createStoredDeck(id = 'deck-one', quantity = 1): Deck {

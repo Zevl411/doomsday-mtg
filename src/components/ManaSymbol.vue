@@ -25,20 +25,18 @@ const props = withDefaults(
   },
 )
 
-const supportedSymbols = new Set<ManaColor>([
-  'W',
-  'U',
-  'B',
-  'R',
-  'G',
-  'C',
+const baseSymbols = new Set(['W', 'U', 'B', 'R', 'G', 'C'])
+const hybridSymbols = new Set([
+  'WU', 'WB', 'UB', 'UR', 'BR', 'BG', 'RW', 'RG', 'GW', 'GU',
+  '2W', '2U', '2B', '2R', '2G',
+  'WP', 'UP', 'BP', 'RP', 'GP',
 ])
 
 // Scryfall color identities use WUBRG. Unknown values degrade to colorless
 // rather than producing a broken font class.
-const normalizedSymbol = computed<ManaColor>(() => {
-  const symbol = props.symbol.toUpperCase() as ManaColor
-  return supportedSymbols.has(symbol) ? symbol : 'C'
+const normalizedSymbol = computed(() => {
+  const symbol = props.symbol.toUpperCase().replace('/', '')
+  return baseSymbols.has(symbol) || hybridSymbols.has(symbol) ? symbol : 'C'
 })
 
 const symbolNames: Record<ManaColor, string> = {
@@ -50,7 +48,10 @@ const symbolNames: Record<ManaColor, string> = {
   C: 'Colorless',
 }
 
-const label = computed(() => `${symbolNames[normalizedSymbol.value]} mana`)
+const label = computed(() => {
+  const name = symbolNames[normalizedSymbol.value as ManaColor]
+  return name ? `${name} mana` : `${props.symbol.toUpperCase()} mana`
+})
 const sizeClass = computed(() => `mana-symbol--${props.size}`)
 </script>
 

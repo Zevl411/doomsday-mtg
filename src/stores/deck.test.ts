@@ -217,7 +217,46 @@ describe('deck library store', () => {
 
     expect(localStorage.length).toBe(0)
     store.clearPreviewCard()
+    expect(store.previewCard).toEqual(commander)
+  })
+
+  it('restores the selected card after a temporary preview', () => {
+    const store = useDeckStore()
+    store.createDeck()
+
+    store.selectPreviewCard(artifact)
+    store.setPreviewCard(commander)
+    expect(store.previewCard).toEqual(commander)
+
+    store.restoreSelectedPreviewCard()
+    expect(store.previewCard).toEqual(artifact)
+    expect(store.selectedPreviewCard).toEqual(artifact)
+  })
+
+  it('deselects the active preview while retaining it as the fallback', () => {
+    const store = useDeckStore()
+    store.createDeck()
+
+    store.selectPreviewCard(artifact)
+    store.selectPreviewCard(artifact)
+
+    expect(store.selectedPreviewCard).toBeNull()
+    expect(store.previewCard).toEqual(artifact)
+
+    store.setPreviewCard(commander)
+    store.restoreSelectedPreviewCard()
+    expect(store.previewCard).toEqual(commander)
+  })
+
+  it('keeps the preview empty when the deck has no commander or shown card', () => {
+    const store = useDeckStore()
+    const deck = store.createDeck('Commanderless')
+
+    expect(deck.commander).toBeNull()
+    store.clearPreviewCard()
+
     expect(store.previewCard).toBeNull()
+    expect(store.lastPreviewCard).toBeNull()
   })
 
   it('does not update timestamps for no-op editor and selection actions', () => {

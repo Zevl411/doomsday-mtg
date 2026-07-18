@@ -39,7 +39,6 @@
         lg="4"
       >
         <DeckLibraryCard
-          :active="deck.id === deckStore.library.activeDeckId"
           :can-compare="Boolean(deck.commander && deck.cards.length)"
           :deck="deck"
           @compare="compareDeck"

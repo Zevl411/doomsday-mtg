@@ -23,4 +23,18 @@ describe('ManaSymbol', () => {
     expect(wrapper.attributes('aria-hidden')).toBe('true')
     expect(wrapper.attributes('aria-label')).toBeUndefined()
   })
+
+  it.each([
+    ['G/P', 'ms-gp'],
+    ['R/G', 'ms-rg'],
+    ['2/U', 'ms-2u'],
+  ])('normalizes %s into its mana-font class', (symbol, expectedClass) => {
+    const wrapper = mount(ManaSymbol, {
+      props: { symbol },
+    })
+
+    expect(wrapper.classes()).toContain(expectedClass)
+    expect(wrapper.classes()).not.toContain('ms-c')
+    expect(wrapper.attributes('aria-label')).toBe(`${symbol} mana`)
+  })
 })

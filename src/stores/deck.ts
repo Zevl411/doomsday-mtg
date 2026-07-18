@@ -12,6 +12,7 @@ import {
   type TrackedDeckBoard,
 } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
+import { useUserPreferencesStore } from './userPreferences'
 import type { DeckLegalityResult } from '../utils/deckLegality'
 import { getCardIdentity } from '../utils/cardIdentity'
 import {
@@ -32,6 +33,8 @@ export const useDeckStore = defineStore('deck', {
     library: activeDeckRepository.loadLibrary(),
     rejectionMessage: '',
     previewCard: null as ScryfallCard | null,
+    selectedPreviewCard: null as ScryfallCard | null,
+    lastPreviewCard: null as ScryfallCard | null,
     saveSucceeded: null as boolean | null,
     storageMode: 'guest' as 'guest' | 'cloud',
   }),
@@ -87,7 +90,11 @@ export const useDeckStore = defineStore('deck', {
       const deckName = name?.trim() || getNextDefaultDeckName(
         this.library.decks.map((deck) => deck.name),
       )
-      const deck = createEmptyDeck(deckName, creatorUsername)
+      const deck = createEmptyDeck(
+        deckName,
+        creatorUsername,
+        useUserPreferencesStore().values.defaultDeckVisibility,
+      )
       if (this.storageMode === 'guest') {
         this.library.decks = [deck]
       } else {
@@ -504,10 +511,35 @@ export const useDeckStore = defineStore('deck', {
 
     setPreviewCard(card: ScryfallCard) {
       this.previewCard = card
+      if (!this.selectedPreviewCard) {
+        this.lastPreviewCard = card
+      }
+    },
+
+    selectPreviewCard(card: ScryfallCard) {
+      if (
+        this.selectedPreviewCard
+        && getCardIdentity(this.selectedPreviewCard) === getCardIdentity(card)
+      ) {
+        this.selectedPreviewCard = null
+        this.lastPreviewCard = card
+        this.previewCard = card
+        return
+      }
+
+      this.selectedPreviewCard = card
+      this.lastPreviewCard = card
+      this.previewCard = card
+    },
+
+    restoreSelectedPreviewCard() {
+      this.previewCard = this.selectedPreviewCard ?? this.lastPreviewCard
     },
 
     clearPreviewCard() {
-      this.previewCard = null
+      this.selectedPreviewCard = null
+      this.lastPreviewCard = this.activeDeck?.commander ?? null
+      this.previewCard = this.lastPreviewCard
     },
 
     persistActiveDeck() {
@@ -537,6 +569,8 @@ export const useDeckStore = defineStore('deck', {
       this.library = library
       this.rejectionMessage = ''
       this.previewCard = null
+      this.selectedPreviewCard = null
+      this.lastPreviewCard = null
       this.saveSucceeded = null
     },
 

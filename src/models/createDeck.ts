@@ -16,6 +16,7 @@ export function createDeckId(): string {
 export function createEmptyDeck(
   name = DEFAULT_DECK_NAME,
   creatorUsername = 'Guest',
+  visibility: DeckVisibility = 'private',
 ): Deck {
   const timestamp = new Date().toISOString()
 
@@ -23,7 +24,7 @@ export function createEmptyDeck(
     id: createDeckId(),
     name: normalizeDeckName(name),
     description: '',
-    visibility: 'private',
+    visibility,
     creatorUsername,
     createdAt: timestamp,
     updatedAt: timestamp,

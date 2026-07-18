@@ -39,4 +39,5 @@ export interface ScryfallCard {
   oracle_text?: string
   image_uris?: ScryfallImageUris
   card_faces?: ScryfallCardFace[]
+  legalities?: Record<string, string>
 }

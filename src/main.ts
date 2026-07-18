@@ -11,6 +11,7 @@ import router from './router'
 import { useDeckStore } from './stores/deck'
 import { useAuthStore } from './stores/auth'
 import { useDeckSyncStore } from './stores/deckSync'
+import { useUserPreferencesStore } from './stores/userPreferences'
 
 const pinia = createPinia()
 
@@ -21,9 +22,11 @@ document.title = `${appConfig.name} — ${appConfig.tagline}`
 const deckStore = useDeckStore(pinia)
 const authStore = useAuthStore(pinia)
 const syncStore = useDeckSyncStore(pinia)
+const preferencesStore = useUserPreferencesStore(pinia)
 
 // Auth changes select either the guest draft or the authenticated cloud library.
 await authStore.initialize()
+await preferencesStore.initialize(authStore.user?.id ?? null)
 await syncStore.handleUser(authStore.user?.id ?? null)
 
 let previousUserId = authStore.user?.id ?? null
@@ -31,6 +34,7 @@ authStore.$subscribe((_mutation, state) => {
   const currentUserId = state.user?.id ?? null
   if (currentUserId !== previousUserId) {
     previousUserId = currentUserId
+    void preferencesStore.initialize(currentUserId)
     void syncStore.handleUser(currentUserId)
   }
 })
