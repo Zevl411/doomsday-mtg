@@ -52,15 +52,7 @@ export class TopDeckProvider implements TournamentProvider {
       TID: tournamentIds?.length === 1
         ? tournamentIds[0]
         : tournamentIds?.length ? tournamentIds : undefined,
-      columns: [
-        'name',
-        'id',
-        'decklist',
-        'wins',
-        'draws',
-        'losses',
-        'winRate',
-      ],
+      columns: standingColumns(),
       rounds: options.includeRounds === true,
     }
     const response = await this.request('/v2/tournaments', {
@@ -152,6 +144,18 @@ export class TopDeckProvider implements TournamentProvider {
     }
     throw new Error('TopDeck request failed.')
   }
+}
+
+function standingColumns() {
+  return [
+    'name',
+    'id',
+    'decklist',
+    'wins',
+    'draws',
+    'losses',
+    'winRate',
+  ]
 }
 
 function mapStanding(raw: unknown, index: number): ProviderTournamentEntry {

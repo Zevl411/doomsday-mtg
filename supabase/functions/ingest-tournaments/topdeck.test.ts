@@ -31,7 +31,7 @@ const fixture = [{
 
 describe('TopDeckProvider', () => {
   it('constructs an authenticated EDH bulk request and maps location/decks', async () => {
-    const fetcher = vi.fn().mockResolvedValue(response(fixture))
+    const fetcher = vi.fn().mockImplementation(async () => response(fixture))
     const provider = new TopDeckProvider({
       apiKey: 'fixture-key',
       fetcher,
@@ -61,6 +61,7 @@ describe('TopDeckProvider', () => {
         'winRate',
       ],
     })
+    expect(fetcher).toHaveBeenCalledOnce()
     expect(tournaments[0]).toMatchObject({
       sourceTournamentId: 'T-100',
       playerCount: 64,
@@ -131,7 +132,7 @@ describe('TopDeckProvider', () => {
   it('keeps standings when a decklist cannot identify a commander', async () => {
     const provider = new TopDeckProvider({
       apiKey: 'fixture-key',
-      fetcher: vi.fn().mockResolvedValue(response([{
+      fetcher: vi.fn().mockImplementation(async () => response([{
         TID: 'T-2',
         standings: [{ id: 'entry', name: 'Player' }],
       }])),
@@ -147,7 +148,7 @@ describe('TopDeckProvider', () => {
   it('extracts Commanders from decorative plaintext headings', async () => {
     const provider = new TopDeckProvider({
       apiKey: 'fixture-key',
-      fetcher: vi.fn().mockResolvedValue(response([{
+      fetcher: vi.fn().mockImplementation(async () => response([{
         TID: 'T-3',
         standings: [{
           name: 'Player',

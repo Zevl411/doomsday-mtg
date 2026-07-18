@@ -91,9 +91,36 @@ also purge a previously stored matching provider event; cascading foreign keys
 remove its entries and normalized Decks. This behavior can be disabled per
 manual run or historical job.
 
-Operators may replace the default list with the Edge Function secret
-`TOURNAMENT_EXCLUDED_TITLE_KEYWORDS`, using comma-separated phrases. Review a
-dry run before changing the production list.
+Built-in signals cover common English, Spanish, Portuguese, French, German,
+Italian, Russian, simplified/traditional Chinese, Japanese, and Korean terms.
+Commander Bracket 1–4 labels, including compact tags such as `[CoBr4]`, are
+also excluded.
+
+Operators may extend the defaults with comma-separated Edge Function secrets:
+
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS` for general additions
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_EN`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_ES`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_PT`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_FR`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_DE`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_IT`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_RU`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_ZH`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_JA`
+- `TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_KO`
+
+Values are additive: custom configuration never removes the built-in safety
+list. For example:
+
+```bash
+npx supabase secrets set \
+  TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_ES="liga social,sin combos" \
+  TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_RU="регулярная любительская"
+```
+
+Review a dry run after adding regional terminology because title language is a
+heuristic and broad words can exclude legitimate competitive events.
 
 For data imported before this filter existed, use the Admin Panel's
 **Purge casual TopDeck data** job. It defaults to dry-run mode and reports
@@ -119,6 +146,12 @@ provider structured data, falls back to embedded plaintext, resolves card
 identity in Scryfall collection batches, and records partial or unavailable
 Decks rather than inventing missing data. External deck-host URLs are retained
 but are not fetched unless an explicit safe adapter is implemented.
+
+This normalization job is not required to display tournament decklists.
+Tournament detail accordions parse one stored provider entry on demand and
+resolve its display images in a bounded Scryfall batch. Persistent card-level
+normalization is reserved for aggregate inclusion analytics and other queries
+that need stable card identities across many Decks.
 
 Dry runs always reevaluate matching source entries, even when **Only missing**
 is enabled, because they do not write or replace normalized rows. Real runs

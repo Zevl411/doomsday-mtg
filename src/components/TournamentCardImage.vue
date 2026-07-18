@@ -11,9 +11,21 @@
       aspect-ratio="0.716"
       cover
       :src="card.imageUrl"
-    />
+    >
+      <v-chip
+        v-if="card.quantity > 1"
+        class="ma-2 quantity-chip"
+        color="secondary"
+        size="small"
+        variant="flat"
+      >
+        {{ card.quantity }}×
+      </v-chip>
+    </v-img>
     <v-card-text class="pa-3">
-      <div class="text-body-2 font-weight-medium">{{ card.name }}</div>
+      <div class="text-body-2 font-weight-medium">
+        <span v-if="card.quantity > 1">{{ card.quantity }}× </span>{{ card.name }}
+      </div>
       <div v-if="card.manaCost" class="text-caption text-medium-emphasis">
         {{ card.manaCost }}
       </div>
@@ -28,3 +40,9 @@ defineProps<{
   card: TournamentDeckCard
 }>()
 </script>
+
+<style scoped>
+.quantity-chip {
+  float: right;
+}
+</style>

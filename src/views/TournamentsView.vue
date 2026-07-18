@@ -5,7 +5,7 @@
       Normalized cEDH results with links to their original source.
     </p>
     <v-card class="mb-5 pa-3" border>
-      <v-row align="center" dense>
+      <v-row align="center" density="comfortable">
         <v-col cols="12" sm="6" lg="2">
           <v-select
             v-model="countryCode"

@@ -1,4 +1,14 @@
 import { supabase } from '../lib/supabase'
+import { getCardsByExactNames } from '../api/scryfall'
+import {
+  getCommanderColorIdentity,
+  getCommanderLookupNames,
+  mapColorIdentityByCardName,
+} from '../utils/commanderColorIdentity'
+import {
+  applyScryfallImages,
+  groupTournamentDeckCards,
+} from '../utils/tournamentDeckCards'
 import { displayRegionKey } from '../utils/tournamentLocation'
 import type {
   CommanderMetagameStats,
@@ -31,6 +41,7 @@ export interface TournamentLocationOptions {
 
 const metagameCache = new Map<string, CommanderMetagameStats[]>()
 const entryDecklistCache = new Map<string, TournamentEntryDecklist>()
+const commanderColorCache = new Map<string, string[]>()
 
 /** Queries only normalized public tables and shields views from Supabase rows. */
 export const tournamentRepository = {
@@ -61,6 +72,7 @@ export const tournamentRepository = {
     const result = ((data ?? []) as MetagameRow[])
       .map(mapMetagameRow)
       .filter(hasRegisteredCommander)
+    await enrichCommanderColorIdentities(result)
     metagameCache.set(cacheKey, result)
     return result
   },
@@ -104,9 +116,11 @@ export const tournamentRepository = {
     const { data, error } = await query
     if (error) throw friendlyError('load Commander details', error)
 
+    const entries = ((data ?? []) as EntryRow[]).map(mapEntryRow)
+    await enrichCommanderColorIdentities(entries)
     return {
       stats: stats.find((item) => item.commanderKey === commanderKey) ?? null,
-      entries: ((data ?? []) as EntryRow[]).map(mapEntryRow),
+      entries,
     }
   },
 
@@ -260,39 +274,158 @@ export const tournamentRepository = {
     }
     if (!tournamentResult.data) return null
 
+    const tournament = mapTournamentRow(
+      tournamentResult.data as TournamentRow,
+    )
+    const entries = ((entriesResult.data ?? []) as EntryRow[]).map((row) => ({
+      ...mapEntryRow(row),
+      source: tournament.source,
+    }))
+    await enrichCommanderColorIdentities(entries)
     return {
-      tournament: mapTournamentRow(tournamentResult.data as TournamentRow),
-      entries: ((entriesResult.data ?? []) as EntryRow[]).map(mapEntryRow),
+      tournament,
+      entries,
     }
   },
 
   async getEntryDecklist(
-    sourceEntryId: string,
+    entry: TournamentEntry,
   ): Promise<TournamentEntryDecklist> {
     requireSupabase()
-    const cached = entryDecklistCache.get(sourceEntryId)
+    const cached = entryDecklistCache.get(entry.id)
     if (cached) return cached
+
+    // TopDeck Decks are normalized during the card-level ingestion pass.
+    // Reading that snapshot avoids calling an EDHTop16-only endpoint.
+    if (entry.tournamentDeckId) {
+      const normalized = await this.getNormalizedTournamentDeck(
+        entry.tournamentDeckId,
+      )
+      if (normalized) {
+        const decklist = await prepareTournamentDecklist(
+          mapNormalizedDecklist(normalized),
+        )
+        entryDecklistCache.set(entry.id, decklist)
+        return decklist
+      }
+    }
 
     const { data, error } = await supabase!.functions.invoke(
       'tournament-decklist',
-      { body: { entryId: sourceEntryId } },
+      { body: { tournamentEntryId: entry.id } },
     )
     if (error) {
       throw new Error(await readFunctionError(error))
     }
 
-    const decklist = normalizeEntryDecklist(data)
-    if (!decklist) {
+    const normalizedDecklist = normalizeEntryDecklist(data)
+    if (!normalizedDecklist) {
       throw new Error('The tournament decklist response was invalid.')
     }
-    entryDecklistCache.set(sourceEntryId, decklist)
+    const decklist = await prepareTournamentDecklist(normalizedDecklist)
+    entryDecklistCache.set(entry.id, decklist)
     return decklist
   },
 
   clearCache() {
     metagameCache.clear()
     entryDecklistCache.clear()
+    commanderColorCache.clear()
   },
+}
+
+interface CommanderColorTarget {
+  commanderName: string
+  colorIdentity: string[]
+}
+
+/**
+ * Tournament ingestion stores provider facts. Missing display colors are
+ * resolved lazily from Scryfall and cached for the current browser session.
+ */
+async function enrichCommanderColorIdentities(
+  items: CommanderColorTarget[],
+): Promise<void> {
+  const missingNames = items
+    .filter((item) =>
+      item.colorIdentity.length === 0 &&
+      isRegisteredCommanderName(item.commanderName)
+    )
+    .flatMap((item) => getCommanderLookupNames(item.commanderName))
+    .filter((name) => !commanderColorCache.has(name.toLowerCase()))
+
+  if (missingNames.length > 0) {
+    try {
+      const cards = await getCardsByExactNames(missingNames)
+      const resolved = mapColorIdentityByCardName(cards)
+      for (const name of missingNames) {
+        commanderColorCache.set(
+          name.toLowerCase(),
+          resolved.get(name.toLowerCase()) ?? [],
+        )
+      }
+    } catch (error) {
+      // Tournament pages should remain usable if Scryfall is temporarily down.
+      console.warn('Unable to resolve tournament Commander colors.', error)
+    }
+  }
+
+  for (const item of items) {
+    if (item.colorIdentity.length > 0) continue
+    item.colorIdentity = getCommanderColorIdentity(
+      item.commanderName,
+      commanderColorCache,
+    )
+  }
+}
+
+function mapNormalizedDecklist(
+  deck: NormalizedTournamentDeck,
+): TournamentEntryDecklist {
+  const mapCard = (
+    card: NormalizedTournamentDeck['cards'][number],
+  ): TournamentEntryDecklist['cards'][number] => ({
+    name: card.cardName,
+    quantity: card.quantity,
+    oracleId: card.oracleId ?? null,
+    typeLine: card.typeLine ?? '',
+    // Normalized tournament rows do not need mana cost for analysis. Keep the
+    // display field empty rather than issuing another request per card.
+    manaCost: '',
+    imageUrl: card.scryfallId
+      ? `https://api.scryfall.com/cards/${encodeURIComponent(card.scryfallId)}?format=image&version=normal`
+      : '',
+  })
+
+  return {
+    commanders: deck.cards
+      .filter((card) => card.board === 'commander' && card.scryfallId)
+      .map(mapCard),
+    cards: deck.cards
+      .filter((card) => card.board === 'mainboard' && card.scryfallId)
+      .map(mapCard),
+  }
+}
+
+async function prepareTournamentDecklist(
+  decklist: TournamentEntryDecklist,
+): Promise<TournamentEntryDecklist> {
+  const commanders = groupTournamentDeckCards(decklist.commanders)
+  const cards = groupTournamentDeckCards(decklist.cards)
+
+  try {
+    const scryfallCards = await getCardsByExactNames(
+      [...commanders, ...cards].map((card) => card.name),
+    )
+    return {
+      commanders: applyScryfallImages(commanders, scryfallCards),
+      cards: applyScryfallImages(cards, scryfallCards),
+    }
+  } catch (error) {
+    // Keep provider URLs as a fallback if Scryfall is temporarily unavailable.
+    console.warn('Unable to refresh tournament card images.', error)
+    return { commanders, cards }
+  }
 }
 
 function normalizeEntryDecklist(
@@ -318,6 +451,10 @@ function normalizeTournamentCards(value: unknown) {
     }
     cards.push({
       name: card.name,
+      quantity:
+        typeof card.quantity === 'number' && card.quantity > 0
+          ? card.quantity
+          : 1,
       oracleId: typeof card.oracleId === 'string' ? card.oracleId : null,
       typeLine: typeof card.typeLine === 'string' ? card.typeLine : '',
       manaCost: typeof card.manaCost === 'string' ? card.manaCost : '',
@@ -443,7 +580,11 @@ function mapMetagameRow(row: MetagameRow): CommanderMetagameStats {
 }
 
 function hasRegisteredCommander(item: CommanderMetagameStats) {
-  const name = item.commanderName.trim().toLowerCase()
+  return isRegisteredCommanderName(item.commanderName)
+}
+
+function isRegisteredCommanderName(commanderName: string) {
+  const name = commanderName.trim().toLowerCase()
   return name !== '' && name !== 'unknown commander'
 }
 

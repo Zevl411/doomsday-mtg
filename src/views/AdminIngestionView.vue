@@ -458,7 +458,7 @@
         <v-card-item>
           <v-card-title>Card-level Decklists</v-card-title>
           <v-card-subtitle>
-            Normalize provider Decks and resolve stable Scryfall identities
+            Optional preparation for card-inclusion analysis
           </v-card-subtitle>
         </v-card-item>
         <v-card-text>
@@ -519,6 +519,39 @@
         </v-card-text>
       </v-card>
 
+      <v-card border class="mt-6" color="surface" variant="flat">
+        <v-card-item>
+          <v-card-title>Development data reset</v-card-title>
+          <v-card-subtitle>
+            Clear tournament ingestion data before testing a fresh import
+          </v-card-subtitle>
+        </v-card-item>
+        <v-card-text>
+          <v-alert class="mb-4" type="warning" variant="tonal">
+            This removes tournament jobs, events, entries, normalized tournament
+            Decks, and tournament Deck cards. User accounts and saved user Decks
+            are preserved.
+          </v-alert>
+          <v-btn
+            color="error"
+            :loading="resetRunning"
+            @click="resetConfirmation = true"
+          >
+            Clear tournament data
+          </v-btn>
+          <v-alert v-if="resetError" class="mt-4" type="error" variant="tonal">
+            {{ resetError }}
+          </v-alert>
+          <v-alert v-if="resetReport" class="mt-4" type="success" variant="tonal">
+            Removed {{ resetReport.tournamentsDeleted }} tournaments,
+            {{ resetReport.entriesDeleted }} entries,
+            {{ resetReport.normalizedDecksDeleted }} normalized Decks,
+            {{ resetReport.normalizedCardsDeleted }} Deck cards, and
+            {{ resetReport.ingestionJobsDeleted }} ingestion jobs.
+          </v-alert>
+        </v-card-text>
+      </v-card>
+
       <v-dialog v-model="purgeConfirmation" max-width="520">
         <v-card>
           <v-card-title>Delete matching tournament data?</v-card-title>
@@ -535,10 +568,28 @@
         </v-card>
       </v-dialog>
 
+      <v-dialog v-model="resetConfirmation" max-width="560">
+        <v-card>
+          <v-card-title>Clear all tournament testing data?</v-card-title>
+          <v-card-text>
+            This cannot be undone. Confirm that no ingestion is currently
+            running. User accounts and saved user Decks will not be changed.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn @click="resetConfirmation = false">Cancel</v-btn>
+            <v-btn color="error" @click="clearTournamentData">
+              Clear tournament data
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <v-card
         v-if="report"
         border
         class="mt-6"
+        :class="{ 'ingestion-report--sticky': report.dryRun }"
         color="surface"
         variant="flat"
       >
@@ -549,8 +600,32 @@
           <v-card-subtitle>
             Completed in {{ formatDuration(report.durationMs) }}
           </v-card-subtitle>
+          <template #append>
+            <v-btn
+              :aria-label="reportMinimized ? 'Expand ingestion report' : 'Minimize ingestion report'"
+              color="primary"
+              icon
+              :title="reportMinimized ? 'Expand report' : 'Minimize report'"
+              variant="text"
+              @click="reportMinimized = !reportMinimized"
+            >
+              <span aria-hidden="true" class="report-control-symbol">
+                {{ reportMinimized ? '□' : '−' }}
+              </span>
+            </v-btn>
+            <v-btn
+              aria-label="Close ingestion report"
+              color="secondary"
+              icon
+              title="Close report"
+              variant="text"
+              @click="closeReport"
+            >
+              <span aria-hidden="true" class="report-control-symbol">×</span>
+            </v-btn>
+          </template>
         </v-card-item>
-        <v-card-text>
+        <v-card-text v-show="!reportMinimized">
           <v-row>
             <v-col
               v-for="item in reportItems"
@@ -602,10 +677,12 @@ import {
   ingestionRepository,
   type IngestionDashboardMetrics,
   type IngestionJob,
+  type ClearTournamentDataReport,
   type PurgeCasualEventsReport,
   type TournamentDeckIngestionReport,
   type IngestionReport,
 } from '../repositories/ingestionRepository'
+import { tournamentRepository } from '../repositories/tournamentRepository'
 
 const checkingAccess = ref(true)
 const isAdmin = ref(false)
@@ -625,6 +702,7 @@ const includeRounds = ref(false)
 const enrichLocation = ref(false)
 const excludeCasualEvents = ref(true)
 const report = ref<IngestionReport | null>(null)
+const reportMinimized = ref(false)
 const errorMessage = ref('')
 const jobs = ref<IngestionJob[]>([])
 const creatingJob = ref(false)
@@ -642,6 +720,10 @@ const purgeRunning = ref(false)
 const purgeConfirmation = ref(false)
 const purgeError = ref('')
 const purgeReport = ref<PurgeCasualEventsReport | null>(null)
+const resetConfirmation = ref(false)
+const resetRunning = ref(false)
+const resetError = ref('')
+const resetReport = ref<ClearTournamentDataReport | null>(null)
 const deckProvider = ref<'topdeck' | 'edhtop16' | undefined>('topdeck')
 const deckStartDate = ref('')
 const deckEndDate = ref('')
@@ -833,13 +915,36 @@ async function runCasualPurge() {
       endDate: purgeEndDate.value || undefined,
       dryRun: purgeDryRun.value,
     })
-    if (!purgeDryRun.value) await loadMetrics()
+    if (!purgeDryRun.value) {
+      tournamentRepository.clearCache()
+      await loadMetrics()
+    }
   } catch (error) {
     purgeError.value = error instanceof Error
       ? error.message
       : 'Unable to purge casual TopDeck events.'
   } finally {
     purgeRunning.value = false
+  }
+}
+
+async function clearTournamentData() {
+  resetConfirmation.value = false
+  resetRunning.value = true
+  resetError.value = ''
+  resetReport.value = null
+  try {
+    resetReport.value = await ingestionRepository.clearTournamentData()
+    tournamentRepository.clearCache()
+    report.value = null
+    deckIngestionReport.value = null
+    await loadMetrics()
+  } catch (error) {
+    resetError.value = error instanceof Error
+      ? error.message
+      : 'Unable to clear tournament data.'
+  } finally {
+    resetRunning.value = false
   }
 }
 
@@ -866,7 +971,7 @@ async function ingestTournamentDecks() {
   deckIngestionRunning.value = true
   deckIngestionError.value = ''
   try {
-    deckIngestionReport.value = await ingestionRepository.ingestTournamentDecks({
+    deckIngestionReport.value = await ingestionRepository.ingestAllTournamentDecks({
       provider: deckProvider.value,
       startDate: deckStartDate.value || undefined,
       endDate: deckEndDate.value || undefined,
@@ -877,6 +982,7 @@ async function ingestTournamentDecks() {
       retryPartial: deckRetryPartial.value,
       dryRun: deckDryRun.value,
     })
+    if (!deckDryRun.value) tournamentRepository.clearCache()
   } catch (error) {
     deckIngestionError.value = error instanceof Error
       ? error.message : 'Card-level Deck ingestion failed.'
@@ -888,8 +994,13 @@ async function ingestTournamentDecks() {
 async function ingest() {
   running.value = true
   errorMessage.value = ''
+  reportMinimized.value = false
   try {
-    report.value = await ingestionRepository.ingest({
+    const selectedTournamentIds = tournamentIds.value
+      .split(/[\n,]/)
+      .map((id) => id.trim())
+      .filter(Boolean)
+    report.value = await ingestionRepository.ingestAllTournaments({
       provider: provider.value,
       startDate: startDate.value || undefined,
       endDate: endDate.value || undefined,
@@ -897,15 +1008,15 @@ async function ingest() {
       maximumPlayers: maximumPlayers.value || undefined,
       last: lastDays.value || undefined,
       dryRun: dryRun.value,
-      tournamentIds: tournamentIds.value
-        .split(/[\n,]/)
-        .map((id) => id.trim())
-        .filter(Boolean),
+      tournamentIds: selectedTournamentIds,
       includeRounds: includeRounds.value,
       enrichLocation: enrichLocation.value,
       excludeCasualEvents: excludeCasualEvents.value,
     })
     if (!dryRun.value && !report.value.providerErrors.length) {
+      // Tournament metadata is useful immediately. Card-level normalization is
+      // an optional admin job and must not make ordinary ingestion hang.
+      tournamentRepository.clearCache()
       await loadMetrics()
     }
   } catch (error) {
@@ -914,6 +1025,11 @@ async function ingest() {
   } finally {
     running.value = false
   }
+}
+
+function closeReport() {
+  report.value = null
+  reportMinimized.value = false
 }
 
 function formatDate(value: string | null, includeTime = false): string {
@@ -932,3 +1048,23 @@ function formatDuration(durationMs: number): string {
     : `${(durationMs / 1000).toFixed(1)} s`
 }
 </script>
+
+<style scoped>
+/*
+ * Keep a dry-run result available while an administrator reviews the rest of
+ * the page. Mobile screens use normal document flow to preserve usable space.
+ */
+@media (min-width: 1280px) {
+  .ingestion-report--sticky {
+    position: sticky;
+    bottom: 16px;
+    z-index: 2;
+  }
+}
+
+.report-control-symbol {
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1;
+}
+</style>

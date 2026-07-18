@@ -72,7 +72,11 @@ Deno.serve(async (request) => {
     const { error: updateError } = await admin
       .from('tournament_ingestion_batches')
       .update({
+        // Card-level normalization is optional and runs separately. Completing
+        // here keeps historical metadata ingestion small and repeatable.
         status: 'completed',
+        stage: 'tournaments',
+        attempts: 0,
         last_error: null,
         tournaments_fetched: numberValue(report.tournamentsFetched),
         tournaments_inserted: numberValue(report.tournamentsInserted),
@@ -86,7 +90,7 @@ Deno.serve(async (request) => {
       .eq('id', batch.id)
     if (updateError) throw updateError
     await refreshJob(admin, batch.job_id)
-    return response({ batchId: batch.id, report })
+    return response({ batchId: batch.id, stage: 'tournaments', report })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Worker failed.'
     await failBatch(admin, batch, message)

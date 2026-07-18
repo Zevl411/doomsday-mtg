@@ -53,6 +53,7 @@ export interface TournamentEntry {
 
 export interface TournamentDeckCard {
   name: string
+  quantity: number
   oracleId: string | null
   typeLine: string
   manaCost: string

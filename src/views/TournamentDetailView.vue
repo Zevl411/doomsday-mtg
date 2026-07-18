@@ -61,7 +61,14 @@
                 </div>
               </v-col>
               <v-col class="mt-2 mt-sm-0" cols="8" sm="5">
-                {{ entry.commanderName }}
+                <div class="d-flex flex-wrap align-center ga-2">
+                  <span>{{ entry.commanderName }}</span>
+                  <ColorIdentitySymbols
+                    v-if="hasRegisteredCommander(entry)"
+                    :colors="entry.colorIdentity"
+                    size="small"
+                  />
+                </div>
                 <v-tooltip
                   v-if="!hasRegisteredCommander(entry)"
                   text="This entry has no registered commander, so its decklist cannot be opened."
@@ -132,7 +139,7 @@
                 <div class="d-flex flex-wrap align-center ga-3 mb-3">
                   <h2 class="text-h6">Main deck</h2>
                   <v-chip size="small" variant="tonal">
-                    {{ decklists[entry.id]?.cards.length ?? 0 }} cards
+                    {{ getDeckCardCount(entry.id) }} cards
                   </v-chip>
                 </div>
                 <div class="card-grid">
@@ -181,6 +188,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import TournamentCardImage from '../components/TournamentCardImage.vue'
 import {
   tournamentRepository,
@@ -203,6 +211,13 @@ const expandedEntryIds = ref<string[]>([])
 const decklists = ref<Record<string, TournamentEntryDecklist>>({})
 const decklistLoading = ref<Record<string, boolean>>({})
 const decklistErrors = ref<Record<string, string>>({})
+
+function getDeckCardCount(entryId: string): number {
+  return decklists.value[entryId]?.cards.reduce(
+    (total, card) => total + card.quantity,
+    0,
+  ) ?? 0
+}
 
 onMounted(async () => {
   try {
@@ -243,7 +258,7 @@ async function loadDecklist(entry: TournamentEntry, retry = false) {
   delete decklistErrors.value[entry.id]
   try {
     decklists.value[entry.id] =
-      await tournamentRepository.getEntryDecklist(entry.sourceEntryId)
+      await tournamentRepository.getEntryDecklist(entry)
   } catch (error) {
     decklistErrors.value[entry.id] =
       error instanceof Error

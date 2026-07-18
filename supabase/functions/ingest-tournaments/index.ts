@@ -2,7 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { EdhTop16Provider } from './edhtop16.ts'
 import { TopDeckProvider } from './topdeck.ts'
 import {
-  DEFAULT_EXCLUDED_TITLE_KEYWORDS,
+  buildExcludedTitleKeywords,
+  EXCLUDED_TITLE_KEYWORD_CONFIG_KEYS,
   evaluateTournamentTitle,
 } from './tournamentRelevance.ts'
 import type {
@@ -28,7 +29,7 @@ interface IngestionRequest {
 interface JobActionRequest {
   action:
     | 'create-job' | 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job'
-    | 'purge-casual-events'
+    | 'purge-casual-events' | 'clear-tournament-data'
   jobId?: string
   provider?: 'edhtop16' | 'topdeck'
   startDate?: string
@@ -39,6 +40,7 @@ interface JobActionRequest {
   enrichLocation?: boolean
   excludeCasualEvents?: boolean
   dryRun?: boolean
+  confirmationToken?: string
 }
 
 const corsHeaders = {
@@ -435,13 +437,22 @@ function json(value: unknown, status = 200) {
 }
 
 function readError(error: unknown) {
-  return error instanceof Error ? error.message : 'Unknown ingestion error.'
+  if (error instanceof Error) return error.message
+  if (isRecord(error)) {
+    const message = typeof error.message === 'string' ? error.message : ''
+    const code = typeof error.code === 'string' ? ` (${error.code})` : ''
+    const hint = typeof error.hint === 'string' && error.hint
+      ? ` Hint: ${error.hint}`
+      : ''
+    if (message) return `${message}${code}${hint}`
+  }
+  return 'Unknown ingestion error.'
 }
 
 function getExcludedTitleKeywords() {
-  const configured = Deno.env.get('TOURNAMENT_EXCLUDED_TITLE_KEYWORDS')
-  if (!configured?.trim()) return DEFAULT_EXCLUDED_TITLE_KEYWORDS
-  return configured.split(',').map((keyword) => keyword.trim()).filter(Boolean)
+  return buildExcludedTitleKeywords(
+    EXCLUDED_TITLE_KEYWORD_CONFIG_KEYS.map((key) => Deno.env.get(key)),
+  )
 }
 
 function createEmptyResultMessage(options: {
@@ -479,6 +490,7 @@ function isJobAction(value: unknown): value is JobActionRequest {
     'cancel-job',
     'retry-job',
     'purge-casual-events',
+    'clear-tournament-data',
   ].includes(String(value.action))
 }
 
@@ -487,6 +499,16 @@ async function handleJobAction(
   request: JobActionRequest,
   userId: string,
 ) {
+  if (request.action === 'clear-tournament-data') {
+    if (request.confirmationToken !== 'CLEAR TOURNAMENT DATA') {
+      throw new Error('Tournament reset confirmation was invalid.')
+    }
+    const { data, error } = await admin.rpc(
+      'clear_tournament_ingestion_data',
+    )
+    if (error) throw error
+    return data
+  }
   if (request.action === 'purge-casual-events') {
     return await purgeCasualEvents(admin, request)
   }

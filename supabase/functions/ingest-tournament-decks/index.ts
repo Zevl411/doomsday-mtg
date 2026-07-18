@@ -14,6 +14,7 @@ interface DeckIngestionRequest {
   provider?: 'topdeck' | 'edhtop16'
   startDate?: string
   endDate?: string
+  last?: number
   commanderKey?: string
   onlyMissing?: boolean
   retryPartial?: boolean
@@ -31,7 +32,10 @@ const BATCH_SIZE = 75
 const SCRYFALL_USER_AGENT = `${Deno.env.get('APP_NAME') ?? 'DoomsdayMTG'}/0.2`
 // TopDeck structured lists are much larger than entry summaries. Keep each
 // invocation bounded so the Edge runtime does not materialize 500 deckObjs.
-const ENTRY_BATCH_SIZE = 100
+// Ten full Commander Decks can already represent about one thousand cards.
+// Keep the payload comfortably below the free Edge runtime's compute ceiling;
+// callers continue automatically while `hasMore` is true.
+const ENTRY_BATCH_SIZE = 10
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -45,14 +49,23 @@ Deno.serve(async (request) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!url || !anonKey || !serviceKey) throw new Error('Supabase configuration is incomplete.')
 
-    const userClient = createClient(url, anonKey, {
-      global: { headers: { Authorization: authorization } },
-    })
-    const { data: userData } = await userClient.auth.getUser()
-    if (!userData.user) return json({ error: 'Authentication required.' }, 401)
-    const { data: membership } = await userClient.from('admin_users')
-      .select('user_id').eq('user_id', userData.user.id).maybeSingle()
-    if (!membership) return json({ error: 'Administrator access required.' }, 403)
+    const workerSecret = Deno.env.get('INGESTION_WORKER_SECRET')
+    const isWorker = Boolean(
+      workerSecret &&
+      request.headers.get('x-ingestion-worker-secret') === workerSecret,
+    )
+    if (!isWorker) {
+      const userClient = createClient(url, anonKey, {
+        global: { headers: { Authorization: authorization } },
+      })
+      const { data: userData } = await userClient.auth.getUser()
+      if (!userData.user) return json({ error: 'Authentication required.' }, 401)
+      const { data: membership } = await userClient.from('admin_users')
+        .select('user_id').eq('user_id', userData.user.id).maybeSingle()
+      if (!membership) {
+        return json({ error: 'Administrator access required.' }, 403)
+      }
+    }
 
     const options = validateRequest(await request.json())
     const admin = createClient(url, serviceKey)
@@ -65,6 +78,11 @@ Deno.serve(async (request) => {
       .limit(200)
     if (options.provider) tournamentQuery = tournamentQuery.eq('source', options.provider)
     if (options.startDate) tournamentQuery = tournamentQuery.gte('event_date', options.startDate)
+    if (options.last) {
+      const cutoff = new Date()
+      cutoff.setUTCDate(cutoff.getUTCDate() - options.last)
+      tournamentQuery = tournamentQuery.gte('event_date', cutoff.toISOString())
+    }
     if (options.endDate) {
       tournamentQuery = tournamentQuery.lt(
         'event_date',
@@ -90,6 +108,30 @@ Deno.serve(async (request) => {
       return json(report)
     }
 
+    let candidateEntryIds: string[] | undefined
+    if (options.onlyMissing) {
+      const { data: candidates, error: candidateError } = await admin.rpc(
+        'get_tournament_deck_ingestion_candidates',
+        {
+          target_tournament_ids: tournamentDatabaseIds,
+          target_entry_ids: options.entryIds ?? null,
+          target_commander_key: options.commanderKey ?? null,
+          include_partial: options.retryPartial,
+          result_limit: ENTRY_BATCH_SIZE,
+        },
+      )
+      if (candidateError) {
+        throw databaseError('load Deck ingestion candidates', candidateError)
+      }
+      candidateEntryIds = (candidates ?? []).map(
+        (candidate: { id: string }) => candidate.id,
+      )
+      if (!candidateEntryIds.length) {
+        report.durationMs = Date.now() - startedAt
+        return json(report)
+      }
+    }
+
     let query = admin.from('tournament_entries')
       .select(
         'id, tournament_id, source_entry_id, commander_key, commander_name, source_payload',
@@ -97,11 +139,13 @@ Deno.serve(async (request) => {
       .in('tournament_id', tournamentDatabaseIds)
       .order('created_at', { ascending: true })
       .limit(ENTRY_BATCH_SIZE)
-    if (options.entryIds?.length) query = query.in('id', options.entryIds)
+    if (candidateEntryIds) query = query.in('id', candidateEntryIds)
+    else if (options.entryIds?.length) query = query.in('id', options.entryIds)
     if (options.commanderKey) query = query.eq('commander_key', options.commanderKey)
     const { data: entries, error: entriesError } = await query
     if (entriesError) throw databaseError('load tournament entries', entriesError)
     report.entriesConsidered = entries?.length ?? 0
+    report.hasMore = report.entriesConsidered === ENTRY_BATCH_SIZE
 
     const entryIds = (entries ?? []).map((entry) => entry.id)
     const { data: existing, error: existingError } = entryIds.length
@@ -191,6 +235,32 @@ Deno.serve(async (request) => {
       else if (completeness.status === 'unavailable') report.decksUnavailable += 1
       else report.decksPartial += 1
       if (options.dryRun) continue
+
+      // TopDeck normally supplies Commander names without color identity.
+      // Once Scryfall has resolved the Commander cards, persist their combined
+      // identity on the entry used by tournament and metagame views.
+      const commanderNames = entryCommanderNames(entry.commander_name)
+      const commanderColorIdentity = [
+        ...new Set(
+          resolved
+            .filter((item) =>
+              item.candidate.board === 'commander' ||
+              commanderNames.has(
+                normalizeCardKey(item.card?.name ?? item.candidate.name),
+              )
+            )
+            .flatMap((item) => item.card?.color_identity ?? []),
+        ),
+      ]
+      if (commanderColorIdentity.length) {
+        const { error: identityError } = await admin
+          .from('tournament_entries')
+          .update({ color_identity: commanderColorIdentity })
+          .eq('id', entry.id)
+        if (identityError) {
+          throw databaseError('save Commander color identity', identityError)
+        }
+      }
 
       const deckRow = {
         tournament_entry_id: entry.id,
@@ -378,6 +448,15 @@ function sumBoard(candidates: CardCandidate[], board: CardCandidate['board']) {
     .reduce((total, card) => total + card.quantity, 0)
 }
 
+function entryCommanderNames(name: string) {
+  return new Set(
+    name
+      .split(/\s+\/\/\s+/)
+      .map(normalizeCardKey)
+      .filter(Boolean),
+  )
+}
+
 function validateRequest(value: unknown): DeckIngestionRequest {
   if (!isRecord(value)) throw new Error('A deck ingestion request is required.')
   return {
@@ -387,6 +466,7 @@ function validateRequest(value: unknown): DeckIngestionRequest {
       ? value.provider : undefined,
     startDate: stringValue(value.startDate),
     endDate: stringValue(value.endDate),
+    last: positiveInteger(value.last),
     commanderKey: stringValue(value.commanderKey),
     onlyMissing: value.onlyMissing !== false,
     retryPartial: value.retryPartial === true,
@@ -401,7 +481,7 @@ function createReport() {
     externalUrlsFetched: 0, decksCompleted: 0, decksPartial: 0,
     decksUnavailable: 0, cardsResolved: 0, cardsUnresolved: 0,
     decksInserted: 0, decksUpdated: 0, decksUnchanged: 0,
-    errors: [] as string[], durationMs: 0,
+    errors: [] as string[], durationMs: 0, hasMore: false,
   }
 }
 
@@ -412,6 +492,14 @@ function stringArray(value: unknown) {
 }
 function stringValue(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+function positiveInteger(value: unknown) {
+  if (value === undefined || value === '') return undefined
+  const number = Number(value)
+  if (!Number.isInteger(number) || number < 1) {
+    throw new Error('Last must be a positive integer.')
+  }
+  return number
 }
 function addUtcDays(value: string, days: number) {
   const date = new Date(`${value.slice(0, 10)}T00:00:00.000Z`)

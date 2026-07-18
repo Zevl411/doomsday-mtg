@@ -1,3 +1,9 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import {
+  normalizePlaintextDeck,
+  normalizeStructuredDeck,
+} from '../_shared/tournamentDeckNormalizer.ts'
+
 const EDHTOP16_GRAPHQL_URL = 'https://edhtop16.com/api/graphql'
 const ENTRY_DECK_QUERY = `
   query DoomsdayTournamentEntryDeck($id: ID!) {
@@ -38,14 +44,49 @@ Deno.serve(async (request) => {
 
   try {
     const body: unknown = await request.json()
-    if (!isRecord(body) || typeof body.entryId !== 'string') {
+    if (!isRecord(body) || typeof body.tournamentEntryId !== 'string') {
       return json({ error: 'A tournament entry ID is required.' }, 400)
     }
-    const entryId = body.entryId.trim()
-    if (!entryId || entryId.length > 200) {
+    const tournamentEntryId = body.tournamentEntryId.trim()
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        .test(tournamentEntryId)
+    ) {
       return json({ error: 'The tournament entry ID is invalid.' }, 400)
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !anonKey) {
+      throw new Error('Supabase configuration is incomplete.')
+    }
+    // Tournament entries are public reference data. The anonymous client
+    // respects their read-only RLS policy and never receives write authority.
+    const client = createClient(supabaseUrl, anonKey)
+    const { data: entry, error } = await client
+      .from('tournament_entries')
+      .select('source_entry_id, source_payload, tournaments!inner(source)')
+      .eq('id', tournamentEntryId)
+      .maybeSingle()
+    if (error) throw error
+    if (!entry) return json({ error: 'Tournament entry not found.' }, 404)
+
+    const tournament = Array.isArray(entry.tournaments)
+      ? entry.tournaments[0]
+      : entry.tournaments
+    if (tournament?.source === 'topdeck') {
+      const decklist = mapStoredTopDeckDecklist(entry.source_payload)
+      return decklist
+        ? json(decklist)
+        : json({ error: 'No decklist was found for this entry.' }, 404)
+    }
+
+    const entryId = typeof entry.source_entry_id === 'string'
+      ? entry.source_entry_id.trim()
+      : ''
+    if (!entryId) {
+      return json({ error: 'No decklist was found for this entry.' }, 404)
+    }
     const response = await fetch(EDHTOP16_GRAPHQL_URL, {
       method: 'POST',
       headers: {
@@ -73,6 +114,40 @@ Deno.serve(async (request) => {
   }
 })
 
+function mapStoredTopDeckDecklist(value: unknown) {
+  if (!isRecord(value)) return null
+  const deckObject = value.deckObj ?? value.deckObject
+  const plaintext = value.decklist
+  const normalized = isRecord(deckObject)
+    ? normalizeStructuredDeck(deckObject)
+    : typeof plaintext === 'string' &&
+        plaintext.trim() &&
+        !/^https?:\/\//i.test(plaintext)
+      ? normalizePlaintextDeck(plaintext)
+      : null
+  if (!normalized?.cards.length) return null
+
+  const mapCandidate = (
+    card: typeof normalized.cards[number],
+  ) => ({
+    name: card.name,
+    quantity: card.quantity,
+    oracleId: null,
+    typeLine: '',
+    manaCost: '',
+    // The Vue repository replaces this with a batched Scryfall CDN URL.
+    imageUrl: '',
+  })
+  return {
+    commanders: normalized.cards
+      .filter((card) => card.board === 'commander')
+      .map(mapCandidate),
+    cards: normalized.cards
+      .filter((card) => card.board === 'mainboard')
+      .map(mapCandidate),
+  }
+}
+
 function mapDecklist(value: unknown) {
   if (!isRecord(value) || !isRecord(value.data)) return null
   const node = value.data.node
@@ -96,6 +171,7 @@ function mapCards(value: unknown) {
     }
     return [{
       name: card.name,
+      quantity: 1,
       oracleId: typeof card.oracleId === 'string' ? card.oracleId : null,
       typeLine: typeof card.type === 'string' ? card.type : '',
       manaCost: typeof card.manaCost === 'string' ? card.manaCost : '',

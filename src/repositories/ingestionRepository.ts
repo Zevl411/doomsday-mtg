@@ -4,11 +4,11 @@ export interface IngestionOptions {
   provider: 'edhtop16' | 'topdeck'
   startDate?: string
   endDate?: string
+  last?: number
   minimumPlayers: number
   dryRun: boolean
   maximumPlayers?: number
   tournamentIds?: string[]
-  last?: number
   includeRounds?: boolean
   enrichLocation?: boolean
   excludeCasualEvents?: boolean
@@ -122,10 +122,19 @@ export interface PurgeCasualEventsReport {
   truncated: boolean
 }
 
+export interface ClearTournamentDataReport {
+  tournamentsDeleted: number
+  entriesDeleted: number
+  normalizedDecksDeleted: number
+  normalizedCardsDeleted: number
+  ingestionJobsDeleted: number
+}
+
 export interface TournamentDeckIngestionOptions {
   provider?: 'topdeck' | 'edhtop16'
   startDate?: string
   endDate?: string
+  last?: number
   commanderKey?: string
   tournamentIds?: string[]
   onlyMissing: boolean
@@ -149,6 +158,7 @@ export interface TournamentDeckIngestionReport {
   decksUnchanged: number
   errors: string[]
   durationMs: number
+  hasMore: boolean
 }
 
 /** Keeps Edge Function invocation and admin checks outside presentation code. */
@@ -192,6 +202,44 @@ export const ingestionRepository = {
     return data as IngestionReport
   },
 
+  /**
+   * TopDeck materializes a complete discovery response before normalization.
+   * Split normal date-range runs into small windows so one provider response
+   * cannot exhaust the Edge Function's memory allocation.
+   */
+  async ingestAllTournaments(
+    options: IngestionOptions,
+  ): Promise<IngestionReport> {
+    const windows = createDateWindows(options.startDate, options.endDate, 3)
+    if (
+      windows.length <= 1 ||
+      options.last ||
+      options.tournamentIds?.length
+    ) {
+      return this.ingest(options)
+    }
+
+    const total = emptyIngestionReport(options.dryRun)
+    for (const window of windows) {
+      let report: IngestionReport
+      try {
+        report = await this.ingest({
+          ...options,
+          startDate: window.startDate,
+          endDate: window.endDate,
+        })
+      } catch (error) {
+        const message = error instanceof Error
+          ? error.message
+          : 'Unknown tournament metadata ingestion error.'
+        throw new Error(`Tournament metadata ingestion failed: ${message}`)
+      }
+      addIngestionReport(total, report)
+      if (report.providerErrors.length) return total
+    }
+    return total
+  },
+
   async createJob(options: CreateIngestionJobOptions): Promise<string> {
     const result = await invokeAuthenticatedFunction({
       action: 'create-job',
@@ -229,6 +277,24 @@ export const ingestionRepository = {
     return result as unknown as PurgeCasualEventsReport
   },
 
+  async clearTournamentData(): Promise<ClearTournamentDataReport> {
+    const result = await invokeAuthenticatedFunction({
+      action: 'clear-tournament-data',
+      confirmationToken: 'CLEAR TOURNAMENT DATA',
+    })
+    if (
+      !isRecord(result) ||
+      typeof result.tournamentsDeleted !== 'number' ||
+      typeof result.entriesDeleted !== 'number' ||
+      typeof result.normalizedDecksDeleted !== 'number' ||
+      typeof result.normalizedCardsDeleted !== 'number' ||
+      typeof result.ingestionJobsDeleted !== 'number'
+    ) {
+      throw new Error('The tournament reset response was invalid.')
+    }
+    return result as unknown as ClearTournamentDataReport
+  },
+
   async ingestTournamentDecks(
     options: TournamentDeckIngestionOptions,
   ): Promise<TournamentDeckIngestionReport> {
@@ -245,6 +311,39 @@ export const ingestionRepository = {
     )
     if (error) throw new Error(await getFunctionErrorMessage(error))
     return data as TournamentDeckIngestionReport
+  },
+
+  /**
+   * Drains bounded Edge Function batches. Each invocation selects
+   * only rows that still need a normalized Deck, so large ranges advance
+   * without exceeding one function's memory or execution limits.
+   */
+  async ingestAllTournamentDecks(
+    options: TournamentDeckIngestionOptions,
+  ): Promise<TournamentDeckIngestionReport> {
+    // A dry run cannot advance the missing-row queue because it intentionally
+    // writes nothing, so one representative bounded batch is sufficient.
+    if (options.dryRun || !options.onlyMissing) {
+      return this.ingestTournamentDecks(options)
+    }
+
+    const total = emptyDeckIngestionReport()
+    for (let batch = 0; batch < 100; batch += 1) {
+      let report: TournamentDeckIngestionReport
+      try {
+        report = await this.ingestTournamentDecks(options)
+      } catch (error) {
+        const message = error instanceof Error
+          ? error.message
+          : 'Unknown card-level ingestion error.'
+        throw new Error(`Card-level decklist normalization failed: ${message}`)
+      }
+      addDeckIngestionReport(total, report)
+      if (!report.hasMore) return total
+    }
+    throw new Error(
+      'Decklist normalization paused after 100 batches. Run ingestion again to continue.',
+    )
   },
 
   async getJobs(): Promise<IngestionJob[]> {
@@ -416,6 +515,123 @@ export const ingestionRepository = {
         })),
     }
   },
+}
+
+function emptyDeckIngestionReport(): TournamentDeckIngestionReport {
+  return {
+    entriesConsidered: 0,
+    decklistsAvailable: 0,
+    structuredDecksUsed: 0,
+    plaintextDecksUsed: 0,
+    externalUrlsFetched: 0,
+    decksCompleted: 0,
+    decksPartial: 0,
+    decksUnavailable: 0,
+    cardsResolved: 0,
+    cardsUnresolved: 0,
+    decksInserted: 0,
+    decksUpdated: 0,
+    decksUnchanged: 0,
+    errors: [],
+    durationMs: 0,
+    hasMore: false,
+  }
+}
+
+function emptyIngestionReport(dryRun: boolean): IngestionReport {
+  return {
+    tournamentsFetched: 0,
+    tournamentsInserted: 0,
+    tournamentsUpdated: 0,
+    entriesFetched: 0,
+    entriesInserted: 0,
+    entriesUpdated: 0,
+    entriesSkipped: 0,
+    validationIssues: [],
+    providerErrors: [],
+    durationMs: 0,
+    dryRun,
+    requestsMade: 0,
+    retries: 0,
+    rateLimitedRequests: 0,
+    exhaustedRequests: 0,
+    tournamentsPartiallyIngested: 0,
+    tournamentsExcluded: 0,
+    tournamentsPurged: 0,
+    excludedTournamentTitles: [],
+  }
+}
+
+function addIngestionReport(total: IngestionReport, report: IngestionReport) {
+  total.tournamentsFetched += report.tournamentsFetched
+  total.tournamentsInserted += report.tournamentsInserted
+  total.tournamentsUpdated += report.tournamentsUpdated
+  total.entriesFetched += report.entriesFetched
+  total.entriesInserted += report.entriesInserted
+  total.entriesUpdated += report.entriesUpdated
+  total.entriesSkipped += report.entriesSkipped
+  total.durationMs += report.durationMs
+  total.requestsMade += report.requestsMade
+  total.retries += report.retries
+  total.rateLimitedRequests += report.rateLimitedRequests
+  total.exhaustedRequests += report.exhaustedRequests
+  total.tournamentsPartiallyIngested += report.tournamentsPartiallyIngested
+  total.tournamentsExcluded += report.tournamentsExcluded
+  total.tournamentsPurged += report.tournamentsPurged
+  total.validationIssues.push(...report.validationIssues)
+  total.providerErrors.push(...report.providerErrors)
+  total.excludedTournamentTitles.push(...report.excludedTournamentTitles)
+}
+
+function createDateWindows(
+  startDate: string | undefined,
+  endDate: string | undefined,
+  windowDays: number,
+) {
+  if (!startDate || !endDate) return []
+  const start = new Date(`${startDate.slice(0, 10)}T00:00:00.000Z`)
+  const end = new Date(`${endDate.slice(0, 10)}T00:00:00.000Z`)
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end < start
+  ) return []
+
+  const windows: Array<{ startDate: string; endDate: string }> = []
+  const cursor = new Date(start)
+  while (cursor <= end) {
+    const windowEnd = new Date(cursor)
+    windowEnd.setUTCDate(windowEnd.getUTCDate() + windowDays - 1)
+    if (windowEnd > end) windowEnd.setTime(end.getTime())
+    windows.push({
+      startDate: cursor.toISOString().slice(0, 10),
+      endDate: windowEnd.toISOString().slice(0, 10),
+    })
+    cursor.setUTCDate(cursor.getUTCDate() + windowDays)
+  }
+  return windows
+}
+
+function addDeckIngestionReport(
+  total: TournamentDeckIngestionReport,
+  report: TournamentDeckIngestionReport,
+) {
+  total.entriesConsidered += report.entriesConsidered
+  total.decklistsAvailable += report.decklistsAvailable
+  total.structuredDecksUsed += report.structuredDecksUsed
+  total.plaintextDecksUsed += report.plaintextDecksUsed
+  total.externalUrlsFetched += report.externalUrlsFetched
+  total.decksCompleted += report.decksCompleted
+  total.decksPartial += report.decksPartial
+  total.decksUnavailable += report.decksUnavailable
+  total.cardsResolved += report.cardsResolved
+  total.cardsUnresolved += report.cardsUnresolved
+  total.decksInserted += report.decksInserted
+  total.decksUpdated += report.decksUpdated
+  total.decksUnchanged += report.decksUnchanged
+  total.errors.push(...report.errors)
+  total.durationMs += report.durationMs
+  total.hasMore = report.hasMore
 }
 
 async function invokeAuthenticatedFunction(
