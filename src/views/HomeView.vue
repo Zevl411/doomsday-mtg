@@ -45,7 +45,7 @@
           <v-btn
             class="mt-4 align-self-start"
             color="primary"
-            :to="{ name: 'deck-builder' }"
+            @click="startNewDeck"
           >
             Start building
           </v-btn>
@@ -311,6 +311,11 @@ function openDeck(deckId: string) {
   if (deckStore.openDeck(deckId)) {
     void router.push({ name: 'deck-builder' })
   }
+}
+
+function startNewDeck() {
+  deckStore.createDeck()
+  void router.push({ name: 'deck-builder' })
 }
 
 function commanderImage(deck: Deck) {

@@ -268,8 +268,20 @@
                 </div>
               </div>
               <div class="overflow-x-auto">
-                <div :style="{ minWidth: `${historyChartWidth}px` }">
+                <div
+                  class="position-relative"
+                  :style="{ width: `${historyChartWidth}px` }"
+                >
+                  <span
+                    v-for="label in historyPointLabels"
+                    :key="label.periodStart"
+                    class="history-point-label position-absolute text-caption font-weight-bold"
+                    :style="{ left: `${label.left}px`, top: `${label.top}px` }"
+                  >
+                    {{ label.text }}
+                  </span>
                   <v-sparkline
+                    class="history-sparkline"
                     color="primary"
                     height="220"
                     interactive
@@ -417,6 +429,21 @@ const historyTickLabels = computed(() =>
 const historyChartWidth = computed(() =>
   Math.max(640, historyPoints.value.length * 72),
 )
+const historyPointLabels = computed(() => {
+  const padding = 30
+  const plotHeight = 220 - padding * 2
+  const plotWidth = historyChartWidth.value - padding * 2
+  const pointCount = historyPoints.value.length
+  return historyPoints.value.map((point, index) => ({
+    periodStart: point.periodStart,
+    text: `${Math.round(point.inclusionRate * 100)}%`,
+    left: pointCount === 1
+      ? historyChartWidth.value / 2
+      : padding + index * (plotWidth / (pointCount - 1)),
+    // The CSS translation places the label just above the marker.
+    top: padding + (1 - point.inclusionRate) * plotHeight - 10,
+  }))
+})
 const latestHistoryRate = computed(() =>
   historyPoints.value.at(-1)?.inclusionRate ?? 0,
 )
@@ -575,5 +602,22 @@ onMounted(async () => {
 .inclusion-card-image {
   clip-path: inset(0.8% round 4.5%);
   transform: scale(1.015);
+}
+
+.history-point-label {
+  pointer-events: none;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+  transform: translate(-50%, -100%);
+  z-index: 1;
+}
+
+.history-sparkline {
+  display: block;
+  height: auto;
+  width: 100%;
 }
 </style>

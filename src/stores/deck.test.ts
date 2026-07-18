@@ -62,6 +62,16 @@ describe('deck library store', () => {
     expect(store.deck.name).toBe('First')
   })
 
+  it('increments the default name for each unnamed deck', () => {
+    const store = useDeckStore()
+
+    expect(store.createDeck().name).toBe('Untitled Deck')
+    expect(store.createDeck().name).toBe('Untitled Deck 2')
+    expect(store.createDeck('   ').name).toBe('Untitled Deck 3')
+    expect(store.createDeck('Named Deck').name).toBe('Named Deck')
+    expect(store.createDeck().name).toBe('Untitled Deck 4')
+  })
+
   it('renames a deck, trims its name, and rejects an empty name', () => {
     const store = useDeckStore()
     const deck = store.createDeck('Original')

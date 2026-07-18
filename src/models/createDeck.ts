@@ -1,7 +1,7 @@
 import type { Deck, DeckCard } from './deck'
 import type { ScryfallCard } from '../types/card'
 
-const DEFAULT_DECK_NAME = 'Untitled Deck'
+export const DEFAULT_DECK_NAME = 'Untitled Deck'
 
 export function createDeckId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {

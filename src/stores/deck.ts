@@ -1,5 +1,9 @@
 import { defineStore } from 'pinia'
-import { cloneDeck, createEmptyDeck } from '../models/createDeck'
+import {
+  cloneDeck,
+  createEmptyDeck,
+  DEFAULT_DECK_NAME,
+} from '../models/createDeck'
 import {
   getDeckBoardEntries,
   type Deck,
@@ -79,7 +83,10 @@ export const useDeckStore = defineStore('deck', {
   // Actions are the store's named methods for changing its state.
   actions: {
     createDeck(name?: string): Deck {
-      const deck = createEmptyDeck(name)
+      const deckName = name?.trim() || getNextDefaultDeckName(
+        this.library.decks.map((deck) => deck.name),
+      )
+      const deck = createEmptyDeck(deckName)
       if (this.storageMode === 'guest') {
         this.library.decks = [deck]
       } else {
@@ -482,6 +489,26 @@ export const useDeckStore = defineStore('deck', {
     },
   },
 })
+
+function getNextDefaultDeckName(existingNames: string[]): string {
+  let highestSuffix = 0
+
+  for (const name of existingNames) {
+    if (name === DEFAULT_DECK_NAME) {
+      highestSuffix = Math.max(highestSuffix, 1)
+      continue
+    }
+
+    const match = name.match(/^Untitled Deck ([2-9]\d*)$/)
+    if (match) {
+      highestSuffix = Math.max(highestSuffix, Number(match[1]))
+    }
+  }
+
+  return highestSuffix === 0
+    ? DEFAULT_DECK_NAME
+    : `${DEFAULT_DECK_NAME} ${highestSuffix + 1}`
+}
 
 function findBoardEntry(
   entries: DeckCard[],

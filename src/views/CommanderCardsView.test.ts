@@ -155,6 +155,8 @@ describe('CommanderCardsView', () => {
     expect(document.body.textContent).toContain('Jul 6')
     expect(document.body.textContent).not.toContain('Week starting')
     expect(document.body.querySelector('svg[tabindex="0"]')).not.toBeNull()
+    expect(document.body.querySelector('.history-point-label')?.textContent)
+      .toContain('75%')
     wrapper.unmount()
   })
 })

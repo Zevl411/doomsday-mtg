@@ -40,6 +40,26 @@ beforeEach(() => {
 })
 
 describe('HomeView', () => {
+  it('creates a new Deck when the hero action is clicked', async () => {
+    const store = useDeckStore()
+    store.useRepository(memoryDeckRepository, 'cloud')
+    const existingDeck = store.createDeck('Existing Deck')
+
+    const wrapper = mount(HomeView, {
+      global: { plugins: [vuetify] },
+    })
+    await flushPromises()
+
+    const startButton = wrapper.findAll('.v-btn')
+      .find((button) => button.text().includes('Start building'))
+    await startButton?.trigger('click')
+
+    expect(store.activeDeckId).not.toBe(existingDeck.id)
+    expect(store.activeDeck?.name).toBe('Untitled Deck')
+    expect(store.activeDeck?.cards).toEqual([])
+    expect(routerPush).toHaveBeenCalledWith({ name: 'deck-builder' })
+  })
+
   it('shows only the four most recently edited decks in newest-first order', async () => {
     const store = useDeckStore()
     store.useRepository(memoryDeckRepository, 'cloud')
