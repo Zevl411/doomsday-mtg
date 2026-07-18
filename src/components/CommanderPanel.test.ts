@@ -24,7 +24,9 @@ function mountPanel() {
       plugins: [vuetify],
       stubs: {
         CardSearch: {
-          template: '<div data-test="commander-search">Card search</div>',
+          template:
+            '<button data-test="commander-search" @click="$emit(\'cleared\')">Card search</button>',
+          emits: ['cleared'],
         },
       },
     },
@@ -39,7 +41,7 @@ describe('CommanderPanel', () => {
 
     expect(wrapper.find('[data-test="commander-search"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Sisay, Weatherlight Captain')
-    expect(wrapper.text()).toContain('Clear commander')
+    expect(wrapper.text()).not.toContain('Clear commander')
     wrapper.unmount()
   })
 
@@ -48,10 +50,7 @@ describe('CommanderPanel', () => {
     store.setCommander(commander)
     const wrapper = mountPanel()
 
-    const clearButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('Clear commander'))
-    await clearButton?.trigger('click')
+    await wrapper.find('[data-test="commander-search"]').trigger('click')
 
     expect(store.deck.commander).toBeNull()
     expect(wrapper.find('[data-test="commander-search"]').exists()).toBe(true)

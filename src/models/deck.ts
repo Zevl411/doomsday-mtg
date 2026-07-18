@@ -16,6 +16,8 @@ export type TrackedDeckBoard =
   | 'maybeboard'
   | 'considering'
 
+export type DeckVisibility = 'private' | 'unlisted' | 'public'
+
 // An interface describes the required shape of an object in TypeScript.
 // Deck belongs to our application because it combines Scryfall card data with
 // deck-building state that the Scryfall API does not own.
@@ -36,6 +38,11 @@ export interface Deck {
   maybeboard: DeckCard[]
   considering: DeckCard[]
   name: string
+  // These fields are optional at the storage boundary for decks created
+  // before sharing settings existed. Normalization supplies their defaults.
+  description?: string
+  visibility?: DeckVisibility
+  creatorUsername?: string
 }
 
 /**

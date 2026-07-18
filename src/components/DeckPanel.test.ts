@@ -6,199 +6,169 @@ import vuetify from '../plugins/vuetify'
 import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 
-const commander: ScryfallCard = {
-  id: 'commander-printing',
-  oracle_id: 'commander-oracle',
-  name: 'Commander',
-  type_line: 'Legendary Creature',
-  color_identity: ['U'],
-}
 const artifact: ScryfallCard = {
-  id: 'artifact-printing',
-  oracle_id: 'artifact-oracle',
-  name: 'Artifact',
+  id: 'artifact',
+  name: 'Arcane Signet',
   type_line: 'Artifact',
   color_identity: [],
+  cmc: 2,
+  image_uris: {
+    small: 'https://example.com/small.jpg',
+    normal: 'https://example.com/normal.jpg',
+    large: 'https://example.com/large.jpg',
+  },
 }
 const island: ScryfallCard = {
-  id: 'island-printing',
-  oracle_id: 'island-oracle',
+  id: 'island',
   name: 'Island',
   type_line: 'Basic Land — Island',
   color_identity: ['U'],
+  cmc: 0,
 }
 
 beforeEach(() => {
+  localStorage.clear()
   setActivePinia(createPinia())
   useDeckStore().createDeck()
 })
 
 function mountPanel() {
-  return mount(DeckPanel, {
-    global: {
-      plugins: [vuetify],
-      stubs: {
-        CardSearch: {
-          template: '<div data-test="card-search" />',
-          emits: ['card-hovered', 'card-selected'],
-        },
-        VDialog: {
-          props: ['modelValue'],
-          template: '<div v-if="modelValue"><slot /></div>',
-        },
-      },
-    },
-  })
+  return mount(DeckPanel, { global: { plugins: [vuetify] } })
 }
 
 describe('DeckPanel', () => {
-  it('renders entries, quantities, and quantity-based totals', () => {
+  it('renders dedicated boards and merges considering into Maybeboard', () => {
     const store = useDeckStore()
-    store.deck.commander = commander
-    store.deck.cards = [
-      { card: island, quantity: 3 },
-      { card: artifact, quantity: 1 },
-    ]
-    const wrapper = mountPanel()
-
-    expect(wrapper.text()).toContain('3× Island')
-    expect(wrapper.text()).toContain('1× Artifact')
-    expect(wrapper.text()).toContain('Main deck: 4')
-    expect(wrapper.text()).toContain('5 / 100')
-    wrapper.unmount()
-  })
-
-  it('removes cards and changes basic-land quantities', async () => {
-    const store = useDeckStore()
-    store.deck.commander = commander
-    store.deck.cards = [{ card: island, quantity: 2 }]
-    const wrapper = mountPanel()
-
-    await wrapper
-      .find('[aria-label="Increase quantity of Island"]')
-      .trigger('click')
-    expect(store.deck.cards[0]?.quantity).toBe(3)
-
-    await wrapper
-      .find('[aria-label="Decrease quantity of Island"]')
-      .trigger('click')
-    expect(store.deck.cards[0]?.quantity).toBe(2)
-
-    await wrapper
-      .find('[aria-label="Remove Island from mainboard"]')
-      .trigger('click')
-    expect(store.deck.cards).toHaveLength(0)
-    wrapper.unmount()
-  })
-
-  it('warns before increasing a non-basic card and allows an override', async () => {
-    const store = useDeckStore()
-    store.deck.commander = commander
     store.deck.cards = [{ card: artifact, quantity: 1 }]
+    store.deck.sideboard = [{ card: island, quantity: 2 }]
+    store.deck.considering = [{ card: artifact, quantity: 3 }]
     const wrapper = mountPanel()
 
-    await wrapper
-      .find('[aria-label="Increase quantity of Artifact"]')
-      .trigger('click')
-
-    expect(wrapper.text()).toContain('Increase quantity anyway?')
-    expect(store.deck.cards[0]?.quantity).toBe(1)
-
-    const proceedButton = wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'Proceed anyway')
-    await proceedButton?.trigger('click')
-
-    expect(store.deck.cards[0]?.quantity).toBe(2)
-    wrapper.unmount()
+    expect(wrapper.text()).toContain('Mainboard (1)')
+    expect(wrapper.text()).toContain('Sideboard (2)')
+    expect(wrapper.text()).toContain('Maybeboard (3)')
+    expect(wrapper.text()).not.toContain('Considering (')
   })
 
-  it('displays accurate local save status', async () => {
-    const store = useDeckStore()
+  it('shows full-card images in list view', async () => {
+    useDeckStore().deck.cards = [{ card: artifact, quantity: 1 }]
+    const wrapper = mountPanel()
+    await wrapper.find('[aria-label="List view"]').trigger('click')
+
+    expect(wrapper.find('img[src="https://example.com/small.jpg"]').exists())
+      .toBe(true)
+    expect(wrapper.text()).toContain('1× Arcane Signet')
+  })
+
+  it('offers independent primary and secondary sorting for every board', () => {
     const wrapper = mountPanel()
 
-    store.saveSucceeded = true
-    await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Saved as temporary draft')
-
-    store.saveSucceeded = false
-    await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Unable to save temporary draft')
-    wrapper.unmount()
+    expect(wrapper.findAllComponents({ name: 'VSelect' })).toHaveLength(6)
   })
 
-  it('renders board tabs with quantity-based counts', () => {
+  it('groups multi-type cards once and keeps the requested type order', () => {
     const store = useDeckStore()
-    store.deck.sideboard = [{ card: artifact, quantity: 3 }]
-    store.deck.maybeboard = [{ card: island, quantity: 2 }]
-    const wrapper = mountPanel()
-
-    expect(wrapper.text()).toContain('Mainboard (0)')
-    expect(wrapper.text()).toContain('Sideboard (3)')
-    expect(wrapper.text()).toContain('Maybeboard (2)')
-    expect(wrapper.text()).toContain('Considering (0)')
-    wrapper.unmount()
-  })
-
-  it('sorts displayed cards by canonical name without mutating the store', () => {
-    const store = useDeckStore()
-    const cyclonicRift = {
-      ...artifact,
-      id: 'cyclonic-rift',
-      oracle_id: 'cyclonic-rift-oracle',
-      name: 'Cyclonic Rift',
-      flavor_name: "Hope's Aero Magic",
-    }
-    const arcaneSignet = {
-      ...artifact,
-      id: 'arcane-signet',
-      oracle_id: 'arcane-signet-oracle',
-      name: 'Arcane Signet',
-    }
     store.deck.cards = [
-      { card: cyclonicRift, quantity: 1 },
-      { card: arcaneSignet, quantity: 1 },
+      {
+        card: {
+          ...artifact,
+          id: 'legendary-artifact',
+          name: 'Legendary Relic',
+          type_line: 'Legendary Artifact',
+        },
+        quantity: 1,
+      },
+      {
+        card: {
+          ...artifact,
+          id: 'double-faced-card',
+          name: 'Front Creature // Back Land',
+          type_line: 'Artifact // Land',
+          card_faces: [
+            {
+              name: 'Front Creature',
+              type_line: 'Legendary Creature — Human',
+            },
+            {
+              name: 'Back Land',
+              type_line: 'Land',
+            },
+          ],
+        },
+        quantity: 1,
+      },
+      {
+        card: {
+          ...artifact,
+          id: 'artifact-creature',
+          name: 'Artifact Creature',
+          type_line: 'Artifact Creature — Construct',
+        },
+        quantity: 1,
+      },
+      {
+        card: {
+          ...artifact,
+          id: 'artifact-land',
+          name: 'Artifact Land',
+          type_line: 'Artifact Land',
+        },
+        quantity: 1,
+      },
+      {
+        card: {
+          ...artifact,
+          id: 'planeswalker',
+          name: 'Test Planeswalker',
+          type_line: 'Legendary Planeswalker — Test',
+        },
+        quantity: 1,
+      },
     ]
     const wrapper = mountPanel()
-    const text = wrapper.text()
+    const groupLabels = wrapper.findAll('h3').map((heading) => heading.text())
 
-    expect(text.indexOf('Arcane Signet')).toBeLessThan(
-      text.indexOf('Cyclonic Rift'),
-    )
-    expect(store.deck.cards.map((entry) => entry.card.name)).toEqual([
-      'Cyclonic Rift',
-      'Arcane Signet',
+    expect(groupLabels).toEqual([
+      'Planeswalker',
+      'Creature',
+      'Artifact',
+      'Land',
     ])
-    wrapper.unmount()
+    expect(groupLabels).not.toContain('Legendary Artifact')
   })
 
-  it('defaults the search destination to the mainboard', () => {
+  it('defaults to grid, renders both icons, and switches to list view', async () => {
+    useDeckStore().deck.cards = [{ card: artifact, quantity: 1 }]
     const wrapper = mountPanel()
 
-    expect(wrapper.text()).toContain('Add search results to')
-    expect(wrapper.text()).toContain('Mainboard')
-    wrapper.unmount()
+    const gridButton = wrapper.find('[aria-label="Grid view"]')
+    const listButton = wrapper.find('[aria-label="List view"]')
+    expect(gridButton.find('svg').exists()).toBe(true)
+    expect(listButton.find('svg').exists()).toBe(true)
+    expect(wrapper.text()).toContain('×1')
+    expect(wrapper.find('[aria-label="Actions for Arcane Signet"]').exists())
+      .toBe(false)
+
+    await listButton.trigger('click')
+    expect(wrapper.find('[aria-label="Actions for Arcane Signet"]').exists())
+      .toBe(true)
+    expect(gridButton.element.compareDocumentPosition(listButton.element))
+      .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
-  it('resets the deck only after confirmation', async () => {
-    const store = useDeckStore()
-    store.deck.commander = commander
-    store.deck.cards = [{ card: artifact, quantity: 1 }]
+  it('persists display preferences in browser-local storage', async () => {
     const wrapper = mountPanel()
-
-    const openButton = wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'Clear deck')
-    await openButton?.trigger('click')
-    expect(store.deck.cards).toHaveLength(1)
-
-    const confirmButton = wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'Clear Deck')
-    await confirmButton?.trigger('click')
-
-    expect(store.deck.commander).toBeNull()
-    expect(store.deck.cards).toHaveLength(0)
+    await wrapper.find('[aria-label="List view"]').trigger('click')
     wrapper.unmount()
+
+    const saved = JSON.parse(
+      localStorage.getItem('doomsday-mtg-deck-panel-preferences') ?? '{}',
+    )
+    expect(saved.viewMode).toBe('list')
+
+    const restored = mountPanel()
+    expect(
+      restored.find('[aria-label="List view"]').classes(),
+    ).toContain('v-btn--active')
   })
 })

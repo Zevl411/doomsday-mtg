@@ -8,6 +8,7 @@ import {
   getDeckBoardEntries,
   type Deck,
   type DeckCard,
+  type DeckVisibility,
   type TrackedDeckBoard,
 } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
@@ -82,11 +83,11 @@ export const useDeckStore = defineStore('deck', {
 
   // Actions are the store's named methods for changing its state.
   actions: {
-    createDeck(name?: string): Deck {
+    createDeck(name?: string, creatorUsername = 'Guest'): Deck {
       const deckName = name?.trim() || getNextDefaultDeckName(
         this.library.decks.map((deck) => deck.name),
       )
-      const deck = createEmptyDeck(deckName)
+      const deck = createEmptyDeck(deckName, creatorUsername)
       if (this.storageMode === 'guest') {
         this.library.decks = [deck]
       } else {
@@ -131,14 +132,65 @@ export const useDeckStore = defineStore('deck', {
       return true
     },
 
-    duplicateDeck(deckId: string): Deck | null {
+    updateDeckSettings(
+      deckId: string,
+      settings: {
+        name: string
+        description: string
+        visibility: DeckVisibility
+      },
+    ): boolean {
+      const deck = this.library.decks.find((item) => item.id === deckId)
+      const name = settings.name.trim()
+      if (!deck || !name || settings.description.length > 500) return false
+
+      deck.name = name
+      deck.description = settings.description
+      deck.visibility = settings.visibility
+      deck.updatedAt = new Date().toISOString()
+      this.persistLibrary()
+      return true
+    },
+
+    duplicateDeck(
+      deckId: string,
+      options?: {
+        name?: string
+        visibility?: DeckVisibility
+        creatorUsername?: string
+      },
+    ): Deck | null {
       const source = this.library.decks.find((deck) => deck.id === deckId)
       if (!source) {
         return null
       }
 
-      const duplicate = cloneDeck(source)
-      this.library.decks.push(duplicate)
+      const duplicate = cloneDeck(
+        source,
+        options?.name,
+        options?.visibility ?? 'unlisted',
+        options?.creatorUsername ?? source.creatorUsername ?? 'Unknown',
+      )
+      if (this.storageMode === 'guest') {
+        this.library.decks = [duplicate]
+      } else {
+        this.library.decks.push(duplicate)
+      }
+      this.library.activeDeckId = duplicate.id
+      this.persistLibrary()
+      return duplicate
+    },
+
+    copyExternalDeck(
+      source: Deck,
+      name: string,
+      visibility: DeckVisibility = 'unlisted',
+      creatorUsername = 'Guest',
+    ): Deck {
+      const duplicate = cloneDeck(source, name, visibility, creatorUsername)
+      if (this.storageMode === 'guest') this.library.decks = [duplicate]
+      else this.library.decks.push(duplicate)
+      this.library.activeDeckId = duplicate.id
       this.persistLibrary()
       return duplicate
     },
@@ -419,7 +471,12 @@ export const useDeckStore = defineStore('deck', {
     },
 
     resetActiveDeck() {
-      const replacement = createEmptyDeck(this.deck.name)
+      const replacement = createEmptyDeck(
+        this.deck.name,
+        this.deck.creatorUsername ?? 'Unknown',
+      )
+      replacement.description = this.deck.description ?? ''
+      replacement.visibility = this.deck.visibility ?? 'private'
       replacement.id = this.deck.id
       replacement.createdAt = this.deck.createdAt
       this.replaceActiveDeck(replacement)

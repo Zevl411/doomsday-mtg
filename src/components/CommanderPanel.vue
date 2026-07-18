@@ -1,5 +1,11 @@
 <template>
-  <v-card border class="h-100" color="surface" rounded="lg" variant="flat">
+  <v-card
+    border
+    class="commander-panel"
+    color="surface"
+    rounded="lg"
+    variant="flat"
+  >
     <v-card-title class="px-5 pt-5">Commander Search</v-card-title>
     <v-card-subtitle class="px-5">
       Find and manage your selected Commander
@@ -7,10 +13,13 @@
 
     <v-card-text class="pa-5">
       <CardSearch
+        clearable
         commander-only
+        :model-value="commander?.name ?? ''"
         :selected-card-ids="selectedCommanderIds"
         @card-hovered="deckStore.setPreviewCard"
         @card-selected="deckStore.setCommander"
+        @cleared="deckStore.clearCommander"
       />
 
       <template v-if="commander && canHavePartner(commander)">
@@ -19,11 +28,14 @@
           Partner Commander
         </p>
         <CardSearch
+          clearable
           commander-only
+          :model-value="partnerCommander?.name ?? ''"
           :search-filter="partnerSearchFilter"
           :selected-card-ids="selectedCommanderIds"
           @card-hovered="deckStore.setPreviewCard"
           @card-selected="selectPartner"
+          @cleared="deckStore.clearPartnerCommander"
         />
         <v-alert
           v-if="partnerError"
@@ -68,15 +80,6 @@
           size="medium"
         />
       </v-card-text>
-      <v-card-actions class="px-5 pb-5">
-        <v-btn
-          color="secondary"
-          variant="outlined"
-          @click="deckStore.clearCommander"
-        >
-          Clear commander
-        </v-btn>
-      </v-card-actions>
 
       <template v-if="partnerCommander">
         <v-divider class="mx-5" />
@@ -107,15 +110,6 @@
               size="medium"
             />
           </v-card-text>
-          <v-card-actions class="px-5 pb-5">
-            <v-btn
-              color="secondary"
-              variant="outlined"
-              @click="deckStore.clearPartnerCommander"
-            >
-              Clear partner
-            </v-btn>
-          </v-card-actions>
         </div>
       </template>
     </div>
@@ -158,3 +152,12 @@ function selectPartner(card: ScryfallCard) {
     : result.reason ?? 'Those commanders cannot be paired.'
 }
 </script>
+
+<style scoped>
+@media (min-width: 960px) {
+  .commander-panel {
+    position: sticky;
+    top: 92px;
+  }
+}
+</style>

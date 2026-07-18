@@ -1,71 +1,74 @@
 <template>
   <v-card border color="surface" rounded="lg" variant="flat">
-    <v-card-text
-      class="d-flex flex-wrap align-center justify-space-between ga-4"
-    >
-      <div>
-        <div class="text-overline text-medium-emphasis">Active deck</div>
-        <h1 class="text-h5 font-weight-bold">{{ deckStore.deck.name }}</h1>
+    <v-card-text class="d-flex flex-wrap align-start justify-space-between ga-4">
+      <div class="flex-grow-1">
+        <div class="d-flex flex-wrap align-center ga-2">
+          <h1 class="text-h5 font-weight-bold">{{ deck.name }}</h1>
+          <v-chip size="small" variant="outlined">{{ deck.visibility ?? 'private' }}</v-chip>
+        </div>
+        <p class="text-caption text-medium-emphasis">
+          Created by {{ deck.creatorUsername ?? 'Unknown' }}
+        </p>
+        <p v-if="deck.description" class="mt-2 text-body-2">
+          {{ deck.description }}
+        </p>
       </div>
-      <div class="d-flex flex-wrap ga-2">
+      <v-btn-group divided variant="outlined">
+        <v-btn prepend-icon="mdi-cog" @click="openSettings">Settings</v-btn>
         <v-btn
           :disabled="!canCompare"
-          :title="compareTitle"
-          :to="
-            canCompare
-              ? { name: 'deck-comparison', params: { deckId: deckStore.deck.id } }
-              : undefined
-          "
-          variant="tonal"
-        >
-          Compare
-        </v-btn>
-        <v-btn :to="{ name: 'deck-library' }" variant="text">
-          All decks
-        </v-btn>
-        <v-btn variant="outlined" @click="openRenameDialog">Rename</v-btn>
-        <v-btn color="primary" variant="flat" @click="showNewDialog = true">
-          New deck
-        </v-btn>
-      </div>
+          prepend-icon="mdi-chart-line"
+          :to="{ name: 'deck-comparison', params: { deckId: deck.id } }"
+        >Compare</v-btn>
+        <v-btn prepend-icon="mdi-content-copy" @click="openCopy">Copy</v-btn>
+        <v-btn prepend-icon="mdi-import" @click="emit('import')">Import</v-btn>
+        <v-btn prepend-icon="mdi-export" @click="emit('export')">Export</v-btn>
+      </v-btn-group>
     </v-card-text>
   </v-card>
 
-  <v-dialog v-model="showRenameDialog" max-width="480">
-    <v-card color="surface" rounded="lg">
-      <v-card-title class="px-5 pt-5">Rename deck</v-card-title>
-      <v-card-text class="px-5">
-        <v-text-field
-          v-model="renameName"
-          autofocus
-          :error-messages="renameError"
-          label="Deck name"
-          @keyup.enter="renameDeck"
+  <v-dialog v-model="showSettings" max-width="560">
+    <v-card>
+      <v-card-title>Edit deck settings</v-card-title>
+      <v-card-text>
+        <v-text-field v-model="settingsName" label="Deck name" />
+        <v-textarea
+          v-model="settingsDescription"
+          counter="500"
+          label="Description"
+          maxlength="500"
+        />
+        <v-select
+          v-model="settingsVisibility"
+          :items="visibilityOptions"
+          label="Visibility"
         />
       </v-card-text>
-      <v-card-actions class="px-5 pb-5">
+      <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="showRenameDialog = false">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" @click="renameDeck">Save</v-btn>
+        <v-btn @click="showSettings = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" @click="saveSettings">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 
-  <v-dialog v-model="showNewDialog" max-width="480">
-    <v-card color="surface" rounded="lg">
-      <v-card-title class="px-5 pt-5">Create a new deck?</v-card-title>
-      <v-card-text class="px-5">
-        Your current deck is already saved in the local library.
-        <v-text-field
-          v-model="newDeckName"
-          class="mt-4"
-          label="New deck name (optional)"
+  <v-dialog v-model="showCopy" max-width="560">
+    <v-card>
+      <v-card-title>Copy deck</v-card-title>
+      <v-card-text>
+        <v-text-field v-model="copyName" label="Copy name" />
+        <v-select
+          v-model="copyVisibility"
+          :items="visibilityOptions"
+          label="Visibility"
         />
       </v-card-text>
-      <v-card-actions class="px-5 pb-5">
+      <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="showNewDialog = false">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" @click="createDeck">Create</v-btn>
+        <v-btn @click="showCopy = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" @click="copyDeck">
+          Create copy
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -73,42 +76,50 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { DeckVisibility } from '../models/deck'
 import { useDeckStore } from '../stores/deck'
 
+const emit = defineEmits<{ import: []; export: [] }>()
 const deckStore = useDeckStore()
-const showRenameDialog = ref(false)
-const showNewDialog = ref(false)
-const renameName = ref('')
-const renameError = ref('')
-const newDeckName = ref('')
-const canCompare = computed(() =>
-  Boolean(deckStore.deck.commander && deckStore.deck.cards.length),
-)
-const compareTitle = computed(() =>
-  canCompare.value
-    ? 'Compare this deck with tournament data'
-    : 'Select a Commander and add a mainboard card to compare',
-)
+const deck = computed(() => deckStore.deck)
+const showSettings = ref(false)
+const showCopy = ref(false)
+const settingsName = ref('')
+const settingsDescription = ref('')
+const settingsVisibility = ref<DeckVisibility>('private')
+const copyName = ref('')
+const copyVisibility = ref<DeckVisibility>('unlisted')
+const visibilityOptions = [
+  { title: 'Private — only you can access it', value: 'private' },
+  { title: 'Unlisted — anyone with the link can access it', value: 'unlisted' },
+  { title: 'Public — visible and findable', value: 'public' },
+]
+const canCompare = computed(() => Boolean(deck.value.commander && deck.value.cards.length))
 
-function openRenameDialog() {
-  renameName.value = deckStore.deck.name
-  renameError.value = ''
-  showRenameDialog.value = true
+function openSettings() {
+  settingsName.value = deck.value.name
+  settingsDescription.value = deck.value.description ?? ''
+  settingsVisibility.value = deck.value.visibility ?? 'private'
+  showSettings.value = true
 }
-
-function renameDeck() {
-  if (!renameName.value.trim()) {
-    renameError.value = 'Enter a deck name.'
-    return
-  }
-
-  deckStore.renameDeck(deckStore.deck.id, renameName.value)
-  showRenameDialog.value = false
+function saveSettings() {
+  if (deckStore.updateDeckSettings(deck.value.id, {
+    name: settingsName.value,
+    description: settingsDescription.value,
+    visibility: settingsVisibility.value,
+  })) showSettings.value = false
 }
-
-function createDeck() {
-  deckStore.createDeck(newDeckName.value.trim() || undefined)
-  newDeckName.value = ''
-  showNewDialog.value = false
+function openCopy() {
+  copyName.value =
+    `${deck.value.name} (copied from ${deck.value.creatorUsername ?? 'Unknown'})`
+  copyVisibility.value = 'unlisted'
+  showCopy.value = true
+}
+function copyDeck() {
+  const copy = deckStore.duplicateDeck(deck.value.id, {
+    name: copyName.value,
+    visibility: copyVisibility.value,
+  })
+  if (copy) showCopy.value = false
 }
 </script>

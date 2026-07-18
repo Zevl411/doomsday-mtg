@@ -1,4 +1,4 @@
-import type { Deck, DeckCard } from './deck'
+import type { Deck, DeckCard, DeckVisibility } from './deck'
 import type { ScryfallCard } from '../types/card'
 
 export const DEFAULT_DECK_NAME = 'Untitled Deck'
@@ -13,12 +13,18 @@ export function createDeckId(): string {
   return `deck-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-export function createEmptyDeck(name = DEFAULT_DECK_NAME): Deck {
+export function createEmptyDeck(
+  name = DEFAULT_DECK_NAME,
+  creatorUsername = 'Guest',
+): Deck {
   const timestamp = new Date().toISOString()
 
   return {
     id: createDeckId(),
     name: normalizeDeckName(name),
+    description: '',
+    visibility: 'private',
+    creatorUsername,
     createdAt: timestamp,
     updatedAt: timestamp,
     commander: null,
@@ -30,12 +36,20 @@ export function createEmptyDeck(name = DEFAULT_DECK_NAME): Deck {
   }
 }
 
-export function cloneDeck(source: Deck, name?: string): Deck {
+export function cloneDeck(
+  source: Deck,
+  name?: string,
+  visibility: DeckVisibility = 'unlisted',
+  creatorUsername = source.creatorUsername,
+): Deck {
   const timestamp = new Date().toISOString()
 
   return {
     id: createDeckId(),
     name: normalizeDeckName(name ?? `${source.name} Copy`),
+    description: source.description ?? '',
+    visibility,
+    creatorUsername: creatorUsername || 'Unknown',
     createdAt: timestamp,
     updatedAt: timestamp,
     commander: source.commander ? cloneCard(source.commander) : null,

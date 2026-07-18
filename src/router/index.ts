@@ -29,6 +29,16 @@ const router = createRouter({
       component: () => import('../views/DeckLibraryView.vue'),
     },
     {
+      path: '/decks/public',
+      name: 'public-decks',
+      component: () => import('../views/PublicDecksView.vue'),
+    },
+    {
+      path: '/decks/shared/:deckId',
+      name: 'shared-deck',
+      component: () => import('../views/SharedDeckView.vue'),
+    },
+    {
       path: '/deck-builder',
       name: 'deck-builder',
       component: () => import('../views/DeckBuilderView.vue'),

@@ -210,7 +210,7 @@ function copyToMyDecks() {
   copy.considering = cardsForBoard('considering').map(toDeckCard)
   // createDeck() allocates a fresh application ID; replacing its contents
   // never mutates the public tournament snapshot.
-  deckStore.createDeck(copy.name)
+  deckStore.createDeck(copy.name, 'Tournament import')
   deckStore.replaceActiveDeck(copy)
   copyMessage.value = 'Tournament Deck copied to your Decks.'
   void router.push({ name: 'deck-builder' })

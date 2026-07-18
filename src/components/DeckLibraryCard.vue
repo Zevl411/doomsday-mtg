@@ -39,6 +39,9 @@
       <v-card-subtitle>
         {{ deck.commander?.name ?? 'No commander' }}
       </v-card-subtitle>
+      <v-card-subtitle>
+        By {{ deck.creatorUsername ?? 'Unknown' }}
+      </v-card-subtitle>
     </v-card-item>
 
     <v-card-text class="flex-grow-1">
@@ -50,12 +53,15 @@
           Side {{ boardCount(deck.sideboard) }}
         </v-chip>
         <v-chip size="x-small" variant="tonal">
-          Maybe {{ boardCount(deck.maybeboard) }}
+          Maybe {{ boardCount(deck.maybeboard) + boardCount(deck.considering) }}
         </v-chip>
-        <v-chip size="x-small" variant="tonal">
-          Considering {{ boardCount(deck.considering) }}
+        <v-chip size="x-small" variant="outlined">
+          {{ deck.visibility ?? 'private' }}
         </v-chip>
       </div>
+      <p v-if="deck.description" class="mt-2 text-body-2">
+        {{ deck.description }}
+      </p>
       <div class="mt-2">{{ totalCount }} cards including commander</div>
       <div class="text-caption text-medium-emphasis">
         Updated {{ updatedLabel }}

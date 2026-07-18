@@ -8,6 +8,7 @@
     placeholder="Card name"
     type="search"
     variant="outlined"
+    :clearable="clearable"
   >
     <template v-if="$slots.actions" #append>
       <slot name="actions" />
@@ -96,11 +97,15 @@ const props = withDefaults(
     commanderOnly?: boolean
     searchFilter?: string
     selectedCardIds?: string[]
+    modelValue?: string
+    clearable?: boolean
   }>(),
   {
     commanderOnly: false,
     searchFilter: '',
     selectedCardIds: () => [],
+    modelValue: '',
+    clearable: false,
   },
 )
 
@@ -109,13 +114,15 @@ const props = withDefaults(
 const emit = defineEmits<{
   'card-hovered': [card: ScryfallCard]
   'card-selected': [card: ScryfallCard]
+  'update:modelValue': [value: string]
+  cleared: []
 }>()
 
 // useId() gives each CardSearch instance its own accessible input and label ID.
 const searchInputId = useId()
 
 // ref() makes a value reactive, so Vue updates the page when it changes.
-const query = ref('')
+const query = ref(props.modelValue)
 const cards = ref<ScryfallCard[]>([])
 const errorMessage = ref('')
 const fallbackMessage = ref('')
@@ -128,6 +135,8 @@ let activeController: AbortController | null = null
 
 // Watching both values also refreshes results when a parent changes the filter.
 watch([query, () => props.searchFilter], ([newQuery]) => {
+  emit('update:modelValue', newQuery)
+  if (!newQuery) emit('cleared')
   window.clearTimeout(searchTimer)
   activeController?.abort()
   activeController = null
@@ -187,6 +196,13 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
     }
   }, 250)
 })
+
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (value !== query.value) query.value = value
+  },
+)
 
 // onUnmounted() runs cleanup when Vue removes this component from the page.
 onUnmounted(() => {

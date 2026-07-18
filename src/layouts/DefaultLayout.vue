@@ -34,23 +34,22 @@
           >
             Home
           </v-btn>
-          <v-btn
-            active-color="primary"
-            size="small"
-            :to="{ name: 'deck-library' }"
-            variant="text"
-          >
-            Decks
-          </v-btn>
-          <v-btn
-            active-color="primary"
-            size="small"
-            :to="{ name: 'deck-builder' }"
-            variant="text"
-          >
-            <span class="d-none d-sm-inline">Deck Builder</span>
-            <span class="d-sm-none">Builder</span>
-          </v-btn>
+          <v-menu>
+            <template #activator="{ props }">
+              <v-btn append-icon="mdi-menu-down" size="small" v-bind="props">
+                Decks
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item :to="{ name: 'deck-library' }" title="All Decks" />
+              <v-list-item :to="{ name: 'public-decks' }" title="Public Decks" />
+              <v-list-item
+                prepend-icon="mdi-plus"
+                title="New Deck"
+                @click="createNewDeck"
+              />
+            </v-list>
+          </v-menu>
           <v-btn
             active-color="primary"
             size="small"
@@ -122,9 +121,12 @@ import { ref, watch } from 'vue'
 import { appConfig } from '../config/app'
 import { dataHealthRepository } from '../repositories/dataHealthRepository'
 import { useAuthStore } from '../stores/auth'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+import { useDeckStore } from '../stores/deck'
 
 const auth = useAuthStore()
+const deckStore = useDeckStore()
+const router = useRouter()
 const isAdmin = ref(false)
 
 // Navigation is hidden for non-admins; route and database checks still enforce
@@ -141,4 +143,9 @@ watch(
 // BASE_URL keeps the logo working from a GitHub Pages repository subdirectory.
 const brandLogoUrl =
   `${import.meta.env.BASE_URL}brand/oracle-app-icon-1024.png`
+
+function createNewDeck() {
+  deckStore.createDeck(undefined, auth.username)
+  void router.push({ name: 'deck-builder' })
+}
 </script>

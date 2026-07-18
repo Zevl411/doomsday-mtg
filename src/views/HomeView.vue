@@ -254,10 +254,12 @@ import type {
 } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'
 import { useDeckStore } from '../stores/deck'
+import { useAuthStore } from '../stores/auth'
 import { getCardArt } from '../utils/cardDisplay'
 import { getTotalDeckCardCount } from '../utils/deckValidation'
 
 const deckStore = useDeckStore()
+const auth = useAuthStore()
 const router = useRouter()
 const commanderStats = ref<CommanderMetagameStats[]>([])
 const recentTournaments = ref<Tournament[]>([])
@@ -314,7 +316,7 @@ function openDeck(deckId: string) {
 }
 
 function startNewDeck() {
-  deckStore.createDeck()
+  deckStore.createDeck(undefined, auth.username)
   void router.push({ name: 'deck-builder' })
 }
 

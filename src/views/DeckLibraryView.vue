@@ -177,7 +177,7 @@ function submitName() {
   if (editingDeckId.value) {
     deckStore.renameDeck(editingDeckId.value, trimmedName)
   } else {
-    deckStore.createDeck(trimmedName || undefined)
+    deckStore.createDeck(trimmedName || undefined, auth.username)
     router.push({ name: 'deck-builder' })
   }
   showNameDialog.value = false

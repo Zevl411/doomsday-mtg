@@ -1,5 +1,5 @@
 import { createDeckId } from '../models/createDeck'
-import type { Deck, DeckCard } from '../models/deck'
+import type { Deck, DeckCard, DeckVisibility } from '../models/deck'
 import {
   DECK_LIBRARY_VERSION,
   type StoredDeckLibrary,
@@ -273,7 +273,7 @@ function normalizeDeck(
     return null
   }
 
-  return {
+  const deck: Deck = {
     id,
     name: value.name,
     createdAt,
@@ -285,6 +285,18 @@ function normalizeDeck(
     maybeboard,
     considering,
   }
+  if (typeof value.description === 'string') {
+    deck.description = value.description.slice(0, 500)
+  }
+  if (isDeckVisibility(value.visibility)) deck.visibility = value.visibility
+  if (typeof value.creatorUsername === 'string' && value.creatorUsername.trim()) {
+    deck.creatorUsername = value.creatorUsername.trim()
+  }
+  return deck
+}
+
+function isDeckVisibility(value: unknown): value is DeckVisibility {
+  return value === 'private' || value === 'unlisted' || value === 'public'
 }
 
 export function isUsableDeck(value: unknown): value is Deck {

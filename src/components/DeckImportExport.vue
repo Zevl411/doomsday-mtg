@@ -1,5 +1,5 @@
 <template>
-  <v-card border color="surface" rounded="lg" variant="flat">
+  <v-card v-if="showControls" border color="surface" rounded="lg" variant="flat">
     <v-card-text class="d-flex flex-wrap align-center ga-3 pa-4">
       <span class="text-subtitle-1 font-weight-bold">Decklist</span>
       <v-spacer />
@@ -218,6 +218,10 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { prepareDeckImport } from '../services/deckImport'
 import { useDeckStore } from '../stores/deck'
+
+withDefaults(defineProps<{ showControls?: boolean }>(), {
+  showControls: true,
+})
 import type { PreparedDeckImport } from '../types/deckImport'
 import type {
   DecklistFormat,
@@ -400,6 +404,8 @@ function openExportDialog() {
   clipboardSucceeded.value = false
   showExportDialog.value = true
 }
+
+defineExpose({ openImportDialog, openExportDialog })
 
 async function copyExport() {
   try {

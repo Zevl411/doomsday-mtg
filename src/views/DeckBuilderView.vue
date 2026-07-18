@@ -1,22 +1,29 @@
 <template>
   <v-row align="start">
     <v-col cols="12">
-      <DeckBuilderHeader />
+      <DeckBuilderHeader
+        @export="importExport?.openExportDialog()"
+        @import="importExport?.openImportDialog()"
+      />
     </v-col>
 
     <v-col cols="12">
-      <DeckImportExport />
+      <DeckImportExport ref="importExport" :show-controls="false" />
     </v-col>
 
     <v-col cols="12" md="6" lg="4">
       <CommanderPanel />
     </v-col>
 
-    <v-col cols="12" md="6" lg="4">
-      <DeckPanel @card-selected="addDeckCard" />
+    <v-col cols="12" md="6" lg="8">
+      <DeckCardSearch @card-selected="addDeckCard($event, 'mainboard')" />
     </v-col>
 
-    <v-col class="preview-column" cols="12" lg="4">
+    <v-col cols="12" lg="9">
+      <DeckPanel />
+    </v-col>
+
+    <v-col class="preview-column" cols="12" lg="3">
       <CardPreview :card="deckStore.previewCard" />
     </v-col>
   </v-row>
@@ -67,17 +74,21 @@ import { ref } from 'vue'
 import CardPreview from '../components/CardPreview.vue'
 import CommanderPanel from '../components/CommanderPanel.vue'
 import DeckBuilderHeader from '../components/DeckBuilderHeader.vue'
+import DeckCardSearch from '../components/DeckCardSearch.vue'
 import DeckImportExport from '../components/DeckImportExport.vue'
 import DeckPanel from '../components/DeckPanel.vue'
 import { useDeckStore } from '../stores/deck'
+import { useAuthStore } from '../stores/auth'
 import type { TrackedDeckBoard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 
 const deckStore = useDeckStore()
+const auth = useAuthStore()
+const importExport = ref<InstanceType<typeof DeckImportExport> | null>(null)
 // Opening the builder directly creates a first local deck when the library is
 // empty. Returning later reuses the active deck held by Pinia.
 if (!deckStore.hasActiveDeck) {
-  deckStore.createDeck()
+  deckStore.createDeck(undefined, auth.username)
 }
 const pendingIllegalCard = ref<ScryfallCard | null>(null)
 const pendingIllegalReason = ref('')

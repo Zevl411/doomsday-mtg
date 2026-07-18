@@ -15,6 +15,12 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isSignedIn: (state) => state.user !== null,
+    username: (state): string =>
+      state.user?.user_metadata?.username ??
+      state.user?.user_metadata?.user_name ??
+      state.user?.user_metadata?.full_name ??
+      state.user?.email?.split('@')[0] ??
+      'Guest',
   },
 
   actions: {

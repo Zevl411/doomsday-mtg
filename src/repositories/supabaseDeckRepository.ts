@@ -35,7 +35,7 @@ export function createSupabaseDeckRepository(
           console.warn('An invalid cloud deck record was ignored.', record.id)
           return []
         }
-        return [record.deck_data]
+        return [hydrateDeck(record)]
       })
     },
 
@@ -58,7 +58,7 @@ export function createSupabaseDeckRepository(
         console.warn('An invalid cloud deck record was ignored.', record.id)
         return null
       }
-      return record.deck_data
+      return hydrateDeck(record)
     },
 
     async saveDeck(deck) {
@@ -67,6 +67,8 @@ export function createSupabaseDeckRepository(
           user_id: userId,
           deck_id: deck.id,
           name: deck.name,
+          description: deck.description ?? '',
+          visibility: deck.visibility ?? 'private',
           deck_data: deck,
           schema_version: 1,
           created_at: deck.createdAt,
@@ -85,6 +87,17 @@ export function createSupabaseDeckRepository(
         .eq('user_id', userId)
       if (error) throw repositoryError('delete', error)
     },
+  }
+}
+
+function hydrateDeck(record: CloudDeckRecord): Deck {
+  return {
+    ...record.deck_data,
+    name: record.name ?? record.deck_data.name,
+    description: record.description ?? record.deck_data.description ?? '',
+    visibility: record.visibility ?? record.deck_data.visibility ?? 'private',
+    creatorUsername:
+      record.creator_username || record.deck_data.creatorUsername || 'Unknown',
   }
 }
 
