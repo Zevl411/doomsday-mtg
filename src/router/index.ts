@@ -4,7 +4,9 @@ import { dataHealthRepository } from '../repositories/dataHealthRepository'
 // Router configuration belongs separately from the route-level view components.
 const router = createRouter({
   // Hash history keeps GitHub Pages refreshes from requesting missing files.
-  history: createWebHashHistory(),
+  // Supplying Vite's base explicitly keeps navbar links inside the repository
+  // subdirectory instead of relying on the browser to infer it at runtime.
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',

@@ -26,7 +26,9 @@ describe('router', () => {
   })
 
   it('resolves tournament explorer and hidden ingestion routes', () => {
-    expect(router.resolve('/metagame').name).toBe('metagame')
+    const metagame = router.resolve('/metagame')
+    expect(metagame.name).toBe('metagame')
+    expect(metagame.href).toContain('#/metagame')
     expect(router.resolve('/commanders/kinnan').name).toBe('commander-metagame')
     expect(router.resolve('/tournaments').name).toBe('tournaments')
     expect(router.resolve('/tournaments/event-id').name).toBe('tournament-detail')
