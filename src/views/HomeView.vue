@@ -76,13 +76,23 @@
         lg="3"
       >
         <v-card border class="d-flex flex-column h-100" color="surface">
-          <v-img
+          <div
             v-if="commanderImage(deck)"
-            :alt="`${deck.commander?.name} card art`"
-            aspect-ratio="1.7"
-            cover
-            :src="commanderImage(deck)"
-          />
+            :aria-label="`Continue editing ${deck.name}`"
+            class="deck-summary-art"
+            role="button"
+            tabindex="0"
+            @click="openDeck(deck.id)"
+            @keydown.enter="openDeck(deck.id)"
+            @keydown.space.prevent="openDeck(deck.id)"
+          >
+            <v-img
+              :alt="`${deck.commander?.name} card art`"
+              aspect-ratio="1.7"
+              cover
+              :src="commanderImage(deck)"
+            />
+          </div>
           <v-sheet
             v-else
             class="d-flex align-center justify-center text-medium-emphasis"
@@ -329,3 +339,14 @@ function percent(value: number) {
   return `${(value * 100).toFixed(1)}%`
 }
 </script>
+
+<style scoped>
+.deck-summary-art {
+  cursor: pointer;
+}
+
+.deck-summary-art:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+</style>

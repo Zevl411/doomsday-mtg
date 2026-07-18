@@ -39,6 +39,22 @@ Mana and color-identity symbols are local font glyphs from `mana-font`, wrapped
 by `ManaSymbol.vue` and `ColorIdentitySymbols.vue`. Feature templates should
 use those Vue components instead of remote symbol images or raw font classes.
 
+## Interface terminology
+
+Use these names consistently in issues, comments, and component discussions:
+
+- **Magic card**: an actual Magic: The Gathering card represented by
+  `ScryfallCard`.
+- **Deck entry**: a Magic card plus its quantity, represented by `DeckCard`.
+- **Magic card tile**: a visual Magic card result or image, such as
+  `TournamentCardImage`.
+- **Deck summary card**: the Vuetify card that represents an entire saved Deck,
+  such as `DeckLibraryCard` and the recent-deck cards on the home page.
+- **Panel** or **surface**: a generic Vuetify `v-card` used only to group UI.
+
+Avoid the unqualified phrase “deck card”: it can mean either a Magic card
+inside a Deck or a Vuetify card representing the Deck itself.
+
 ## Deck ownership
 
 `src/models/deck.ts` defines the application-owned `Deck` and `DeckCard`

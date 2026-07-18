@@ -6,13 +6,23 @@
     rounded="lg"
     variant="flat"
   >
-    <v-img
+    <div
       v-if="commanderImage"
-      :alt="`${deck.commander?.name} card art`"
-      aspect-ratio="1.7"
-      cover
-      :src="commanderImage"
-    />
+      :aria-label="`Open ${deck.name}`"
+      class="deck-summary-art"
+      role="button"
+      tabindex="0"
+      @click="openDeck"
+      @keydown.enter="openDeck"
+      @keydown.space.prevent="openDeck"
+    >
+      <v-img
+        :alt="`${deck.commander?.name} card art`"
+        aspect-ratio="1.7"
+        cover
+        :src="commanderImage"
+      />
+    </div>
     <v-sheet
       v-else
       class="d-flex align-center justify-center text-medium-emphasis"
@@ -56,7 +66,7 @@
     </v-card-text>
 
     <v-card-actions class="flex-wrap px-4 pb-4">
-      <v-btn color="primary" variant="flat" @click="emit('open', deck.id)">
+      <v-btn color="primary" variant="flat" @click="openDeck">
         Open
       </v-btn>
       <v-btn variant="text" @click="emit('rename', deck.id)">Rename</v-btn>
@@ -105,4 +115,19 @@ const updatedLabel = computed(() =>
 function boardCount(entries: DeckCard[]): number {
   return entries.reduce((total, entry) => total + entry.quantity, 0)
 }
+
+function openDeck() {
+  emit('open', props.deck.id)
+}
 </script>
+
+<style scoped>
+.deck-summary-art {
+  cursor: pointer;
+}
+
+.deck-summary-art:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+</style>

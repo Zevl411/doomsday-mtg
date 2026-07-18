@@ -49,4 +49,26 @@ describe('DeckLibraryCard', () => {
     expect(wrapper.emitted('duplicate')?.[0]).toEqual([deck.id])
     expect(deck.name).toBe('Actions')
   })
+
+  it('opens the deck when its Commander artwork is selected', async () => {
+    const deck = createEmptyDeck('Artwork link')
+    deck.commander = {
+      ...commander,
+      image_uris: {
+        small: 'small.jpg',
+        normal: 'normal.jpg',
+        large: 'large.jpg',
+        art_crop: 'art.jpg',
+      },
+    }
+    const wrapper = mount(DeckLibraryCard, {
+      props: { deck, active: false },
+      global: { plugins: [vuetify] },
+    })
+
+    const artwork = wrapper.get('[role="button"][aria-label="Open Artwork link"]')
+    await artwork.trigger('click')
+
+    expect(wrapper.emitted('open')?.[0]).toEqual([deck.id])
+  })
 })
