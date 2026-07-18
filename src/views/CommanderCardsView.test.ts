@@ -3,10 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import vuetify from '../plugins/vuetify'
 import CommanderCardsView from './CommanderCardsView.vue'
 
-const { getCommanderCardInclusion, getCommanderIdentity, getLocationOptions } = vi.hoisted(() => ({
+const {
+  getCommanderCardInclusion,
+  getCommanderIdentity,
+  getLocationOptions,
+  getCardInclusionOverTime,
+} = vi.hoisted(() => ({
   getCommanderCardInclusion: vi.fn(),
   getCommanderIdentity: vi.fn(),
   getLocationOptions: vi.fn(),
+  getCardInclusionOverTime: vi.fn(),
 }))
 
 vi.mock('vue-router', () => ({
@@ -17,6 +23,7 @@ vi.mock('../repositories/tournamentRepository', () => ({
     getCommanderCardInclusion,
     getCommanderIdentity,
     getLocationOptions,
+    getCardInclusionOverTime,
   },
 }))
 
@@ -35,6 +42,8 @@ beforeEach(() => {
     regions: ['country:US/state:FL'],
     hasOnline: true,
   })
+  getCardInclusionOverTime.mockReset()
+  getCardInclusionOverTime.mockResolvedValue([])
 })
 
 describe('CommanderCardsView', () => {
@@ -86,5 +95,59 @@ describe('CommanderCardsView', () => {
     })
     await flushPromises()
     expect(wrapper.text()).toContain('No complete normalized Decks')
+  })
+
+  it('opens selectable inclusion history when a card is clicked', async () => {
+    getCommanderCardInclusion.mockResolvedValue([{
+      normalizedCardKey: 'sol-ring',
+      oracleId: 'oracle-id',
+      cardName: 'Sol Ring',
+      colorIdentity: [],
+      deckCount: 8,
+      totalEligibleDecks: 10,
+      inclusionRate: 0.8,
+      averageQuantity: 1,
+      top16DeckCount: 4,
+      top16InclusionRate: 0.8,
+      firstPlaceDeckCount: 1,
+      firstPlaceInclusionRate: 1,
+    }])
+    getCardInclusionOverTime.mockResolvedValue([{
+      periodStart: '2026-07-06',
+      deckCount: 3,
+      totalEligibleDecks: 4,
+      eventCount: 2,
+      inclusionRate: 0.75,
+    }])
+    const wrapper = mount(CommanderCardsView, {
+      attachTo: document.body,
+      global: {
+        plugins: [vuetify],
+        stubs: { RouterLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    await flushPromises()
+
+    await wrapper
+      .find('[aria-label="View Sol Ring inclusion history"]')
+      .trigger('click')
+    await flushPromises()
+
+    expect(getCardInclusionOverTime).toHaveBeenCalledWith(
+      'kinnan',
+      expect.objectContaining({ normalizedCardKey: 'sol-ring' }),
+      'week',
+      expect.objectContaining({ minimumPlayers: 0 }),
+    )
+    expect(document.body.textContent).toContain('Inclusion over time')
+    expect(document.body.textContent).toContain('Group data by')
+    expect(document.body.textContent).toContain('75.0%')
+    expect(document.body.textContent).toContain('fewer than five')
+    expect(document.body.textContent).toContain('Inclusion (%)')
+    expect(document.body.textContent).toContain('Week')
+    expect(document.body.textContent).toContain('Jul 6')
+    expect(document.body.textContent).not.toContain('Week starting')
+    expect(document.body.querySelector('svg[tabindex="0"]')).not.toBeNull()
+    wrapper.unmount()
   })
 })

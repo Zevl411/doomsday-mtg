@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   parseCommanderInclusionRows,
+  parseCardInclusionHistoryRows,
   tournamentRepository,
 } from './tournamentRepository'
 
@@ -41,6 +42,65 @@ describe('tournamentRepository', () => {
       ...valid[0],
       inclusion_rate: 'invalid',
     }])).toThrow('deck comparison response was invalid')
+  })
+
+  it('validates card inclusion history responses', () => {
+    const valid = [{
+      period_start: '2026-07-06',
+      deck_count: 3,
+      total_eligible_decks: 5,
+      event_count: 2,
+      inclusion_rate: 0.6,
+    }]
+    expect(parseCardInclusionHistoryRows(valid)[0]).toEqual({
+      periodStart: '2026-07-06',
+      deckCount: 3,
+      totalEligibleDecks: 5,
+      eventCount: 2,
+      inclusionRate: 0.6,
+    })
+    expect(() => parseCardInclusionHistoryRows([{
+      ...valid[0],
+      deck_count: 'invalid',
+    }])).toThrow('card inclusion history response was invalid')
+  })
+
+  it('passes time bucket, card identity, and filters to inclusion history', async () => {
+    rpc.mockResolvedValue({ data: [], error: null })
+
+    await tournamentRepository.getCardInclusionOverTime(
+      'kinnan',
+      { oracleId: 'oracle-id', normalizedCardKey: 'sol-ring' },
+      'month',
+      {
+        startDate: '2026-01-01',
+        endDate: '2026-01-31',
+        minimumPlayers: 16,
+        maximumStanding: 16,
+        countryCode: 'US',
+        stateRegion: 'FL',
+        regionKey: 'country:US/state:FL',
+        isOnline: false,
+      },
+    )
+
+    expect(rpc).toHaveBeenCalledWith(
+      'get_commander_card_inclusion_over_time',
+      {
+        target_commander_key: 'kinnan',
+        target_oracle_id: 'oracle-id',
+        target_normalized_card_key: 'sol-ring',
+        time_bucket: 'month',
+        start_date: '2026-01-01',
+        end_date: '2026-01-31',
+        minimum_tournament_size: 16,
+        country_filter: 'US',
+        state_filter: 'FL',
+        region_filter: 'country:US/state:FL',
+        online_filter: false,
+        maximum_standing: 16,
+      },
+    )
   })
 
   it('maps normalized filters and database rows', async () => {

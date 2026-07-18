@@ -20,6 +20,8 @@ import type {
   RegionalMetagameStats,
   NormalizedTournamentDeck,
   CommanderCardInclusion,
+  CardInclusionHistoryPoint,
+  CardInclusionPeriod,
   CardInclusionFilters,
 } from '../models/tournament'
 
@@ -236,6 +238,34 @@ export const tournamentRepository = {
     const rows = parseCommanderInclusionRows(data ?? [])
     await enrichInclusionCardImages(rows)
     return rows
+  },
+
+  async getCardInclusionOverTime(
+    commanderKey: string,
+    card: Pick<CommanderCardInclusion, 'oracleId' | 'normalizedCardKey'>,
+    period: CardInclusionPeriod,
+    filters: CardInclusionFilters = {},
+  ): Promise<CardInclusionHistoryPoint[]> {
+    requireSupabase()
+    const { data, error } = await supabase!.rpc(
+      'get_commander_card_inclusion_over_time',
+      {
+        target_commander_key: commanderKey,
+        target_oracle_id: card.oracleId ?? null,
+        target_normalized_card_key: card.normalizedCardKey,
+        time_bucket: period,
+        start_date: filters.startDate || null,
+        end_date: filters.endDate || null,
+        minimum_tournament_size: Math.max(0, filters.minimumPlayers ?? 0),
+        country_filter: filters.countryCode || null,
+        state_filter: filters.stateRegion || null,
+        region_filter: filters.regionKey || null,
+        online_filter: filters.isOnline ?? null,
+        maximum_standing: filters.maximumStanding ?? null,
+      },
+    )
+    if (error) throw friendlyError('load card inclusion history', error)
+    return parseCardInclusionHistoryRows(data ?? [])
   },
 
   async getCommanderIdentity(
@@ -469,6 +499,35 @@ export function parseCommanderInclusionRows(
       top16InclusionRate: Number(row.top16_inclusion_rate),
       firstPlaceDeckCount: Number(row.first_place_deck_count),
       firstPlaceInclusionRate: Number(row.first_place_inclusion_rate),
+    }
+  })
+}
+
+export function parseCardInclusionHistoryRows(
+  value: unknown,
+): CardInclusionHistoryPoint[] {
+  if (!Array.isArray(value)) {
+    throw new Error('The card inclusion history response was invalid.')
+  }
+  return value.map((row) => {
+    if (
+      !isRecord(row) ||
+      typeof row.period_start !== 'string' ||
+      !hasFiniteNumbers(row, [
+        'deck_count',
+        'total_eligible_decks',
+        'event_count',
+        'inclusion_rate',
+      ])
+    ) {
+      throw new Error('The card inclusion history response was invalid.')
+    }
+    return {
+      periodStart: row.period_start,
+      deckCount: Number(row.deck_count),
+      totalEligibleDecks: Number(row.total_eligible_decks),
+      eventCount: Number(row.event_count),
+      inclusionRate: Number(row.inclusion_rate),
     }
   })
 }

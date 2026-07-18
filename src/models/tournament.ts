@@ -171,6 +171,16 @@ export interface CommanderCardInclusion {
   firstPlaceInclusionRate: number
 }
 
+export type CardInclusionPeriod = 'day' | 'week' | 'month' | 'year'
+
+export interface CardInclusionHistoryPoint {
+  periodStart: string
+  deckCount: number
+  totalEligibleDecks: number
+  eventCount: number
+  inclusionRate: number
+}
+
 export interface CardInclusionFilters extends MetagameFilters {
   maximumStanding?: number
   minimumCompleteDecks?: number
