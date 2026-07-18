@@ -91,17 +91,25 @@ describe('DeckPanel', () => {
     wrapper.unmount()
   })
 
-  it('prevents increasing a non-basic card', () => {
+  it('warns before increasing a non-basic card and allows an override', async () => {
     const store = useDeckStore()
     store.deck.commander = commander
     store.deck.cards = [{ card: artifact, quantity: 1 }]
     const wrapper = mountPanel()
 
-    expect(
-      wrapper
-        .find('[aria-label="Increase quantity of Artifact"]')
-        .attributes('disabled'),
-    ).toBeDefined()
+    await wrapper
+      .find('[aria-label="Increase quantity of Artifact"]')
+      .trigger('click')
+
+    expect(wrapper.text()).toContain('Increase quantity anyway?')
+    expect(store.deck.cards[0]?.quantity).toBe(1)
+
+    const proceedButton = wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Proceed anyway')
+    await proceedButton?.trigger('click')
+
+    expect(store.deck.cards[0]?.quantity).toBe(2)
     wrapper.unmount()
   })
 

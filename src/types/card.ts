@@ -4,6 +4,7 @@ export interface ScryfallImageUris {
   small: string
   normal: string
   large: string
+  art_crop?: string
 }
 
 export interface ScryfallCardFace {

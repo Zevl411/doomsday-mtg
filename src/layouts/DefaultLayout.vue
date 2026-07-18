@@ -2,6 +2,24 @@
   <v-app>
     <v-app-bar border="b" color="surface" flat height="76">
       <v-container class="d-flex align-center mx-auto px-4 px-sm-6">
+        <v-btn
+          :active="false"
+          :aria-label="`Go to ${appConfig.name} home`"
+          class="app-brand-link mr-3"
+          icon
+          :ripple="false"
+          :to="{ name: 'home' }"
+          variant="plain"
+        >
+          <v-img
+            :alt="`${appConfig.name} logo`"
+            class="app-brand-logo"
+            cover
+            height="56"
+            :src="brandLogoUrl"
+            width="56"
+          />
+        </v-btn>
         <v-app-bar-title>
           <span class="text-h6 text-sm-h5 font-weight-bold text-primary">
             {{ appConfig.name }}
@@ -15,18 +33,18 @@
           <v-btn
             active-color="primary"
             size="small"
-            :to="{ name: 'deck-library' }"
-            variant="text"
-          >
-            Decks
-          </v-btn>
-          <v-btn
-            active-color="primary"
-            size="small"
             :to="{ name: 'home' }"
             variant="text"
           >
             Home
+          </v-btn>
+          <v-btn
+            active-color="primary"
+            size="small"
+            :to="{ name: 'deck-library' }"
+            variant="text"
+          >
+            Decks
           </v-btn>
           <v-btn
             active-color="primary"
@@ -37,16 +55,30 @@
             <span class="d-none d-sm-inline">Deck Builder</span>
             <span class="d-sm-none">Builder</span>
           </v-btn>
-          <v-menu>
-            <template #activator="{ props }">
-              <v-btn size="small" v-bind="props" variant="text">Explore</v-btn>
-            </template>
-            <v-list>
-              <v-list-item :to="{ name: 'metagame' }" title="Metagame" />
-              <v-list-item :to="{ name: 'tournaments' }" title="Tournaments" />
-              <v-list-item :to="{ name: 'regions' }" title="Regions" />
-            </v-list>
-          </v-menu>
+          <v-btn
+            active-color="primary"
+            size="small"
+            :to="{ name: 'metagame' }"
+            variant="text"
+          >
+            Metagame
+          </v-btn>
+          <v-btn
+            active-color="primary"
+            size="small"
+            :to="{ name: 'tournaments' }"
+            variant="text"
+          >
+            Tournaments
+          </v-btn>
+          <v-btn
+            active-color="primary"
+            size="small"
+            :to="{ name: 'regions' }"
+            variant="text"
+          >
+            Regions
+          </v-btn>
           <v-menu v-if="auth.isSignedIn">
             <template #activator="{ props }">
               <v-btn size="small" v-bind="props" variant="text">
@@ -88,4 +120,7 @@ import { appConfig } from '../config/app'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
+// BASE_URL keeps the logo working from a GitHub Pages repository subdirectory.
+const brandLogoUrl =
+  `${import.meta.env.BASE_URL}brand/oracle-app-icon-1024.png`
 </script>

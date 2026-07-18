@@ -1,5 +1,58 @@
 <template>
   <v-container class="pa-0" fluid>
+    <div class="home-hero mb-10">
+      <div
+        class="home-hero-brand d-flex align-center justify-center pa-4 pa-md-8"
+      >
+        <v-img
+          alt="Oracle fortune wheel logo"
+          class="home-hero-logo"
+          max-height="520"
+          :src="fullLogoUrl"
+        />
+      </div>
+
+      <div class="home-hero-content">
+        <v-card
+          border
+          class="d-flex flex-column justify-center h-100 pa-6 pa-md-8"
+          color="surface"
+          rounded="xl"
+        >
+          <div class="text-overline text-primary">Consult the Oracle</div>
+          <h1 class="text-h3 font-weight-bold mb-3">
+            Build with better information
+          </h1>
+          <p class="text-body-1 text-medium-emphasis mb-6">
+            Turn competitive Commander data into practical deck-building
+            decisions.
+          </p>
+
+          <v-list bg-color="transparent" class="pa-0">
+            <v-list-item
+              v-for="feature in heroFeatures"
+              :key="feature.title"
+              class="px-0 mb-2"
+              :subtitle="feature.description"
+              :title="feature.title"
+            >
+              <template #prepend>
+                <v-avatar color="primary" size="8" />
+              </template>
+            </v-list-item>
+          </v-list>
+
+          <v-btn
+            class="mt-4 align-self-start"
+            color="primary"
+            :to="{ name: 'deck-builder' }"
+          >
+            Start building
+          </v-btn>
+        </v-card>
+      </div>
+    </div>
+
     <v-row class="mb-2" align="center">
       <v-col>
         <div class="text-h4 font-weight-bold">Recently edited decks</div>
@@ -194,7 +247,7 @@ import type {
 } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'
 import { useDeckStore } from '../stores/deck'
-import { getCardImage } from '../utils/cardDisplay'
+import { getCardArt } from '../utils/cardDisplay'
 import { getTotalDeckCardCount } from '../utils/deckValidation'
 
 const deckStore = useDeckStore()
@@ -203,6 +256,22 @@ const commanderStats = ref<CommanderMetagameStats[]>([])
 const recentTournaments = ref<Tournament[]>([])
 const tournamentLoading = ref(true)
 const tournamentError = ref('')
+const fullLogoUrl = `${import.meta.env.BASE_URL}brand/oracle-full.png`
+
+const heroFeatures = [
+  {
+    title: 'Build and validate decks',
+    description: 'Track Commander legality, color identity, and deck size.',
+  },
+  {
+    title: 'Explore tournament results',
+    description: 'Review competitive events, placements, and decklists.',
+  },
+  {
+    title: 'Understand the metagame',
+    description: 'Compare Commanders, card inclusion, and performance trends.',
+  },
+]
 
 // Sorting a copy keeps Pinia's authoritative library order untouched.
 const recentDecks = computed(() =>
@@ -238,7 +307,7 @@ function openDeck(deckId: string) {
 }
 
 function commanderImage(deck: Deck) {
-  return deck.commander ? getCardImage(deck.commander, 'large') : undefined
+  return deck.commander ? getCardArt(deck.commander) : undefined
 }
 
 function totalCards(deck: Deck) {

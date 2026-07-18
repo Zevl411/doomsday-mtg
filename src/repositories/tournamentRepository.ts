@@ -56,7 +56,11 @@ export const tournamentRepository = {
     })
     if (error) throw friendlyError('load Commander metagame', error)
 
-    const result = ((data ?? []) as MetagameRow[]).map(mapMetagameRow)
+    // Provider rows without a resolved Commander are not useful metagame
+    // choices and can otherwise dominate lists after a large ingestion.
+    const result = ((data ?? []) as MetagameRow[])
+      .map(mapMetagameRow)
+      .filter(hasRegisteredCommander)
     metagameCache.set(cacheKey, result)
     return result
   },
@@ -111,14 +115,15 @@ export const tournamentRepository = {
   ): Promise<Tournament[]> {
     requireSupabase()
     let query = supabase!
-      .from('tournaments')
-      .select('*, tournament_entries(count)')
-      .order('event_date', { ascending: false })
-      .limit(100)
+      .from('tournament_summaries')
+      .select('*')
     if (filters.startDate) query = query.gte('event_date', filters.startDate)
     if (filters.endDate) query = query.lte('event_date', filters.endDate)
-    if (filters.minimumPlayers) {
+    if (filters.minimumPlayers !== undefined) {
       query = query.gte('player_count', filters.minimumPlayers)
+    }
+    if (filters.maximumPlayers !== undefined) {
+      query = query.lte('player_count', filters.maximumPlayers)
     }
     if (filters.countryCode) query = query.eq('country_code', filters.countryCode)
     if (filters.stateRegion) query = query.eq('state_region', filters.stateRegion)
@@ -126,6 +131,14 @@ export const tournamentRepository = {
     if (filters.isOnline !== undefined) {
       query = query.eq('is_online', filters.isOnline)
     }
+    query = query
+      .order(
+        filters.tournamentSort === 'player-count'
+          ? 'player_count'
+          : 'event_date',
+        { ascending: filters.sortAscending ?? false, nullsFirst: false },
+      )
+      .limit(100)
     const { data, error } = await query
     if (error) throw friendlyError('load tournaments', error)
     return ((data ?? []) as TournamentRow[]).map(mapTournamentRow)
@@ -377,7 +390,8 @@ interface TournamentRow {
   source_url?: string
   imported_at: string
   source_updated_at?: string
-  tournament_entries?: Array<{ count: number }>
+  entry_count?: number
+  registered_commander_count?: number
   venue_name?: string
   city?: string
   state_region?: string
@@ -428,6 +442,11 @@ function mapMetagameRow(row: MetagameRow): CommanderMetagameStats {
   }
 }
 
+function hasRegisteredCommander(item: CommanderMetagameStats) {
+  const name = item.commanderName.trim().toLowerCase()
+  return name !== '' && name !== 'unknown commander'
+}
+
 function mapTournamentRow(row: TournamentRow): Tournament {
   return {
     id: row.id,
@@ -439,7 +458,15 @@ function mapTournamentRow(row: TournamentRow): Tournament {
     url: row.source_url,
     importedAt: row.imported_at,
     sourceUpdatedAt: row.source_updated_at,
-    entryCount: row.tournament_entries?.[0]?.count,
+    entryCount: Number(row.entry_count ?? 0),
+    registeredCommanderCount: Number(
+      row.registered_commander_count ?? 0,
+    ),
+    commanderRegistrationRate:
+      Number(row.entry_count ?? 0) > 0
+        ? Number(row.registered_commander_count ?? 0) /
+          Number(row.entry_count)
+        : 0,
     venueName: row.venue_name,
     city: row.city,
     stateRegion: row.state_region,

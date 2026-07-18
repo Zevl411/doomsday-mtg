@@ -99,11 +99,15 @@ function normalizeImageUris(
     return null
   }
 
-  return {
+  const imageUris: ScryfallImageUris = {
     small: value.small,
     normal: value.normal,
     large: value.large,
   }
+  if (typeof value.art_crop === 'string') {
+    imageUris.art_crop = value.art_crop
+  }
+  return imageUris
 }
 
 function normalizeCardFaces(

@@ -29,3 +29,39 @@ export function getCardImage(
     images.large
   )
 }
+
+/**
+ * Deck tiles use the illustration instead of the complete printed card. New
+ * Scryfall responses provide art_crop directly; the URL conversion preserves
+ * the same printing for older saved decks that predate that stored field.
+ */
+export function getCardArt(card: ScryfallCard): string | undefined {
+  const images = card.image_uris ?? card.card_faces?.[0]?.image_uris
+  if (!images) return undefined
+
+  return (
+    images.art_crop ??
+    toArtCropUrl(images.large) ??
+    toArtCropUrl(images.normal) ??
+    images.large
+  )
+}
+
+function toArtCropUrl(value: string): string | undefined {
+  try {
+    const url = new URL(value)
+    if (url.hostname !== 'cards.scryfall.io') return undefined
+
+    const parts = url.pathname.split('/')
+    const renditionIndex = parts.findIndex((part) =>
+      ['small', 'normal', 'large', 'png', 'border_crop'].includes(part),
+    )
+    if (renditionIndex === -1) return undefined
+
+    parts[renditionIndex] = 'art_crop'
+    url.pathname = parts.join('/').replace(/\.png$/i, '.jpg')
+    return url.toString()
+  } catch {
+    return undefined
+  }
+}

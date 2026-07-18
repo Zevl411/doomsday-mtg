@@ -165,18 +165,9 @@
               <v-btn
                 :aria-label="`Increase quantity of ${deckCard.card.name}`"
                 color="secondary"
-                :disabled="
-                  selectedBoard === 'mainboard' &&
-                  !isBasicLand(deckCard.card)
-                "
                 size="small"
                 variant="text"
-                @click="
-                  deckStore.increaseBoardQuantity(
-                    getCardIdentity(deckCard.card),
-                    selectedBoard,
-                  )
-                "
+                @click="requestQuantityIncrease(deckCard)"
               >
                 +
               </v-btn>
@@ -233,6 +224,26 @@
         <v-btn variant="text" @click="showResetDialog = false">Cancel</v-btn>
         <v-btn color="error" variant="flat" @click="confirmReset">
           Clear Deck
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="showQuantityOverrideDialog" max-width="520">
+    <v-card color="surface" rounded="lg">
+      <v-card-title class="px-5 pt-5">
+        Increase quantity anyway?
+      </v-card-title>
+      <v-card-text class="px-5">
+        Commander normally allows only one copy of
+        {{ pendingQuantityCard?.card.name }}. Increasing this quantity will
+        make the deck invalid until the extra copy is removed.
+      </v-card-text>
+      <v-card-actions class="px-5 pb-5">
+        <v-spacer />
+        <v-btn variant="text" @click="cancelQuantityOverride">Cancel</v-btn>
+        <v-btn color="error" variant="flat" @click="confirmQuantityOverride">
+          Proceed anyway
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -295,6 +306,8 @@ const deck = computed<Deck>(() => deckStore.deck)
 const selectedBoard = ref<TrackedDeckBoard>('mainboard')
 const searchDestination = ref<TrackedDeckBoard>('mainboard')
 const showResetDialog = ref(false)
+const showQuantityOverrideDialog = ref(false)
+const pendingQuantityCard = ref<DeckCard | null>(null)
 const limitToCommanderColors = ref(true)
 const mainDeckCardCount = computed(() => getMainDeckCardCount(deckStore.deck))
 const deckSizeStatus = computed(() => getDeckSizeStatus(deckStore.deck))
@@ -365,6 +378,36 @@ function moveCard(identity: string, destination: TrackedDeckBoard | null) {
       destination,
     )
   }
+}
+
+function requestQuantityIncrease(deckCard: DeckCard) {
+  if (selectedBoard.value !== 'mainboard' || isBasicLand(deckCard.card)) {
+    deckStore.increaseBoardQuantity(
+      getCardIdentity(deckCard.card),
+      selectedBoard.value,
+    )
+    return
+  }
+
+  pendingQuantityCard.value = deckCard
+  showQuantityOverrideDialog.value = true
+}
+
+function confirmQuantityOverride() {
+  const deckCard = pendingQuantityCard.value
+  if (deckCard) {
+    deckStore.increaseBoardQuantity(
+      getCardIdentity(deckCard.card),
+      'mainboard',
+      true,
+    )
+  }
+  cancelQuantityOverride()
+}
+
+function cancelQuantityOverride() {
+  showQuantityOverrideDialog.value = false
+  pendingQuantityCard.value = null
 }
 
 function confirmReset() {

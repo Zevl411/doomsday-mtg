@@ -73,7 +73,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Deck, DeckCard } from '../models/deck'
-import { getCardImage } from '../utils/cardDisplay'
+import { getCardArt } from '../utils/cardDisplay'
 import { getTotalDeckCardCount } from '../utils/deckValidation'
 
 const props = defineProps<{
@@ -91,7 +91,7 @@ const emit = defineEmits<{
 
 const commanderImage = computed(() =>
   props.deck.commander
-    ? getCardImage(props.deck.commander, 'large')
+    ? getCardArt(props.deck.commander)
     : undefined,
 )
 const totalCount = computed(() => getTotalDeckCardCount(props.deck))

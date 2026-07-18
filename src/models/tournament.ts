@@ -15,6 +15,9 @@ export interface Tournament {
   importedAt: string
   sourceUpdatedAt?: string
   entryCount?: number
+  // This excludes placeholder entries whose Commander could not be resolved.
+  registeredCommanderCount?: number
+  commanderRegistrationRate?: number
   venueName?: string
   city?: string
   stateRegion?: string
@@ -81,12 +84,15 @@ export interface MetagameFilters {
   startDate?: string
   endDate?: string
   minimumPlayers?: number
+  maximumPlayers?: number
   minimumEntries?: number
   topFinishThreshold?: number
   countryCode?: string
   stateRegion?: string
   regionKey?: string
   isOnline?: boolean
+  tournamentSort?: 'date' | 'player-count'
+  sortAscending?: boolean
 }
 
 export interface RegionalMetagameStats {

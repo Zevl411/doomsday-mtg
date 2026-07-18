@@ -4,27 +4,86 @@
     <p class="mb-6 text-medium-emphasis">
       Normalized cEDH results with links to their original source.
     </p>
-    <v-card v-if="locationOptions.regions.length" class="mb-5 pa-4" border>
-      <v-row>
-        <v-col cols="12" sm="4">
-          <v-select v-model="countryCode" clearable :items="locationOptions.countries" label="Event country" />
+    <v-card class="mb-5 pa-3" border>
+      <v-row align="center" dense>
+        <v-col cols="12" sm="6" lg="2">
+          <v-select
+            v-model="countryCode"
+            clearable
+            density="compact"
+            hide-details
+            :items="locationOptions.countries"
+            label="Event country"
+          />
         </v-col>
-        <v-col cols="12" sm="4">
-          <v-select v-model="stateRegion" clearable :items="locationOptions.states" label="Event state/province" />
+        <v-col cols="12" sm="6" lg="2">
+          <v-select
+            v-model="stateRegion"
+            clearable
+            density="compact"
+            hide-details
+            :items="locationOptions.states"
+            label="State/province"
+          />
         </v-col>
-        <v-col class="d-flex align-center" cols="12" sm="4">
-          <v-btn color="primary" @click="load">Apply filters</v-btn>
+        <v-col cols="12" sm="6" lg="2">
+          <v-select
+            v-model="sizeRange"
+            density="compact"
+            hide-details
+            :items="sizeRangeOptions"
+            label="Tournament size"
+          />
+        </v-col>
+        <v-col cols="12" sm="6" lg="2">
+          <v-select
+            v-model="timePeriod"
+            density="compact"
+            hide-details
+            :items="timePeriodOptions"
+            label="Time period"
+          />
+        </v-col>
+        <v-col cols="12" sm="6" lg="2">
+          <v-select
+            v-model="sortOrder"
+            density="compact"
+            hide-details
+            :items="sortOptions"
+            label="Sort by"
+          />
+        </v-col>
+        <v-col
+          class="d-flex align-center ga-2"
+          cols="12"
+          sm="6"
+          lg="2"
+        >
+          <v-btn color="primary" size="small" @click="load">Apply</v-btn>
+          <v-switch
+            v-model="registeredCommandersOnly"
+            aria-label="Show tournaments with registered commanders only"
+            color="secondary"
+            density="compact"
+            hide-details
+            inset
+            label="Registered only"
+          />
         </v-col>
       </v-row>
     </v-card>
     <v-progress-linear v-if="loading" indeterminate />
     <v-alert v-else-if="errorMessage" type="error">{{ errorMessage }}</v-alert>
-    <v-card v-else-if="!tournaments.length" class="pa-8 text-center">
-      No tournaments have been imported yet.
+    <v-card v-else-if="!visibleTournaments.length" class="pa-8 text-center">
+      {{
+        tournaments.length
+          ? 'No tournaments with registered commanders match these filters.'
+          : 'No tournaments have been imported yet.'
+      }}
     </v-card>
     <v-list v-else border>
       <v-list-item
-        v-for="tournament in tournaments"
+        v-for="tournament in visibleTournaments"
         :key="tournament.id"
         :subtitle="`${formatDate(tournament.date)} · ${displayTournamentLocation(tournament)} · ${tournament.playerCount ?? 'Unknown'} players · ${tournament.entryCount ?? 0} entries · ${tournament.source}`"
         :title="tournament.name"
@@ -46,8 +105,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { Tournament } from '../models/tournament'
+import {
+  tournamentFilterRepository,
+  type TournamentSizeRange,
+  type TournamentSortOrder,
+  type TournamentTimePeriod,
+} from '../repositories/tournamentFilterRepository'
 import {
   tournamentRepository,
   type TournamentLocationOptions,
@@ -60,11 +125,75 @@ import {
 const tournaments = ref<Tournament[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
-const countryCode = ref<string>()
-const stateRegion = ref<string>()
+const savedFilters = tournamentFilterRepository.load()
+const countryCode = ref<string | undefined>(savedFilters?.countryCode)
+const stateRegion = ref<string | undefined>(savedFilters?.stateRegion)
+const sizeRange = ref<TournamentSizeRange>(
+  savedFilters?.sizeRange ?? 'standard',
+)
+const timePeriod = ref<TournamentTimePeriod>(
+  savedFilters?.timePeriod ?? 'all',
+)
+const sortOrder = ref<TournamentSortOrder>(
+  savedFilters?.sortOrder ?? 'date-desc',
+)
+// The default keeps unresolved tournament shells out of the primary list.
+const registeredCommandersOnly = ref(
+  savedFilters?.registeredCommandersOnly ?? true,
+)
 const locationOptions = ref<TournamentLocationOptions>({
   countries: [], states: [], regions: [], hasOnline: false,
 })
+const visibleTournaments = computed(() =>
+  registeredCommandersOnly.value
+    ? tournaments.value.filter(
+        // A single resolved entry should not qualify an otherwise empty event.
+        // Half coverage keeps partially imported but still useful events.
+        (tournament) => (tournament.commanderRegistrationRate ?? 0) >= 0.5,
+      )
+    : tournaments.value,
+)
+
+const sizeRangeOptions = [
+  { title: 'Fewer than 16 players', value: 'small' },
+  { title: '16–50 players', value: 'standard' },
+  { title: '50–100 players', value: 'large' },
+  { title: '100+ players', value: 'major' },
+]
+const timePeriodOptions = [
+  { title: 'Last 30 days', value: '30-days' },
+  { title: 'Last 3 months', value: '3-months' },
+  { title: 'Last 6 months', value: '6-months' },
+  { title: 'Last year', value: '1-year' },
+  { title: 'All time', value: 'all' },
+]
+const sortOptions = [
+  { title: 'Date: newest first', value: 'date-desc' },
+  { title: 'Date: oldest first', value: 'date-asc' },
+  { title: 'Tournament size: largest first', value: 'size-desc' },
+  { title: 'Tournament size: smallest first', value: 'size-asc' },
+]
+
+watch(
+  [
+    countryCode,
+    stateRegion,
+    sizeRange,
+    timePeriod,
+    sortOrder,
+    registeredCommandersOnly,
+  ],
+  () => {
+    tournamentFilterRepository.save({
+      countryCode: countryCode.value,
+      stateRegion: stateRegion.value,
+      sizeRange: sizeRange.value,
+      timePeriod: timePeriod.value,
+      sortOrder: sortOrder.value,
+      registeredCommandersOnly: registeredCommandersOnly.value,
+    })
+  },
+)
 
 async function load() {
   loading.value = true
@@ -72,6 +201,12 @@ async function load() {
     tournaments.value = await tournamentRepository.getRecentTournaments({
       countryCode: countryCode.value,
       stateRegion: stateRegion.value,
+      ...getSizeFilters(),
+      startDate: getStartDate(),
+      tournamentSort: sortOrder.value.startsWith('size')
+        ? 'player-count'
+        : 'date',
+      sortAscending: sortOrder.value.endsWith('asc'),
     })
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Unable to load tournaments.'
@@ -91,5 +226,32 @@ onMounted(async () => {
 
 function formatDate(date: string | null) {
   return date ? new Date(date).toLocaleDateString() : 'Unknown date'
+}
+
+function getSizeFilters(): {
+  minimumPlayers?: number
+  maximumPlayers?: number
+} {
+  if (sizeRange.value === 'small') return { maximumPlayers: 15 }
+  if (sizeRange.value === 'standard') {
+    return { minimumPlayers: 16, maximumPlayers: 50 }
+  }
+  if (sizeRange.value === 'large') {
+    return { minimumPlayers: 50, maximumPlayers: 100 }
+  }
+  return { minimumPlayers: 100 }
+}
+
+function getStartDate(): string | undefined {
+  if (timePeriod.value === 'all') return undefined
+
+  const date = new Date()
+  if (timePeriod.value === '30-days') date.setDate(date.getDate() - 30)
+  if (timePeriod.value === '3-months') date.setMonth(date.getMonth() - 3)
+  if (timePeriod.value === '6-months') date.setMonth(date.getMonth() - 6)
+  if (timePeriod.value === '1-year') {
+    date.setFullYear(date.getFullYear() - 1)
+  }
+  return date.toISOString()
 }
 </script>

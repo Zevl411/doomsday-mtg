@@ -13,6 +13,8 @@ export interface DeckLegalityResult {
   // Overridable marks a rule the user may intentionally accept.
   overridable?: boolean
   reason?: string
+  // The rule lets different interactions respond without parsing message text.
+  rule?: 'commander-required' | 'commander-card' | 'duplicate' | 'color-identity'
 }
 
 export function isWithinCommanderColorIdentity(
@@ -60,6 +62,7 @@ export function validateCardAddition(
     return {
       allowed: false,
       reason: 'Choose a commander before adding cards to the deck.',
+      rule: 'commander-required',
     }
   }
 
@@ -72,6 +75,7 @@ export function validateCardAddition(
     return {
       allowed: false,
       reason: 'Your commander cannot also be added as a regular deck card.',
+      rule: 'commander-card',
     }
   }
 
@@ -85,6 +89,7 @@ export function validateCardAddition(
     return {
       allowed: false,
       reason: `${card.name} is already in the deck.`,
+      rule: 'duplicate',
     }
   }
 
@@ -93,6 +98,7 @@ export function validateCardAddition(
       allowed: false,
       overridable: true,
       reason: `${card.name} is outside your commander's color identity.`,
+      rule: 'color-identity',
     }
   }
 

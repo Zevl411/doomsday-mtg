@@ -20,6 +20,46 @@ body {
   max-width: 1440px;
 }
 
+.app-brand-link {
+  background: transparent !important;
+  height: 64px !important;
+  min-width: 64px !important;
+  opacity: 1 !important;
+  overflow: hidden;
+  padding: 0 !important;
+  width: 64px !important;
+}
+
+.app-brand-logo {
+  /*
+   * The source image has generous canvas space around its centered artwork.
+   * Scaling it inside the clipped button makes the visible emblem fill the
+   * button without modifying the shared brand asset.
+   */
+  flex: 0 0 56px;
+  border-radius: 12px;
+  transform: scale(3);
+}
+
+.home-hero-logo {
+  width: 100%;
+  transform: scale(1.7);
+  transform-origin: center;
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+  align-items: stretch;
+  gap: 24px;
+}
+
+@media (max-width: 599px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
 .search-results {
   min-height: 64px;
 }
@@ -42,11 +82,11 @@ body {
 }
 
 .card-result--selected {
-  border-color: rgb(var(--v-theme-secondary)) !important;
-  box-shadow: inset 0 0 0 1px rgb(var(--v-theme-secondary));
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: inset 0 0 0 1px rgb(var(--v-theme-primary));
   background: color-mix(
     in srgb,
-    rgb(var(--v-theme-secondary)) 10%,
+    rgb(var(--v-theme-primary)) 10%,
     rgb(var(--v-theme-surface-bright))
   );
 }

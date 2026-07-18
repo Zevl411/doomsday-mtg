@@ -102,7 +102,10 @@ describe('deck legality identity checks', () => {
       considering: [],
     }
 
-    expect(validateCardAddition(secondPrinting, deck).allowed).toBe(false)
+    expect(validateCardAddition(secondPrinting, deck)).toMatchObject({
+      allowed: false,
+      rule: 'duplicate',
+    })
   })
 
   it('combines different printings of the same basic land', () => {

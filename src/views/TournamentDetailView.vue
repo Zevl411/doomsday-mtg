@@ -46,7 +46,9 @@
           :class="getPlacementClass(entry.standing)"
           :value="entry.id"
         >
-          <v-expansion-panel-title>
+          <v-expansion-panel-title
+            :readonly="!hasRegisteredCommander(entry)"
+          >
             <v-row align="center" class="py-1" no-gutters>
               <v-col cols="2" sm="1">
                 <v-chip color="secondary" size="small" variant="tonal">
@@ -60,6 +62,21 @@
               </v-col>
               <v-col class="mt-2 mt-sm-0" cols="8" sm="5">
                 {{ entry.commanderName }}
+                <v-tooltip
+                  v-if="!hasRegisteredCommander(entry)"
+                  text="This entry has no registered commander, so its decklist cannot be opened."
+                >
+                  <template #activator="{ props }">
+                    <span
+                      v-bind="props"
+                      aria-label="Decklist unavailable: no registered commander"
+                      class="ml-2 text-error"
+                      role="img"
+                    >
+                      ⚠
+                    </span>
+                  </template>
+                </v-tooltip>
               </v-col>
               <v-col class="text-right" cols="4" sm="3">
                 {{ entry.wins }}-{{ entry.losses }}-{{ entry.draws }}
@@ -205,7 +222,7 @@ function loadExpandedDecklists(value: unknown) {
   if (!Array.isArray(value) || !detail.value) return
   for (const entryId of value) {
     const entry = detail.value.entries.find((item) => item.id === entryId)
-    if (entry) void loadDecklist(entry)
+    if (entry && hasRegisteredCommander(entry)) void loadDecklist(entry)
   }
 }
 
@@ -239,6 +256,17 @@ async function loadDecklist(entry: TournamentEntry, retry = false) {
 
 function formatStanding(standing?: number): string {
   return standing ? `#${standing}` : '—'
+}
+
+function hasRegisteredCommander(entry: TournamentEntry): boolean {
+  const name = entry.commanderName.trim().toLowerCase()
+  const key = entry.commanderKey.trim().toLowerCase()
+  return (
+    name !== '' &&
+    name !== 'unknown commander' &&
+    key !== '' &&
+    key !== 'unknown-commander'
+  )
 }
 
 function getPlacementClass(standing?: number): string {

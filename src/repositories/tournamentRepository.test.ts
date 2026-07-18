@@ -64,6 +64,29 @@ describe('tournamentRepository', () => {
     expect(rpc).toHaveBeenCalledOnce()
   })
 
+  it('omits unresolved Commander placeholders from metagame lists', async () => {
+    rpc.mockResolvedValue({
+      data: [{
+        commander_key: 'unknown-commander',
+        commander_name: 'Unknown Commander',
+        color_identity: [],
+        entries: 50,
+        tournaments: 10,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        match_win_rate: 0,
+        top16_finishes: 0,
+        top_cut_rate: 0,
+        first_place_finishes: 0,
+        meta_share: 0.5,
+      }],
+      error: null,
+    })
+
+    await expect(tournamentRepository.getCommanderMetagame()).resolves.toEqual([])
+  })
+
   it('maps provider errors to a friendly message', async () => {
     rpc.mockResolvedValue({ data: null, error: new Error('private detail') })
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)

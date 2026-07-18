@@ -296,17 +296,33 @@ export const useDeckStore = defineStore('deck', {
       this.persistActiveDeck()
     },
 
-    increaseBoardQuantity(identity: string, board: TrackedDeckBoard) {
+    increaseBoardQuantity(
+      identity: string,
+      board: TrackedDeckBoard,
+      allowSingletonViolation = false,
+    ): boolean {
       const entry = getDeckBoardEntries(this.deck, board).find(
         (item) => getCardIdentity(item.card) === identity,
       )
 
-      if (!entry || (board === 'mainboard' && !isBasicLand(entry.card))) {
-        return
+      if (
+        !entry ||
+        (
+          board === 'mainboard' &&
+          !isBasicLand(entry.card) &&
+          !allowSingletonViolation
+        )
+      ) {
+        return false
       }
 
       entry.quantity += 1
       this.persistActiveDeck()
+      return true
+    },
+
+    clearRejectionMessage() {
+      this.rejectionMessage = ''
     },
 
     decreaseBoardQuantity(identity: string, board: TrackedDeckBoard) {

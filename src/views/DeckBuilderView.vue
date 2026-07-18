@@ -88,6 +88,13 @@ function addDeckCard(card: ScryfallCard, board: TrackedDeckBoard) {
   const result = deckStore.addCardToBoard(card, board)
 
   if (!result.allowed) {
+    // Selecting an already-present search result is intentionally a quiet
+    // no-op. Quantity overrides require the explicit plus-button workflow.
+    if (result.rule === 'duplicate') {
+      deckStore.clearRejectionMessage()
+      return
+    }
+
     pendingIllegalCard.value = result.overridable ? card : null
     pendingIllegalReason.value =
       result.reason ?? 'That card cannot be added to this deck.'
