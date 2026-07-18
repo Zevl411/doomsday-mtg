@@ -1,262 +1,101 @@
 # DoomsdayMTG
 
-The public application name, tagline, and deployment base path can be changed
-without editing Vue components:
+> A data-driven deck builder and tournament analytics platform for Competitive
+> Commander.
 
-```env
-VITE_APP_NAME=DoomsdayMTG
-VITE_APP_TAGLINE=Competitive Commander Deck Builder
-VITE_BASE_PATH=/doomsday-mtg/
-```
+## 🚀 Live Demo
 
-For a renamed GitHub Pages repository, set `VITE_BASE_PATH` to
-`/NEW_REPOSITORY_NAME/`. Use `/` when deploying to a custom domain. Existing
-browser storage keys and database identifiers remain stable so a display-name
-change does not discard Decks.
+Try the latest public build:
 
-> A modern, data-driven deck builder for Competitive Commander (cEDH).
+**[Open DoomsdayMTG](https://zevl411.github.io/doomsday-mtg/)**
 
-DoomsdayMTG is an open-source web application focused on helping players build stronger Commander decks through tournament data, card association analysis, and intelligent recommendations.
+The public application is automatically deployed from the `main` branch after
+its tests, TypeScript checks, and production build pass in GitHub Actions.
 
-Unlike traditional deck builders, the long-term goal is to understand **why** cards belong together, not just display decklists.
+## Current Status
 
----
+DoomsdayMTG is an open-source Competitive Commander platform that combines a
+modern deck builder with tournament analytics, regional metagame exploration,
+and card-level statistics.
 
-## ✨ Vision
+The project has completed its core deck-building functionality and now includes
+tournament ingestion from TopDeck and EDHTop16, normalized tournament
+decklists, regional tracking, and Commander card analytics. The next major
+milestone is building deck comparison and intelligent recommendation systems.
 
-Imagine combining the deck building experience of **Moxfield** with the tournament analytics of **EDHTop16**, then adding recommendation algorithms that understand card relationships learned from thousands of competitive decklists.
+## Features
 
-The end goal is a tool capable of answering questions like:
+### Deck Builder
 
-- "What cards are core to this commander?"
-- "What cards usually appear together?"
-- "What cards am I missing?"
-- "If I remove this card, what is usually played instead?"
-- "What packages are commonly included?"
-- "How close is this list to tournament-winning versions?"
+- Search the complete Magic card database through Scryfall
+- Select individual or rules-compatible paired Commanders
+- Validate Commander color identity and deck size
+- Enforce singleton rules with basic-land quantity exceptions
+- Maintain multiple authenticated decks or one browser-local guest draft
+- Import and export plaintext decklists
+- Copy tournament decks into a personal deck library
 
----
+### Tournament Analytics
 
-# Current Features
+- Browse normalized cEDH tournaments
+- Explore the Commander metagame
+- Review regional tournament summaries
+- View normalized tournament decklists
+- Analyze Commander card-inclusion statistics
+- Filter by date, placement, event size, and region
+- Ingest tournament data from TopDeck and EDHTop16
 
-## Deck Builder
+### Authentication
 
-- Search the entire Magic card database
-- Add and remove cards
-- Select one Commander or a rules-compatible paired Commander combination
-- Commander color identity restrictions
-- Deck model written in TypeScript
-- Responsive Vue 3 interface
-- One refresh-safe guest draft and authenticated cloud deck libraries
-- Plaintext decklist import and export
-- Commander metagame and tournament explorer backed by normalized Supabase data
+- Use the deck builder in guest mode without an account
+- Synchronize authenticated deck libraries through Supabase
+- Automatically transfer a meaningful guest draft after sign-in
 
-Guests receive one temporary, refresh-safe browser draft. Authenticated users
-receive a multi-deck library whose authoritative records live in Supabase;
-authenticated deck data is not mirrored into localStorage. On sign-in, one
-meaningful guest draft is automatically saved to the account with its stable
-deck ID. The browser copy is removed only after that deck can be read back from
-Supabase. Failed cloud writes leave the current in-memory edit available for
-retry during the session, but refreshing can lose an authenticated edit that
-has not reached Supabase.
+## Technology
 
-Persistence remains behind repository modules, so Vue components and deck
-rules do not call localStorage or Supabase directly.
-
-Accounts support password and email-link authentication. A meaningful guest
-draft transfers automatically on sign-in; there is no manual library migration
-or whole-library local/cloud reconciliation.
-
-### Plaintext decklists
-
-Import accepts card names with an optional positive quantity:
-
-```text
-1 Sol Ring
-1x Arcane Signet
-4 Island
-Command Tower
-```
-
-Generic plaintext, Moxfield-style, Archidekt, MTG Arena, and Magic Online text
-are supported through automatic detection or a manual format choice.
-`Commander`, `Command Zone`, `Deck`, `Main`, `Mainboard`, and `Maindeck`
-headings are recognized case-insensitively, including decorative forms such as
-`~~Commanders~~`, `**Mainboard**`, and `-- Sideboard --`. Arena, Moxfield, and
-Archidekt printing annotations such as `(ONE) 196` are removed before lookup.
-Single- and double-slash face separators are normalized, so both
-`Sink into Stupor / Soporific Springs` and
-`Sink into Stupor // Soporific Springs` resolve consistently. Scryfall flavor
-names such as `Hope's Aero Magic` are mapped back to their canonical card
-(`Cyclonic Rift`) before legality and singleton checks.
-
-The deck stores mainboard, sideboard, maybeboard, and considering cards.
-Auxiliary boards are preserved through local storage, editing, import, and
-export, but only the mainboard is checked for Commander color identity,
-singleton legality, and the 100-card total. Companion, acquireboard, and token
-sections are recognized and summarized but remain untracked.
-
-For a headerless Moxfield-style list, commander inference is attempted only
-when the list resembles a Commander deck and Scryfall confirms that its first
-card is Commander-eligible. Otherwise the current Commander is retained or the
-preview asks for a Commander.
-
-Clean imports replace the current deck immediately after processing. Imports
-with errors remain open for an explicit proceed-or-cancel decision. Partner
-Commanders and file-based import/export are not supported yet.
-
-Future EDHTop16 tournament JSON will use a dedicated structured-data adapter
-that normalizes into the same Deck model; EDHTop16 is intentionally not a
-plaintext paste format and is not queried by the current importer.
-
----
-
-# Planned Features
-
-## Smart Recommendations
-
-Instead of simple "people also play..." suggestions, DoomsdayMTG aims to learn deck structure.
-
-Example:
-
-```
-Thassa's Oracle
-        │
-        ├── Demonic Consultation
-        ├── Tainted Pact
-        ├── Pact of Negation
-        ├── Brain Freeze
-        └── Underworld Breach
-```
-
-Recommendations will eventually be based on:
-
-- tournament frequency
-- card pairing statistics
-- archetype clustering
-- commander similarity
-- win rate weighting
-
----
-
-## Tournament Analytics
-
-Aggregate cEDH tournament data to provide:
-
-- Top performing lists
-- Card inclusion percentages
-- Average deck composition
-- Meta trends
-- Tech choices
-- Side-by-side deck comparisons
-
----
-
-## Deck Comparison
-
-Compare your deck against:
-
-- Tournament winners
-- Average lists
-- Custom decklists
-
-Highlight:
-
-- Missing staples
-- Unique choices
-- Flex slots
-- Statistical outliers
-
----
-
-## Package Detection
-
-Automatically recognize common packages like:
-
-- Thoracle Combo
-- Dockside Loops
-- Breach Lines
-- Food Chain
-- Ad Nauseam
-- Hulk Lines
-- Stax Packages
-
-Rather than only suggesting individual cards.
-
----
-
-## Card Association Engine
-
-One of the primary goals of the project.
-
-Build a graph of relationships between cards.
-
-Example:
-
-```
-Esper Sentinel
-        │
-        ├── Rhystic Study
-        ├── Smothering Tithe
-        ├── Mystic Remora
-        └── Deafening Silence
-```
-
-These relationships become the basis for intelligent recommendations.
-
----
-
-# Tech Stack
-
-Frontend
+### Frontend
 
 - Vue 3
 - TypeScript
 - Vite
-- Vue Router
 - Vuetify
 - Pinia
+- Vue Router
+
+### Backend and Data
+
+- Supabase
+- PostgreSQL
+- Supabase Edge Functions
+- Scryfall
+- TopDeck
+- EDHTop16
+
+### Quality and Deployment
+
 - Vitest
-- Vue Test Utils
-- Mana font, exposed through local Vue mana-symbol components
-- Scryfall API
 - GitHub Actions
 - GitHub Pages
 
-For module boundaries, state ownership, the import pipeline, persistence
-migration, and testing conventions, see
-[Architecture](docs/ARCHITECTURE.md).
+Additional documentation:
 
-Available routes:
+- [Architecture](docs/ARCHITECTURE.md)
+- [Supabase operations](docs/SUPABASE_OPERATIONS.md)
+- [Tournament ingestion](docs/TOURNAMENT_INGESTION.md)
 
-- `#/` — Home
-- `#/decks` — Guest draft or authenticated cloud deck library
-- `#/deck-builder` — Deck Builder
-- `#/metagame` — Commander metagame
-- `#/tournaments` — Tournament explorer
-- `#/regions` — Event-location regional summaries
+## Getting Started
 
-Hash-based routing is used so direct links and page refreshes work when the
-application is deployed to GitHub Pages.
-
-## Development and deployment
-
-Run the local development server:
+Install dependencies and start the development server:
 
 ```bash
+npm install
 npm run dev
 ```
 
-Run the focused unit tests:
+Run the test suite:
 
 ```bash
 npm run test
-```
-
-Run tests continuously while developing:
-
-```bash
-npm run test:watch
 ```
 
 Create a production build:
@@ -265,237 +104,79 @@ Create a production build:
 npm run build
 ```
 
-Preview the production build locally:
+The application runs in guest mode without Supabase credentials. To enable
+authentication and cloud decks, copy `.env.example` to `.env.local` and
+provide the browser-safe Supabase project URL and publishable key. Never expose
+the Supabase service-role key in frontend environment variables.
 
-```bash
-npm run preview
+## Configuration
+
+The public name, tagline, and deployment base path can be changed without
+editing Vue components:
+
+```env
+VITE_APP_NAME=DoomsdayMTG
+VITE_APP_TAGLINE=Competitive Commander Deck Builder
+VITE_BASE_PATH=/doomsday-mtg/
 ```
 
-### Optional Supabase setup
+For a renamed GitHub Pages repository, change `VITE_BASE_PATH` to the new
+repository path. Use `/` when deploying to a custom domain.
 
-Copy `.env.example` to `.env.local` and provide the browser-safe project URL
-and publishable key:
+Hash-based routing is used so application routes continue to work when opened
+or refreshed on GitHub Pages.
 
-```text
-VITE_SUPABASE_URL=
-VITE_SUPABASE_PUBLISHABLE_KEY=
-```
+## Roadmap
 
-Apply `supabase/migrations/202607170001_create_decks_table.sql` to create the private
-deck table and Row Level Security policies. No service-role key belongs in the
-frontend. Without these variables, the app and tests run in guest-only mode.
+### ✅ v0.1 — Core Deck Builder
 
-In Supabase Authentication URL Configuration, add:
+- Complete Commander deck builder
+- Guest draft and authenticated cloud deck libraries
+- Plaintext import and export
+- Authentication
+- Cloud persistence
+- Automated testing
 
-- Site URL: `https://zevl411.github.io/doomsday-mtg/`
-- Redirect URL: `https://zevl411.github.io/doomsday-mtg/#/auth/callback`
-- Local redirect: `http://localhost:5173/doomsday-mtg/#/auth/callback`
+### 🚧 v0.2 — Tournament Explorer
 
-For GitHub Pages builds, add `VITE_SUPABASE_URL` and
-`VITE_SUPABASE_PUBLISHABLE_KEY` under **Repository Settings → Secrets and
-variables → Actions → Variables**. The CI and deployment workflows pass these
-browser-publishable values to Vite without hard-coding them.
+- Tournament ingestion
+- Commander metagame
+- Regional analytics
+- Tournament deck normalization
+- Canonical card identities
+- Card-inclusion analytics
+- Tournament deck viewer
 
-Detailed schema, RLS, duplicate-diagnostic, and two-user verification steps are
-in [Supabase operations](docs/SUPABASE_OPERATIONS.md).
+### v0.3 — Deck Comparison
 
-### Tournament ingestion
+- Compare personal decks with tournament averages
+- Identify missing core cards
+- Analyze flex slots
+- Calculate deck-similarity scores
 
-Tournament pages read normalized public data from Supabase. TopDeck is the
-preferred direct provider and EDHTop16 remains a secondary aggregate source.
-Provider requests run only inside an administrator-triggered Edge Function;
-the static Vue frontend receives neither provider response shapes nor private
-credentials.
-See [Tournament ingestion](docs/TOURNAMENT_INGESTION.md) for migrations, Edge
-Function deployment, admin setup, dry runs, attribution, limitations, and
-metric definitions.
+### v0.4 — Card Association Engine
 
-Cloud records store a complete Deck JSON document for this MVP. This is not
-end-to-end encrypted. RLS restricts records to their authenticated owner;
-future tournament analytics will use separate normalized data. Account
-deletion and sophisticated multi-device conflict resolution remain deferred.
+- Pairwise card statistics
+- Package detection
+- Archetype clustering
+- Regional package trends
 
-GitHub Pages deployment is configured at
-`https://zevl411.github.io/doomsday-mtg/`. Pushes to `main` automatically build
-and deploy the application.
+### v0.5 — Intelligent Recommendations
 
-GitHub Actions runs tests before building and deploying. The optional GitHub
-CLI can be used to inspect those runs; it is not an npm dependency:
+- Commander-aware recommendations
+- Package recommendations
+- Suggested additions and cuts
+- Replacement analysis
+- Confidence scoring
 
-```bash
-gh run list
-gh run watch
-gh run view --log-failed
-```
-
-Planned Backend
-
-- Node.js
-- PostgreSQL
-- Python data processing
-- Tournament data ingestion
-
-Data Sources
-
-- Scryfall API
-- cEDH tournament results
-- Public decklists
-
----
-
-# Roadmap
-
-## Phase 1 — MVP ✅
-
-- [x] Vue project setup
-- [x] TypeScript models
-- [x] Commander selection
-- [x] Card search
-- [x] Add/remove cards
-- [x] Commander legality filtering
-- [ ] Deck statistics
-- [x] Import/Export decklists
-- [x] Save decks locally
-- [x] Authenticated Supabase deck CRUD
-- [x] Refresh-safe temporary guest draft
-- [x] Idempotent guest-to-cloud transfer
-- [x] v0.1 stabilization
-
-### v0.1.0 release readiness
-
-- [x] Automated tests passing
-- [x] Production build passing
-- [ ] GitHub Pages deployment smoke tested after release
-- [ ] Local email-link authentication smoke tested
-- [ ] Production email-link authentication smoke tested
-- [ ] Guest draft confirmed to transfer exactly once
-- [ ] Repeated login confirmed to create no duplicate Decks
-- [ ] Two test users confirmed unable to access each other's rows
-- [ ] Import and export manually smoke tested
-- [ ] All tracked boards manually confirmed after cloud reload
-- [ ] Narrow-screen mobile flow manually smoke tested
-- [x] README and architecture documentation current
-- [x] Known MVP limitations documented
-
-Known deck-builder limitations include no banned-list enforcement, no special
-oracle-text quantity exceptions, and no authenticated offline cache. Partner,
-named partner pairs, Partner—variants, Backgrounds, and Doctor's companions are
-supported. An authenticated edit that has not reached Supabase can be lost by
-refreshing before retrying.
-
----
-
-## Phase 2 — Tournament Explorer 🚧 *(Current)*
-
-- [x] Provider-neutral tournament models
-- [x] Normalized tournament and entry tables
-- [x] Public read-only tournament RLS
-- [x] Admin-protected TopDeck and EDHTop16 ingestion boundary
-- [x] Idempotent tournament and entry identities
-- [x] Commander metagame aggregation
-- [x] Metagame, Commander, and tournament routes
-- [x] In-app viewing for linked tournament decklists
-- [ ] Validate the current EDHTop16 API contract with production fixtures
-- [ ] Deploy and run the first administrator dry run
-- [x] Add TopDeck adapter, visible attribution, and private credential handling
-- [x] Preserve event location and granular region keys
-- [x] Add regional filters and event-location summaries
-- [x] Normalize tournament Decks and board-aware card rows
-- [x] Add Commander card-inclusion aggregation and filters
-- [x] Add normalized tournament Deck detail and copy-to-Deck workflow
-- [x] Add card-level ingestion controls and coverage metrics
-
-Current data limitations: provider and location fields may be absent,
-historical coverage depends on imported events, region means event location
-rather than player residence, and draws count in the match-rate denominator.
-Cross-provider linking automatically uses explicit shared IDs only. Exact
-coordinates are not shown publicly. Card inclusion uses complete normalized
-mainboards only and is descriptive rather than a recommendation score.
-
----
-
-## Phase 3 — Deck Builder Enhancements
-
-- [ ] Mana curve visualization
-- [ ] Color pip analysis
-- [ ] Tagging system
-- [ ] Multiple commanders / Partners
-- [ ] Drag & drop sorting
-- [ ] Land recommendations
-
----
-
-## Phase 4 — Data Collection
-
-- [ ] Tournament scraper
-- [x] Tournament Deck database
-- [ ] Commander archetype detection
-- [x] Descriptive card inclusion statistics
-- [ ] Historical tournament tracking
-
----
-
-## Phase 5 — Analytics
-
-- [ ] Deck comparison engine
-- [ ] Card association graph
-- [ ] Package detection
-- [ ] Meta reports
-- [ ] Win-rate analysis
-
----
-
-## Phase 6 — Intelligent Recommendations
-
-The "magic" of DoomsdayMTG.
-
-Generate recommendations using:
-
-- association graphs
-- deck similarity
-- archetype clustering
-- tournament weighting
-- statistical confidence
-
-Eventually allowing recommendations that feel more like an experienced cEDH player than a search engine.
-
----
-
-# Learning Goals
-
-This project is also a personal learning journey.
-
-Areas I'm intentionally learning while building:
-
-- TypeScript
-- Vue 3
-- Large-scale application architecture
-- Data engineering
-- Recommendation systems
-- Statistical analysis
-- Graph algorithms
-
-The codebase prioritizes readability over cleverness, with comments explaining important TypeScript concepts as they're introduced.
-
----
-
-# Contributing
-
-Contributions, suggestions, and ideas are welcome.
-
-The project is still in its early stages, and the architecture is expected to evolve as new features are added.
-
----
-
-# Inspiration
+## Inspiration
 
 - Moxfield
+- Archidekt
+- TopDeck
 - EDHTop16
 - Scryfall
-- Archidekt
 
----
-
-# License
+## License
 
 MIT
