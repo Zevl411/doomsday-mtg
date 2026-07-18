@@ -31,6 +31,48 @@ describe('tournament Deck normalization', () => {
     ]))
   })
 
+  it('ignores TopDeck metadata and non-deck play-aid sections', () => {
+    const result = normalizeStructuredDeck({
+      Commanders: { 'Etali, Primal Conqueror / Etali, Primal Sickness': 1 },
+      Mainboard: { Forest: 99 },
+      metadata: {
+        game: 'Magic: The Gathering',
+        format: 'Commander',
+        importedFrom: 'TopDeck',
+      },
+      Stickers: { 'Ancestral Hot Dog Minotaur': 1 },
+      Tokens: { Treasure: 1 },
+    })
+
+    expect(result.cards).toEqual([
+      expect.objectContaining({
+        board: 'commander',
+        name: 'Etali, Primal Conqueror // Etali, Primal Sickness',
+      }),
+      expect.objectContaining({
+        board: 'mainboard',
+        name: 'Forest',
+        quantity: 99,
+      }),
+    ])
+    expect(result.issues).toEqual([])
+  })
+
+  it('reports unknown structured sections without parsing metadata as cards', () => {
+    const result = normalizeStructuredDeck({
+      Mainboard: { Island: 99 },
+      ProviderDetails: { game: 'Magic', format: 'Commander' },
+    })
+
+    expect(result.cards).toEqual([
+      expect.objectContaining({ name: 'Island', board: 'mainboard' }),
+    ])
+    expect(result.cards.map((card) => card.name)).not.toContain('game')
+    expect(result.issues).toEqual([
+      expect.objectContaining({ code: 'unsupported_board' }),
+    ])
+  })
+
   it('uses the established plaintext heading and annotation conventions', () => {
     const result = normalizePlaintextDeck(`
       ~~Commanders~~

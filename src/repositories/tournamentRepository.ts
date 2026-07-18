@@ -6,8 +6,9 @@ import {
   mapColorIdentityByCardName,
 } from '../utils/commanderColorIdentity'
 import {
-  applyScryfallImages,
+  applyScryfallCardDetails,
   groupTournamentDeckCards,
+  hasExpectedTournamentDeckCards,
 } from '../utils/tournamentDeckCards'
 import { displayRegionKey } from '../utils/tournamentLocation'
 import type {
@@ -222,22 +223,7 @@ export const tournamentRepository = {
       },
     )
     if (error) throw friendlyError('load Commander card inclusion', error)
-    return ((data ?? []) as InclusionRow[]).map((row) => ({
-      normalizedCardKey: row.normalized_card_key,
-      oracleId: row.oracle_id ?? undefined,
-      cardName: row.card_name,
-      typeLine: row.type_line ?? undefined,
-      colorIdentity: row.color_identity ?? [],
-      manaValue: row.mana_value === null ? undefined : Number(row.mana_value),
-      deckCount: Number(row.deck_count),
-      totalEligibleDecks: Number(row.total_eligible_decks),
-      inclusionRate: Number(row.inclusion_rate),
-      averageQuantity: Number(row.average_quantity),
-      top16DeckCount: Number(row.top16_deck_count),
-      top16InclusionRate: Number(row.top16_inclusion_rate),
-      firstPlaceDeckCount: Number(row.first_place_deck_count),
-      firstPlaceInclusionRate: Number(row.first_place_inclusion_rate),
-    }))
+    return parseCommanderInclusionRows(data ?? [])
   },
 
   async getNormalizedTournamentDeck(
@@ -247,7 +233,7 @@ export const tournamentRepository = {
     const { data, error } = await supabase!
       .from('tournament_decks')
       .select(
-        '*, tournament_deck_cards(*), tournament_entries!inner(*, tournaments!inner(*))',
+        '*, tournament_deck_cards(*, canonical_cards(*)), tournament_entries!inner(*, tournaments!inner(*))',
       )
       .eq('id', deckId)
       .maybeSingle()
@@ -302,11 +288,18 @@ export const tournamentRepository = {
         entry.tournamentDeckId,
       )
       if (normalized) {
-        const decklist = await prepareTournamentDecklist(
-          mapNormalizedDecklist(normalized),
-        )
-        entryDecklistCache.set(entry.id, decklist)
-        return decklist
+        const storedDecklist = mapNormalizedDecklist(normalized)
+        if (hasExpectedTournamentDeckCards(
+          storedDecklist.commanders,
+          storedDecklist.cards,
+          normalized.mainboardCardCount,
+        )) {
+          const decklist = await prepareTournamentDecklist(storedDecklist)
+          entryDecklistCache.set(entry.id, decklist)
+          return decklist
+        }
+        // Older snapshots could omit DFC rows while still being marked
+        // complete. Fall through to the provider-backed function for repair.
       }
     }
 
@@ -332,6 +325,54 @@ export const tournamentRepository = {
     entryDecklistCache.clear()
     commanderColorCache.clear()
   },
+}
+
+/** Inclusion rows are also used by Deck comparison, so validate every field. */
+export function parseCommanderInclusionRows(
+  value: unknown,
+): CommanderCardInclusion[] {
+  if (!Array.isArray(value)) {
+    throw new Error('The deck comparison response was invalid.')
+  }
+  return value.map((row) => {
+    if (
+      !isRecord(row) ||
+      typeof row.normalized_card_key !== 'string' ||
+      !isNullableString(row.oracle_id) ||
+      typeof row.card_name !== 'string' ||
+      !isNullableString(row.type_line) ||
+      !isStringArrayOrNull(row.color_identity) ||
+      !isNullableNumber(row.mana_value) ||
+      !hasFiniteNumbers(row, [
+        'deck_count',
+        'total_eligible_decks',
+        'inclusion_rate',
+        'average_quantity',
+        'top16_deck_count',
+        'top16_inclusion_rate',
+        'first_place_deck_count',
+        'first_place_inclusion_rate',
+      ])
+    ) {
+      throw new Error('The deck comparison response was invalid.')
+    }
+    return {
+      normalizedCardKey: row.normalized_card_key,
+      oracleId: row.oracle_id ?? undefined,
+      cardName: row.card_name,
+      typeLine: row.type_line ?? undefined,
+      colorIdentity: row.color_identity ?? [],
+      manaValue: row.mana_value === null ? undefined : Number(row.mana_value),
+      deckCount: Number(row.deck_count),
+      totalEligibleDecks: Number(row.total_eligible_decks),
+      inclusionRate: Number(row.inclusion_rate),
+      averageQuantity: Number(row.average_quantity),
+      top16DeckCount: Number(row.top16_deck_count),
+      top16InclusionRate: Number(row.top16_inclusion_rate),
+      firstPlaceDeckCount: Number(row.first_place_deck_count),
+      firstPlaceInclusionRate: Number(row.first_place_inclusion_rate),
+    }
+  })
 }
 
 interface CommanderColorTarget {
@@ -392,17 +433,19 @@ function mapNormalizedDecklist(
     // Normalized tournament rows do not need mana cost for analysis. Keep the
     // display field empty rather than issuing another request per card.
     manaCost: '',
+    manaValue: card.manaValue ?? null,
     imageUrl: card.scryfallId
       ? `https://api.scryfall.com/cards/${encodeURIComponent(card.scryfallId)}?format=image&version=normal`
       : '',
+    backImageUrl: '',
   })
 
   return {
     commanders: deck.cards
-      .filter((card) => card.board === 'commander' && card.scryfallId)
+      .filter((card) => card.board === 'commander')
       .map(mapCard),
     cards: deck.cards
-      .filter((card) => card.board === 'mainboard' && card.scryfallId)
+      .filter((card) => card.board === 'mainboard')
       .map(mapCard),
   }
 }
@@ -418,8 +461,8 @@ async function prepareTournamentDecklist(
       [...commanders, ...cards].map((card) => card.name),
     )
     return {
-      commanders: applyScryfallImages(commanders, scryfallCards),
-      cards: applyScryfallImages(cards, scryfallCards),
+      commanders: applyScryfallCardDetails(commanders, scryfallCards),
+      cards: applyScryfallCardDetails(cards, scryfallCards),
     }
   } catch (error) {
     // Keep provider URLs as a fallback if Scryfall is temporarily unavailable.
@@ -458,7 +501,10 @@ function normalizeTournamentCards(value: unknown) {
       oracleId: typeof card.oracleId === 'string' ? card.oracleId : null,
       typeLine: typeof card.typeLine === 'string' ? card.typeLine : '',
       manaCost: typeof card.manaCost === 'string' ? card.manaCost : '',
+      manaValue: typeof card.manaValue === 'number' ? card.manaValue : null,
       imageUrl: card.imageUrl,
+      backImageUrl:
+        typeof card.backImageUrl === 'string' ? card.backImageUrl : undefined,
     })
   }
   return cards
@@ -666,23 +712,6 @@ interface RegionalRow {
   average_tournament_size: number | null
 }
 
-interface InclusionRow {
-  normalized_card_key: string
-  oracle_id: string | null
-  card_name: string
-  type_line: string | null
-  color_identity: string[] | null
-  mana_value: number | null
-  deck_count: number
-  total_eligible_decks: number
-  inclusion_rate: number
-  average_quantity: number
-  top16_deck_count: number
-  top16_inclusion_rate: number
-  first_place_deck_count: number
-  first_place_inclusion_rate: number
-}
-
 interface TournamentDeckRow {
   id: string
   tournament_entry_id: string
@@ -701,10 +730,13 @@ interface TournamentDeckRow {
   tournament_deck_cards?: Array<{
     id: string
     board: NormalizedTournamentDeck['cards'][number]['board']
+    canonical_card_id?: string
+    canonical_cards?: CanonicalCardRow | CanonicalCardRow[]
+    // Legacy fields remain optional during the rolling schema transition.
     oracle_id?: string
     scryfall_id?: string
-    normalized_card_key: string
-    card_name: string
+    normalized_card_key?: string
+    card_name?: string
     quantity: number
     type_line?: string
     color_identity?: string[]
@@ -715,6 +747,19 @@ interface TournamentDeckRow {
     updated_at?: string
   }>
   tournament_entries: EntryRow & { tournaments: TournamentRow }
+}
+
+interface CanonicalCardRow {
+  id: string
+  oracle_id?: string
+  scryfall_id?: string
+  normalized_card_key: string
+  card_name: string
+  type_line?: string
+  color_identity?: string[]
+  colors?: string[]
+  mana_value?: number
+  is_basic_land: boolean
 }
 
 function mapNormalizedTournamentDeck(row: TournamentDeckRow): NormalizedTournamentDeck {
@@ -733,22 +778,33 @@ function mapNormalizedTournamentDeck(row: TournamentDeckRow): NormalizedTourname
     structuredDeckAvailable: row.structured_deck_available,
     importedAt: row.imported_at,
     updatedAt: row.updated_at,
-    cards: (row.tournament_deck_cards ?? []).map((card) => ({
-      id: card.id,
-      board: card.board,
-      oracleId: card.oracle_id,
-      scryfallId: card.scryfall_id,
-      normalizedCardKey: card.normalized_card_key,
-      cardName: card.card_name,
-      quantity: card.quantity,
-      typeLine: card.type_line,
-      colorIdentity: card.color_identity ?? [],
-      colors: card.colors ?? [],
-      manaValue: card.mana_value,
-      isBasicLand: card.is_basic_land,
-      createdAt: card.created_at,
-      updatedAt: card.updated_at,
-    })),
+    cards: (row.tournament_deck_cards ?? []).flatMap((card) => {
+      const canonical = Array.isArray(card.canonical_cards)
+        ? card.canonical_cards[0]
+        : card.canonical_cards
+      const normalizedCardKey =
+        canonical?.normalized_card_key ?? card.normalized_card_key
+      const cardName = canonical?.card_name ?? card.card_name
+      if (!normalizedCardKey || !cardName) return []
+      return [{
+        id: card.id,
+        board: card.board,
+        oracleId: canonical?.oracle_id ?? card.oracle_id,
+        scryfallId: canonical?.scryfall_id ?? card.scryfall_id,
+        normalizedCardKey,
+        cardName,
+        quantity: card.quantity,
+        typeLine: canonical?.type_line ?? card.type_line,
+        colorIdentity:
+          canonical?.color_identity ?? card.color_identity ?? [],
+        colors: canonical?.colors ?? card.colors ?? [],
+        manaValue: canonical?.mana_value ?? card.mana_value,
+        isBasicLand:
+          canonical?.is_basic_land ?? card.is_basic_land,
+        createdAt: card.created_at,
+        updatedAt: card.updated_at,
+      }]
+    }),
     entry: mapEntryRow(row.tournament_entries),
     tournament: mapTournamentRow(row.tournament_entries.tournaments),
   }
@@ -757,4 +813,28 @@ function mapNormalizedTournamentDeck(row: TournamentDeckRow): NormalizedTourname
 function unique(values: Array<string | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value)))]
     .sort((left, right) => left.localeCompare(right))
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string'
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return value === null ||
+    (typeof value === 'number' && Number.isFinite(value))
+}
+
+function isStringArrayOrNull(value: unknown): value is string[] | null {
+  return value === null ||
+    (Array.isArray(value) &&
+      value.every((item) => typeof item === 'string'))
+}
+
+function hasFiniteNumbers(
+  value: Record<string, unknown>,
+  fields: string[],
+): boolean {
+  return fields.every((field) =>
+    typeof value[field] === 'number' && Number.isFinite(value[field])
+  )
 }

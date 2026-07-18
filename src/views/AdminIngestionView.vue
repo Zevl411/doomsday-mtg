@@ -220,6 +220,14 @@
               >
                 {{ errorMessage }}
               </v-alert>
+              <v-alert
+                v-else-if="normalizationMessage"
+                class="mt-4"
+                type="success"
+                variant="tonal"
+              >
+                {{ normalizationMessage }}
+              </v-alert>
             </v-card-text>
           </v-card>
         </v-col>
@@ -349,7 +357,8 @@
               </v-list-item-title>
               <v-list-item-subtitle>
                 {{ job.completedBatches }} / {{ job.totalBatches }} batches ·
-                {{ job.failedBatches }} failed · {{ job.status }}
+                {{ job.failedBatches }} failed · {{ job.status }} ·
+                Runtime: {{ jobDuration(job) }}
               </v-list-item-subtitle>
               <v-progress-linear
                 class="mt-2"
@@ -529,8 +538,8 @@
         <v-card-text>
           <v-alert class="mb-4" type="warning" variant="tonal">
             This removes tournament jobs, events, entries, normalized tournament
-            Decks, and tournament Deck cards. User accounts and saved user Decks
-            are preserved.
+            Decks, tournament Deck cards, and the canonical card cache. User
+            accounts and saved user Decks are preserved.
           </v-alert>
           <v-btn
             color="error"
@@ -546,7 +555,9 @@
             Removed {{ resetReport.tournamentsDeleted }} tournaments,
             {{ resetReport.entriesDeleted }} entries,
             {{ resetReport.normalizedDecksDeleted }} normalized Decks,
-            {{ resetReport.normalizedCardsDeleted }} Deck cards, and
+            {{ resetReport.normalizedCardsDeleted }} Deck cards,
+            {{ resetReport.canonicalCardsDeleted }} canonical cards,
+            {{ resetReport.canonicalAliasesDeleted }} card aliases, and
             {{ resetReport.ingestionJobsDeleted }} ingestion jobs.
           </v-alert>
         </v-card-text>
@@ -672,7 +683,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import {
   ingestionRepository,
   type IngestionDashboardMetrics,
@@ -683,6 +694,10 @@ import {
   type IngestionReport,
 } from '../repositories/ingestionRepository'
 import { tournamentRepository } from '../repositories/tournamentRepository'
+import {
+  formatElapsedDuration,
+  getIngestionJobDurationMs,
+} from '../utils/ingestionDuration'
 
 const checkingAccess = ref(true)
 const isAdmin = ref(false)
@@ -704,6 +719,7 @@ const excludeCasualEvents = ref(true)
 const report = ref<IngestionReport | null>(null)
 const reportMinimized = ref(false)
 const errorMessage = ref('')
+const normalizationMessage = ref('')
 const jobs = ref<IngestionJob[]>([])
 const creatingJob = ref(false)
 const jobStartDate = ref('')
@@ -713,6 +729,8 @@ const jobMinimumPlayers = ref(0)
 const jobExcludeCasualEvents = ref(true)
 const jobError = ref('')
 const jobMessage = ref('')
+const jobClock = ref(Date.now())
+let jobRefreshTimer: number | undefined
 const purgeStartDate = ref('')
 const purgeEndDate = ref('')
 const purgeDryRun = ref(true)
@@ -847,10 +865,18 @@ const deckReportItems = computed(() => {
 onMounted(async () => {
   try {
     isAdmin.value = await ingestionRepository.isCurrentUserAdmin()
-    if (isAdmin.value) await loadMetrics()
+    if (isAdmin.value) {
+      await loadMetrics()
+      // Refresh progress and elapsed runtime while a long backfill runs.
+      jobRefreshTimer = window.setInterval(refreshJobs, 30_000)
+    }
   } finally {
     checkingAccess.value = false
   }
+})
+
+onUnmounted(() => {
+  window.clearInterval(jobRefreshTimer)
 })
 
 async function loadMetrics() {
@@ -967,6 +993,20 @@ function jobProgress(job: IngestionJob) {
     : 0
 }
 
+function jobDuration(job: IngestionJob): string {
+  const duration = getIngestionJobDurationMs(job, jobClock.value)
+  return duration === null ? 'Not started' : formatElapsedDuration(duration)
+}
+
+async function refreshJobs() {
+  jobClock.value = Date.now()
+  try {
+    jobs.value = await ingestionRepository.getJobs()
+  } catch {
+    // Keep the last successful snapshot when a background refresh fails.
+  }
+}
+
 async function ingestTournamentDecks() {
   deckIngestionRunning.value = true
   deckIngestionError.value = ''
@@ -994,6 +1034,7 @@ async function ingestTournamentDecks() {
 async function ingest() {
   running.value = true
   errorMessage.value = ''
+  normalizationMessage.value = ''
   reportMinimized.value = false
   try {
     const selectedTournamentIds = tournamentIds.value
@@ -1014,8 +1055,22 @@ async function ingest() {
       excludeCasualEvents: excludeCasualEvents.value,
     })
     if (!dryRun.value && !report.value.providerErrors.length) {
-      // Tournament metadata is useful immediately. Card-level normalization is
-      // an optional admin job and must not make ordinary ingestion hang.
+      // Keep provider requests responsive, then let the durable worker perform
+      // card-level normalization automatically in bounded cron invocations.
+      if (startDate.value && endDate.value) {
+        await ingestionRepository.createDeckNormalizationJob({
+          provider: provider.value,
+          startDate: startDate.value,
+          endDate: endDate.value,
+          windowDays: 3,
+          minimumPlayers: minimumPlayers.value,
+          includeRounds: false,
+          enrichLocation: false,
+          excludeCasualEvents: excludeCasualEvents.value,
+        })
+        normalizationMessage.value =
+          'Tournament metadata imported. Card-level Deck normalization is queued.'
+      }
       tournamentRepository.clearCache()
       await loadMetrics()
     }

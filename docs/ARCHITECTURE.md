@@ -108,6 +108,13 @@ without turning every import back into one request per card. Returned canonical,
 flavor, printed, and face names all map to the same `ScryfallCard` and stable
 oracle identity.
 
+Tournament normalization persists that mapping across Edge Function
+invocations. `canonical_cards` stores Scryfall and rules metadata once per
+card, while `canonical_card_aliases` maps provider names, flavor names, and
+face names to that record. New `tournament_deck_cards` rows store only the
+canonical reference, board, and quantity. This avoids repeating card metadata
+and prevents later batches from resolving common cards through Scryfall again.
+
 ## Import pipeline
 
 ```text
@@ -197,6 +204,44 @@ assets instead of root-relative URLs.
 
 Both CI and the Pages deployment workflow run tests before the production
 build. There are intentionally no local Git hooks.
+
+## Descriptive Deck comparison
+
+`#/decks/:deckId/compare` compares one repository-owned personal Deck with
+public normalized tournament data. The personal Deck remains in Pinia and its
+guest or authenticated repository; comparison sends Supabase only the
+Commander key, filters, and deduplicated mainboard analytical card keys. No
+public comparison function reads `public.decks`, user IDs, or private provider
+payloads.
+
+`src/services/deckComparison.ts` owns comparison rules. Card identity is Oracle
+ID first and normalized canonical name second. Only the user and tournament
+mainboards participate; Commanders and auxiliary boards are excluded. The
+service combines validated Commander-inclusion rows with user quantities and
+assigns descriptive frequency categories without recommending additions or
+cuts.
+
+Aggregate overlap is:
+
+```text
+shared cards appearing in at least 20% of eligible Decks
+────────────────────────────────────────────────────────
+all cards appearing in at least 20% of eligible Decks
+```
+
+Individual tournament similarity is calculated in PostgreSQL using Jaccard
+similarity over unique mainboard identities:
+
+```text
+intersection size / union size
+```
+
+Only complete normalized Decks for the same Commander enter the sample. SQL
+applies date, placement, event-size, region, and online filters and returns at
+most 20 deterministic results. Sample status is `sufficient` at 20 or more
+complete Decks, `limited` at 5–19, `insufficient` at 1–4, and `unavailable` at
+zero. The interface always identifies tournament frequency as descriptive,
+not evidence of card quality or causal performance.
 
 ## Testing standard
 

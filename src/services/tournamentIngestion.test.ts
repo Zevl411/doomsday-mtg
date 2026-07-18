@@ -4,6 +4,7 @@ import deckIngestionFunctionSource from '../../supabase/functions/ingest-tournam
 import workerFunctionSource from '../../supabase/functions/process-tournament-ingestion/index.ts?raw'
 import decklistFunctionSource from '../../supabase/functions/tournament-decklist/index.ts?raw'
 import repositorySource from '../repositories/ingestionRepository.ts?raw'
+import tournamentRepositorySource from '../repositories/tournamentRepository.ts?raw'
 
 describe('tournament ingestion function boundaries', () => {
   it('requires authenticated admin membership before provider work', () => {
@@ -18,6 +19,14 @@ describe('tournament ingestion function boundaries', () => {
       "onConflict: 'tournament_id,source_entry_key'",
     )
     expect(functionSource).toContain('if (options.dryRun) return')
+  })
+
+  it('does not retain redundant raw tournament payloads', () => {
+    expect(functionSource).not.toContain(
+      'source_payload: tournament.raw',
+    )
+    // Entry payloads remain available until their Deck is normalized.
+    expect(functionSource).toContain('source_payload: entry.raw')
   })
 
   it('bounds concurrent tournament processing', () => {
@@ -73,26 +82,101 @@ describe('normalized tournament deck ingestion boundaries', () => {
 
   it('filters missing normalized Decks before applying the batch limit', () => {
     expect(deckIngestionFunctionSource).toContain(
-      'const ENTRY_BATCH_SIZE = 10',
+      'const ENTRY_BATCH_SIZE = 25',
     )
     expect(deckIngestionFunctionSource).toContain(
       "'get_tournament_deck_ingestion_candidates'",
     )
     expect(deckIngestionFunctionSource).toContain('.limit(ENTRY_BATCH_SIZE)')
     expect(deckIngestionFunctionSource).toContain(
-      'report.hasMore = report.entriesConsidered === ENTRY_BATCH_SIZE',
+      'report.hasMore = loadedEntryCount === ENTRY_BATCH_SIZE',
     )
   })
 
-  it('completes metadata batches without automatic Deck normalization', () => {
-    expect(workerFunctionSource).toContain("status: 'completed'")
-    expect(workerFunctionSource).not.toContain(
+  it('bulk-classifies unavailable Decks before the bounded entry batch', () => {
+    expect(deckIngestionFunctionSource).toContain(
+      "'mark_unavailable_tournament_decks'",
+    )
+    expect(deckIngestionFunctionSource).toContain(
+      'report.decksUnavailable += skipped',
+    )
+    expect(deckIngestionFunctionSource.indexOf(
+      "'mark_unavailable_tournament_decks'",
+    )).toBeLessThan(deckIngestionFunctionSource.indexOf(
+      "'get_tournament_deck_ingestion_candidates'",
+    ))
+  })
+
+  it('reuses persistent canonical aliases before calling Scryfall', () => {
+    expect(deckIngestionFunctionSource).toContain(
+      "from('canonical_card_aliases')",
+    )
+    expect(deckIngestionFunctionSource).toContain(
+      'loadCanonicalCardCache',
+    )
+    expect(deckIngestionFunctionSource).toContain(
+      "from('canonical_cards')",
+    )
+    expect(deckIngestionFunctionSource).toContain(
+      'canonical_card_id: canonicalCardId',
+    )
+    expect(deckIngestionFunctionSource).toContain(
+      "onConflict: 'tournament_deck_id,board,canonical_card_id'",
+    )
+  })
+
+  it('accepts double-faced Scryfall cards without top-level colors', () => {
+    expect(deckIngestionFunctionSource).toContain(
+      'value.colors === undefined',
+    )
+    expect(deckIngestionFunctionSource).toContain(
+      'card.card_faces?.flatMap((face) => face.colors ?? [])',
+    )
+    expect(deckIngestionFunctionSource).toContain(
+      'colors: getResolvedColors(card)',
+    )
+  })
+
+  it('releases redundant provider payloads after complete normalization', () => {
+    expect(deckIngestionFunctionSource).toContain(
+      ".update({ source_payload: null })",
+    )
+    expect(deckIngestionFunctionSource).toContain(
+      "completeness.status === 'complete'",
+    )
+  })
+
+  it('continues metadata batches through bounded Deck normalization', () => {
+    expect(workerFunctionSource).toContain("stage: 'decks'")
+    expect(workerFunctionSource).toContain(
       '/functions/v1/ingest-tournament-decks',
     )
+    expect(workerFunctionSource).toContain('onlyMissing: true')
+    expect(workerFunctionSource).toContain(
+      "status: hasMore ? 'pending' : 'completed'",
+    )
+  })
+
+  it('lets direct metadata ingestion enqueue only the Deck stage', () => {
+    expect(functionSource).toContain("'create-deck-job'")
+    expect(functionSource).toMatch(
+      /function isJobAction[\s\S]*'create-deck-job'/,
+    )
+    expect(functionSource).toContain(".update({ stage: 'decks' })")
+    expect(repositorySource).toContain('createDeckNormalizationJob')
   })
 })
 
 describe('tournament decklist function boundaries', () => {
+  it('keeps normalized double-faced cards without requiring a printing ID', () => {
+    expect(tournamentRepositorySource).not.toContain(
+      "card.board === 'mainboard' && card.scryfallId",
+    )
+    expect(tournamentRepositorySource).not.toContain(
+      "card.board === 'commander' && card.scryfallId",
+    )
+  })
+
   it('loads one provider entry on demand and returns preview image data', () => {
     expect(decklistFunctionSource).toContain(
       'query DoomsdayTournamentEntryDeck',
@@ -109,6 +193,16 @@ describe('tournament decklist function boundaries', () => {
     expect(decklistFunctionSource).toContain('normalizePlaintextDeck')
     expect(decklistFunctionSource).toContain(
       ".eq('id', tournamentEntryId)",
+    )
+  })
+
+  it('refetches a targeted TopDeck event when its stored payload was released', () => {
+    expect(decklistFunctionSource).toContain('loadTopDeckDecklist')
+    expect(decklistFunctionSource).toContain(
+      'tournamentIds: [tournamentId]',
+    )
+    expect(decklistFunctionSource).toContain(
+      "Deno.env.get('TOPDECK_API_KEY')",
     )
   })
 

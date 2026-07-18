@@ -3,6 +3,7 @@ import {
   normalizePlaintextDeck,
   normalizeStructuredDeck,
 } from '../_shared/tournamentDeckNormalizer.ts'
+import { TopDeckProvider } from '../ingest-tournaments/topdeck.ts'
 
 const EDHTOP16_GRAPHQL_URL = 'https://edhtop16.com/api/graphql'
 const ENTRY_DECK_QUERY = `
@@ -65,7 +66,9 @@ Deno.serve(async (request) => {
     const client = createClient(supabaseUrl, anonKey)
     const { data: entry, error } = await client
       .from('tournament_entries')
-      .select('source_entry_id, source_payload, tournaments!inner(source)')
+      .select(
+        'source_entry_id, source_payload, tournaments!inner(source, source_tournament_id)',
+      )
       .eq('id', tournamentEntryId)
       .maybeSingle()
     if (error) throw error
@@ -75,7 +78,11 @@ Deno.serve(async (request) => {
       ? entry.tournaments[0]
       : entry.tournaments
     if (tournament?.source === 'topdeck') {
-      const decklist = mapStoredTopDeckDecklist(entry.source_payload)
+      const storedDecklist = mapStoredTopDeckDecklist(entry.source_payload)
+      const decklist = storedDecklist ?? await loadTopDeckDecklist(
+        tournament.source_tournament_id,
+        entry.source_entry_id,
+      )
       return decklist
         ? json(decklist)
         : json({ error: 'No decklist was found for this entry.' }, 404)
@@ -114,6 +121,32 @@ Deno.serve(async (request) => {
   }
 })
 
+async function loadTopDeckDecklist(
+  tournamentId: unknown,
+  entryId: unknown,
+) {
+  if (typeof tournamentId !== 'string' || typeof entryId !== 'string') {
+    return null
+  }
+  const apiKey = Deno.env.get('TOPDECK_API_KEY')
+  if (!apiKey) return null
+
+  // Complete normalized entries intentionally release their large provider
+  // payload. A targeted TID lookup can still repair an older incomplete
+  // snapshot without restoring that payload to PostgreSQL.
+  const provider = new TopDeckProvider({ apiKey })
+  const [tournament] = await provider.listTournaments({
+    tournamentIds: [tournamentId],
+    minimumPlayers: 0,
+  })
+  if (!tournament) return null
+  const entries = await provider.listEntries(tournament)
+  const matchingEntry = entries.find((item) => item.sourceEntryId === entryId)
+  return matchingEntry
+    ? mapStoredTopDeckDecklist(matchingEntry.raw)
+    : null
+}
+
 function mapStoredTopDeckDecklist(value: unknown) {
   if (!isRecord(value)) return null
   const deckObject = value.deckObj ?? value.deckObject
@@ -135,8 +168,10 @@ function mapStoredTopDeckDecklist(value: unknown) {
     oracleId: null,
     typeLine: '',
     manaCost: '',
+    manaValue: null,
     // The Vue repository replaces this with a batched Scryfall CDN URL.
     imageUrl: '',
+    backImageUrl: '',
   })
   return {
     commanders: normalized.cards
@@ -175,7 +210,9 @@ function mapCards(value: unknown) {
       oracleId: typeof card.oracleId === 'string' ? card.oracleId : null,
       typeLine: typeof card.type === 'string' ? card.type : '',
       manaCost: typeof card.manaCost === 'string' ? card.manaCost : '',
+      manaValue: null,
       imageUrl: card.cardPreviewImageUrl,
+      backImageUrl: '',
     }]
   })
 }

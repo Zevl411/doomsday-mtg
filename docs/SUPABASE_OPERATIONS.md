@@ -43,3 +43,53 @@ sign out and sign in as the second user in a separate private browser session.
 The second user must not see or modify the first user's deck. Repeat in the
 opposite direction. This manually verifies the RLS ownership boundary.
 
+## Deck comparison RPC
+
+Apply `supabase/migrations/202607180001_add_deck_comparison.sql` and then
+`supabase/migrations/202607180002_create_canonical_cards.sql` after the
+normalized tournament Deck migrations. The canonical migration backfills
+existing rows, adds persistent aliases, and redirects analytics through the
+canonical join. Verify the tables, functions, and public execution grants:
+
+```sql
+select table_name
+from information_schema.tables
+where table_schema = 'public'
+  and table_name in ('canonical_cards', 'canonical_card_aliases');
+
+select routine_name
+from information_schema.routines
+where routine_schema = 'public'
+  and routine_name in (
+    'get_deck_comparison_aggregate',
+    'get_similar_tournament_decks'
+  );
+
+select has_function_privilege(
+  'anon',
+  'public.get_deck_comparison_aggregate(text,date,date,integer,integer,text,text,text,boolean,integer)',
+  'execute'
+), has_function_privilege(
+  'anon',
+  'public.get_similar_tournament_decks(text,text[],date,date,integer,integer,text,text,text,boolean,integer,integer)',
+  'execute'
+);
+```
+
+Smoke-test a known normalized Commander key with analytical keys:
+
+```sql
+select *
+from public.get_similar_tournament_decks(
+  p_commander_key := 'kinnan, bonder prodigy',
+  p_card_keys := array['oracle:00000000-0000-0000-0000-000000000000'],
+  p_minimum_complete_decks := 1,
+  p_similarity_limit := 5
+);
+```
+
+Replace the example Oracle UUID with one present in `canonical_cards`. Results
+must contain only public tournament metadata,
+shared/union counts, and similarity. Confirm the migration contains no read
+from `public.decks`, does not alter its RLS policies, and grants no write
+permission to tournament tables.

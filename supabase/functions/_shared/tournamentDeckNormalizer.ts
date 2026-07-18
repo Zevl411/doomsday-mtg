@@ -37,6 +37,15 @@ const BOARD_NAMES: Record<string, TournamentDeckBoard> = {
   companion: 'companion',
 }
 
+// TopDeck includes non-card objects beside actual deck boards. These values
+// describe the export or optional play aids and must never become card names.
+const IGNORED_STRUCTURED_SECTIONS = new Set([
+  'metadata',
+  'stickers',
+  'attractions',
+  'tokens',
+])
+
 /** Structured TopDeck data is preferred because headings cannot become cards. */
 export function normalizeStructuredDeck(value: unknown): CandidateResult {
   if (!isRecord(value)) {
@@ -45,12 +54,17 @@ export function normalizeStructuredDeck(value: unknown): CandidateResult {
   const cards: CardCandidate[] = []
   const issues: CandidateIssue[] = []
   for (const [sectionName, section] of Object.entries(value)) {
-    const board = BOARD_NAMES[normalizeHeading(sectionName)] ?? 'unknown'
+    const normalizedSectionName = normalizeHeading(sectionName)
+    if (IGNORED_STRUCTURED_SECTIONS.has(normalizedSectionName)) continue
+    const board = BOARD_NAMES[normalizedSectionName] ?? 'unknown'
     if (board === 'unknown') {
       issues.push({
         code: 'unsupported_board',
         message: `Unsupported deck section: ${sectionName}.`,
       })
+      // Unknown objects may contain provider metadata. Reporting the section
+      // is safer than treating its property names as Magic cards.
+      continue
     }
     for (const candidate of readStructuredSection(section)) {
       if (!candidate.name || candidate.quantity <= 0) {

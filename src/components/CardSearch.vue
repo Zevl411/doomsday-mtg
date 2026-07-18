@@ -29,8 +29,18 @@
       {{ errorMessage }}
     </v-alert>
 
+    <v-alert
+      v-if="!isLoading && !errorMessage && fallbackMessage"
+      class="mb-3"
+      density="compact"
+      type="warning"
+      variant="tonal"
+    >
+      {{ fallbackMessage }}
+    </v-alert>
+
     <v-list
-      v-else-if="cards.length"
+      v-if="!isLoading && !errorMessage && cards.length"
       class="search-results-list pa-0"
       bg-color="transparent"
     >
@@ -75,6 +85,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, useId, watch } from 'vue'
 import { searchCards } from '../api/scryfall'
+import { searchCanonicalCards } from '../repositories/canonicalCardRepository'
 import type { ScryfallCard } from '../types/card'
 import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
 import { getCardImage } from '../utils/cardDisplay'
@@ -107,6 +118,7 @@ const searchInputId = useId()
 const query = ref('')
 const cards = ref<ScryfallCard[]>([])
 const errorMessage = ref('')
+const fallbackMessage = ref('')
 const isLoading = ref(false)
 // A Set provides constant-time selection checks for every rendered result.
 const selectedCardIdSet = computed(() => new Set(props.selectedCardIds))
@@ -120,6 +132,7 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
   activeController?.abort()
   activeController = null
   errorMessage.value = ''
+  fallbackMessage.value = ''
 
   if (!newQuery.trim()) {
     cards.value = []
@@ -138,7 +151,26 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
         ? `${newQuery} ${commanderFilter} ${props.searchFilter}`.trim()
         : `${newQuery} ${props.searchFilter}`.trim()
 
-      cards.value = await searchCards(scryfallQuery, controller.signal)
+      try {
+        cards.value = await searchCards(scryfallQuery, controller.signal)
+      } catch (error) {
+        if (
+          controller.signal.aborted ||
+          !(error instanceof Error) ||
+          error.name !== 'ScryfallUnavailableError'
+        ) {
+          throw error
+        }
+
+        cards.value = await searchCanonicalCards(newQuery, {
+          commanderOnly: props.commanderOnly,
+          allowedColorIdentity: getFallbackColorIdentity(props.searchFilter),
+        })
+        if (controller.signal.aborted) return
+        fallbackMessage.value = cards.value.length
+          ? 'Scryfall is unavailable. Showing cached tournament cards.'
+          : 'Scryfall is unavailable, and no cached matching cards were found.'
+      }
     } catch (error) {
       if (controller.signal.aborted) {
         return
@@ -164,5 +196,11 @@ onUnmounted(() => {
 
 function isCardSelected(card: ScryfallCard): boolean {
   return selectedCardIdSet.value.has(card.id)
+}
+
+function getFallbackColorIdentity(searchFilter: string): string[] | undefined {
+  if (/\bid:c\b/i.test(searchFilter)) return []
+  const match = searchFilter.match(/\bid<=([wubrg]+)\b/i)
+  return match?.[1]?.toUpperCase().split('')
 }
 </script>

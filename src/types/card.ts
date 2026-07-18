@@ -31,6 +31,8 @@ export interface ScryfallCard {
   printed_name?: string
   type_line: string
   color_identity: string[]
+  // Scryfall calls a card's numeric mana value "cmc" in its API response.
+  cmc?: number
 
   // Multi-faced cards store these details on each face instead of on the card.
   mana_cost?: string

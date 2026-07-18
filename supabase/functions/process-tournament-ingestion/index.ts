@@ -7,8 +7,9 @@ type AdminClient = ReturnType<typeof createClient<any>>
 const jsonHeaders = { 'Content-Type': 'application/json' }
 
 /**
- * Cron calls this small worker repeatedly. Processing one batch per invocation
- * keeps TopDeck payloads below the Edge Function memory limit.
+ * Cron calls this small worker repeatedly. Tournament metadata and card-level
+ * Deck normalization are separate stages of the same durable batch, keeping
+ * each Edge Function invocation below the platform memory limit.
  */
 Deno.serve(async (request) => {
   const secret = Deno.env.get('INGESTION_WORKER_SECRET')
@@ -42,6 +43,17 @@ Deno.serve(async (request) => {
   }
 
   try {
+    if (batch.stage === 'decks') {
+      return await processDeckStage(
+        admin,
+        url,
+        serviceKey,
+        secret,
+        batch,
+        job,
+      )
+    }
+
     const ingestionResponse = await fetch(`${url}/functions/v1/ingest-tournaments`, {
       method: 'POST',
       headers: {
@@ -76,10 +88,10 @@ Deno.serve(async (request) => {
     const { error: updateError } = await admin
       .from('tournament_ingestion_batches')
       .update({
-        // Card-level normalization is optional and runs separately. Completing
-        // here keeps historical metadata ingestion small and repeatable.
-        status: 'completed',
-        stage: 'tournaments',
+        // Cron will claim this same date window again for its bounded Deck
+        // stage. This checkpoints metadata before any Scryfall work begins.
+        status: 'pending',
+        stage: 'decks',
         attempts: 0,
         last_error: null,
         tournaments_fetched: numberValue(report.tournamentsFetched),
@@ -88,19 +100,106 @@ Deno.serve(async (request) => {
         entries_fetched: numberValue(report.entriesFetched),
         entries_inserted: numberValue(report.entriesInserted),
         entries_updated: numberValue(report.entriesUpdated),
-        completed_at: new Date().toISOString(),
+        completed_at: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', batch.id)
     if (updateError) throw updateError
     await refreshJob(admin, batch.job_id)
-    return response({ batchId: batch.id, stage: 'tournaments', report })
+    return response({
+      batchId: batch.id,
+      stage: 'tournaments',
+      nextStage: 'decks',
+      report,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Worker failed.'
     await failBatch(admin, batch, message)
     return response({ batchId: batch.id, error: message }, 500)
   }
 })
+
+async function processDeckStage(
+  admin: AdminClient,
+  url: string,
+  serviceKey: string,
+  secret: string,
+  batch: Record<string, unknown>,
+  job: Record<string, unknown>,
+) {
+  const ingestionResponse = await fetch(
+    `${url}/functions/v1/ingest-tournament-decks`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        'x-ingestion-worker-secret': secret,
+      },
+      body: JSON.stringify({
+        provider: job.provider,
+        startDate: batch.start_date,
+        endDate: batch.end_date,
+        onlyMissing: true,
+        retryPartial: false,
+        dryRun: false,
+      }),
+    },
+  )
+  const report: unknown = await ingestionResponse.json()
+  if (
+    !ingestionResponse.ok ||
+    !isRecord(report) ||
+    !Array.isArray(report.errors) ||
+    report.errors.length
+  ) {
+    const message = readDeckReportError(report) ??
+      `Deck ingestion returned HTTP ${ingestionResponse.status}.`
+    await failBatch(admin, batch, message)
+    return response({ batchId: batch.id, stage: 'decks', error: message }, 500)
+  }
+
+  const hasMore = report.hasMore === true
+  const { error: updateError } = await admin
+    .from('tournament_ingestion_batches')
+    .update({
+      // Twenty-five source Decks are normalized per invocation. A pending batch is
+      // picked up by the next cron tick until the date window is exhausted.
+      status: hasMore ? 'pending' : 'completed',
+      stage: 'decks',
+      attempts: 0,
+      last_error: null,
+      deck_entries_considered:
+        numberValue(batch.deck_entries_considered) +
+        numberValue(report.entriesConsidered),
+      decks_inserted:
+        numberValue(batch.decks_inserted) +
+        numberValue(report.decksInserted),
+      decks_updated:
+        numberValue(batch.decks_updated) +
+        numberValue(report.decksUpdated),
+      decks_completed:
+        numberValue(batch.decks_completed) +
+        numberValue(report.decksCompleted),
+      decks_partial:
+        numberValue(batch.decks_partial) +
+        numberValue(report.decksPartial),
+      decks_unavailable:
+        numberValue(batch.decks_unavailable) +
+        numberValue(report.decksUnavailable),
+      completed_at: hasMore ? null : new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', String(batch.id))
+  if (updateError) throw updateError
+  await refreshJob(admin, String(batch.job_id))
+  return response({
+    batchId: batch.id,
+    stage: 'decks',
+    hasMore,
+    report,
+  })
+}
 
 async function failBatch(
   admin: AdminClient,
@@ -129,6 +228,17 @@ function readReportError(value: unknown) {
   if (typeof value.error === 'string') return value.error
   if (Array.isArray(value.providerErrors)) {
     return value.providerErrors
+      .filter((item): item is string => typeof item === 'string')
+      .join(' ')
+  }
+  return null
+}
+
+function readDeckReportError(value: unknown) {
+  if (!isRecord(value)) return null
+  if (typeof value.error === 'string') return value.error
+  if (Array.isArray(value.errors)) {
+    return value.errors
       .filter((item): item is string => typeof item === 'string')
       .join(' ')
   }

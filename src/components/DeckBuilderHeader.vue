@@ -8,6 +8,18 @@
         <h1 class="text-h5 font-weight-bold">{{ deckStore.deck.name }}</h1>
       </div>
       <div class="d-flex flex-wrap ga-2">
+        <v-btn
+          :disabled="!canCompare"
+          :title="compareTitle"
+          :to="
+            canCompare
+              ? { name: 'deck-comparison', params: { deckId: deckStore.deck.id } }
+              : undefined
+          "
+          variant="tonal"
+        >
+          Compare
+        </v-btn>
         <v-btn :to="{ name: 'deck-library' }" variant="text">
           All decks
         </v-btn>
@@ -60,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useDeckStore } from '../stores/deck'
 
 const deckStore = useDeckStore()
@@ -69,6 +81,14 @@ const showNewDialog = ref(false)
 const renameName = ref('')
 const renameError = ref('')
 const newDeckName = ref('')
+const canCompare = computed(() =>
+  Boolean(deckStore.deck.commander && deckStore.deck.cards.length),
+)
+const compareTitle = computed(() =>
+  canCompare.value
+    ? 'Compare this deck with tournament data'
+    : 'Select a Commander and add a mainboard card to compare',
+)
 
 function openRenameDialog() {
   renameName.value = deckStore.deck.name

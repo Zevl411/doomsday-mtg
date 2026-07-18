@@ -8,6 +8,8 @@ import {
   type CandidateIssue,
 } from '../_shared/tournamentDeckNormalizer.ts'
 
+type AdminClient = ReturnType<typeof createClient<any>>
+
 interface DeckIngestionRequest {
   tournamentIds?: string[]
   entryIds?: string[]
@@ -30,12 +32,11 @@ const SCRYFALL_COLLECTION_URL = 'https://api.scryfall.com/cards/collection'
 const SCRYFALL_NAMED_URL = 'https://api.scryfall.com/cards/named'
 const BATCH_SIZE = 75
 const SCRYFALL_USER_AGENT = `${Deno.env.get('APP_NAME') ?? 'DoomsdayMTG'}/0.2`
-// TopDeck structured lists are much larger than entry summaries. Keep each
-// invocation bounded so the Edge runtime does not materialize 500 deckObjs.
-// Ten full Commander Decks can already represent about one thousand cards.
-// Keep the payload comfortably below the free Edge runtime's compute ceiling;
+// TopDeck structured lists are much larger than entry summaries, so each
+// invocation remains bounded. Canonical-card caching and the bulk unavailable
+// skip make 25 Decks a practical balance between throughput and Edge memory;
 // callers continue automatically while `hasMore` is true.
-const ENTRY_BATCH_SIZE = 10
+const ENTRY_BATCH_SIZE = 25
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -108,6 +109,23 @@ Deno.serve(async (request) => {
       return json(report)
     }
 
+    if (options.onlyMissing && !options.dryRun) {
+      const { data: unavailableCount, error: unavailableError } =
+        await admin.rpc('mark_unavailable_tournament_decks', {
+          target_tournament_ids: tournamentDatabaseIds,
+        })
+      if (unavailableError) {
+        throw databaseError(
+          'classify unavailable tournament Decks',
+          unavailableError,
+        )
+      }
+      const skipped = Number(unavailableCount ?? 0)
+      report.entriesConsidered += skipped
+      report.decksUnavailable += skipped
+      report.decksInserted += skipped
+    }
+
     let candidateEntryIds: string[] | undefined
     if (options.onlyMissing) {
       const { data: candidates, error: candidateError } = await admin.rpc(
@@ -145,8 +163,9 @@ Deno.serve(async (request) => {
     if (options.commanderKey) query = query.eq('commander_key', options.commanderKey)
     const { data: entries, error: entriesError } = await query
     if (entriesError) throw databaseError('load tournament entries', entriesError)
-    report.entriesConsidered = entries?.length ?? 0
-    report.hasMore = report.entriesConsidered === ENTRY_BATCH_SIZE
+    const loadedEntryCount = entries?.length ?? 0
+    report.entriesConsidered += loadedEntryCount
+    report.hasMore = loadedEntryCount === ENTRY_BATCH_SIZE
 
     const entryIds = (entries ?? []).map((entry) => entry.id)
     const { data: existing, error: existingError } = entryIds.length
@@ -161,6 +180,7 @@ Deno.serve(async (request) => {
       (existing ?? []).map((deck) => [deck.tournament_entry_id, deck]),
     )
     const resolutionCache = new Map<string, ResolvedCard | null>()
+    const canonicalIdCache = new Map<string, string>()
 
     for (const entry of entries ?? []) {
       const tournament = tournamentById.get(entry.tournament_id)
@@ -215,6 +235,14 @@ Deno.serve(async (request) => {
         })
       }
 
+      if (candidates.length) {
+        await loadCanonicalCardCache(
+          admin,
+          candidates,
+          resolutionCache,
+          canonicalIdCache,
+        )
+      }
       const resolved = candidates.length
         ? await resolveCandidates(candidates, resolutionCache)
         : []
@@ -236,6 +264,8 @@ Deno.serve(async (request) => {
       else if (completeness.status === 'unavailable') report.decksUnavailable += 1
       else report.decksPartial += 1
       if (options.dryRun) continue
+
+      await saveCanonicalCards(admin, resolved, canonicalIdCache)
 
       // TopDeck normally supplies Commander names without color identity.
       // Once Scryfall has resolved the Commander cards, persist their combined
@@ -291,27 +321,36 @@ Deno.serve(async (request) => {
       if (deleteError) {
         throw databaseError('replace tournament Deck cards', deleteError)
       }
-      const cardRows = resolved.flatMap(({ candidate, card }) => card ? [{
-        tournament_deck_id: storedDeck.id,
-        board: candidate.board,
-        oracle_id: card.oracle_id,
-        scryfall_id: card.id,
-        normalized_card_key: card.oracle_id ?? normalizeCardKey(card.name),
-        card_name: card.name,
-        quantity: candidate.quantity,
-        type_line: card.type_line,
-        color_identity: card.color_identity,
-        colors: card.colors,
-        mana_value: card.cmc,
-        is_basic_land: card.type_line.includes('Basic Land'),
-      }] : [])
+      const cardRows = resolved.flatMap(({ candidate, card }) => {
+        const canonicalCardId = canonicalIdCache.get(
+          normalizeCardKey(candidate.name),
+        )
+        return card && canonicalCardId ? [{
+          tournament_deck_id: storedDeck.id,
+          canonical_card_id: canonicalCardId,
+          board: candidate.board,
+          quantity: candidate.quantity,
+        }] : []
+      })
       if (cardRows.length) {
         const { error: cardsError } = await admin.from('tournament_deck_cards')
           .upsert(cardRows, {
-            onConflict: 'tournament_deck_id,board,normalized_card_key',
+            onConflict: 'tournament_deck_id,board,canonical_card_id',
           })
         if (cardsError) {
           throw databaseError('save tournament Deck cards', cardsError)
+        }
+      }
+      if (completeness.status === 'complete') {
+        // Once the normalized snapshot is complete, the large provider Deck
+        // payload is redundant. Stable provider IDs and normalized entry
+        // fields remain available for traceability.
+        const { error: payloadError } = await admin
+          .from('tournament_entries')
+          .update({ source_payload: null })
+          .eq('id', entry.id)
+        if (payloadError) {
+          throw databaseError('release normalized source payload', payloadError)
         }
       }
     }
@@ -333,9 +372,128 @@ interface ResolvedCard {
   flavor_name?: string
   type_line: string
   color_identity: string[]
-  colors: string[]
+  // Double-faced cards may expose colors only on their individual faces.
+  colors?: string[]
   cmc: number
-  card_faces?: Array<{ name?: string }>
+  card_faces?: Array<{ name?: string; colors?: string[] }>
+}
+
+interface CanonicalCardRow {
+  id: string
+  oracle_id?: string | null
+  scryfall_id?: string | null
+  normalized_card_key: string
+  card_name: string
+  type_line?: string | null
+  color_identity?: string[] | null
+  colors?: string[] | null
+  mana_value?: number | null
+}
+
+/**
+ * Provider aliases are checked before Scryfall. Once a card has been seen,
+ * every later tournament Deck reuses the stored canonical record.
+ */
+async function loadCanonicalCardCache(
+  admin: AdminClient,
+  candidates: CardCandidate[],
+  resolutionCache: Map<string, ResolvedCard | null>,
+  canonicalIdCache: Map<string, string>,
+) {
+  const keys = [...new Set(candidates.map((card) =>
+    normalizeCardKey(card.name)
+  ))].filter((key) => !canonicalIdCache.has(key))
+  if (!keys.length) return
+  const { data, error } = await admin
+    .from('canonical_card_aliases')
+    .select('normalized_card_key, canonical_cards!inner(*)')
+    .in('normalized_card_key', keys)
+  if (error) throw databaseError('load canonical card cache', error)
+
+  for (const alias of data ?? []) {
+    const relation = Array.isArray(alias.canonical_cards)
+      ? alias.canonical_cards[0]
+      : alias.canonical_cards
+    if (!relation) continue
+    const card = relation as CanonicalCardRow
+    canonicalIdCache.set(alias.normalized_card_key, card.id)
+    resolutionCache.set(alias.normalized_card_key, {
+      id: card.scryfall_id ?? card.id,
+      oracle_id: card.oracle_id ?? undefined,
+      name: card.card_name,
+      type_line: card.type_line ?? '',
+      color_identity: card.color_identity ?? [],
+      colors: card.colors ?? [],
+      cmc: Number(card.mana_value ?? 0),
+    })
+  }
+}
+
+async function saveCanonicalCards(
+  admin: AdminClient,
+  resolved: Array<{ candidate: CardCandidate; card: ResolvedCard | null }>,
+  canonicalIdCache: Map<string, string>,
+) {
+  const newCards = resolved.filter(
+    (item): item is { candidate: CardCandidate; card: ResolvedCard } =>
+      Boolean(item.card) &&
+      !canonicalIdCache.has(normalizeCardKey(item.candidate.name)),
+  )
+  if (!newCards.length) return
+
+  const byCanonicalName = new Map<string, ResolvedCard>()
+  for (const { card } of newCards) {
+    byCanonicalName.set(normalizeCardKey(card.name), card)
+  }
+  const rows = [...byCanonicalName.values()].map((card) => ({
+    oracle_id: card.oracle_id,
+    scryfall_id: card.id,
+    normalized_card_key: normalizeCardKey(card.name),
+    card_name: card.name,
+    type_line: card.type_line,
+    color_identity: card.color_identity,
+    colors: getResolvedColors(card),
+    mana_value: card.cmc,
+    is_basic_land: card.type_line.includes('Basic Land'),
+  }))
+  const { error: saveError } = await admin.from('canonical_cards')
+    .upsert(rows, { onConflict: 'normalized_card_key' })
+  if (saveError) throw databaseError('save canonical cards', saveError)
+
+  const canonicalNames = [...byCanonicalName.keys()]
+  const { data: stored, error: storedError } = await admin
+    .from('canonical_cards')
+    .select('*').in('normalized_card_key', canonicalNames)
+  if (storedError) throw databaseError('reload canonical cards', storedError)
+  const canonicalByName = new Map(
+    (stored ?? []).map((card: CanonicalCardRow) => [
+      card.normalized_card_key,
+      card,
+    ]),
+  )
+
+  const aliases = new Map<string, string>()
+  for (const { candidate, card } of newCards) {
+    const canonical = canonicalByName.get(normalizeCardKey(card.name))
+    if (!canonical) continue
+    for (const key of new Set([
+      normalizeCardKey(candidate.name),
+      ...getLookupNames(card),
+    ])) {
+      aliases.set(key, canonical.id)
+      canonicalIdCache.set(key, canonical.id)
+    }
+  }
+  if (aliases.size) {
+    const { error } = await admin.from('canonical_card_aliases').upsert(
+      [...aliases].map(([normalized_card_key, canonical_card_id]) => ({
+        normalized_card_key,
+        canonical_card_id,
+      })),
+      { onConflict: 'normalized_card_key' },
+    )
+    if (error) throw databaseError('save canonical card aliases', error)
+  }
 }
 
 async function resolveCandidates(
@@ -409,6 +567,16 @@ function getLookupNames(card: ResolvedCard) {
     card.name.split('//')[0],
     ...(card.card_faces?.map((face) => face.name) ?? []),
   ].filter((name): name is string => Boolean(name)).map(normalizeCardKey))
+}
+
+/** Returns one combined color list for both single- and double-faced cards. */
+function getResolvedColors(card: ResolvedCard): string[] {
+  return [
+    ...new Set([
+      ...(card.colors ?? []),
+      ...(card.card_faces?.flatMap((face) => face.colors ?? []) ?? []),
+    ]),
+  ]
 }
 
 async function fetchWithRetry(
@@ -515,8 +683,30 @@ function isResolvedCard(value: unknown): value is ResolvedCard {
     typeof value.type_line === 'string' &&
     Array.isArray(value.color_identity) &&
     value.color_identity.every((color) => typeof color === 'string') &&
-    Array.isArray(value.colors) &&
-    value.colors.every((color) => typeof color === 'string') &&
+    (
+      value.colors === undefined ||
+      (
+        Array.isArray(value.colors) &&
+        value.colors.every((color) => typeof color === 'string')
+      )
+    ) &&
+    (
+      value.card_faces === undefined ||
+      (
+        Array.isArray(value.card_faces) &&
+        value.card_faces.every((face) =>
+          isRecord(face) &&
+          (face.name === undefined || typeof face.name === 'string') &&
+          (
+            face.colors === undefined ||
+            (
+              Array.isArray(face.colors) &&
+              face.colors.every((color) => typeof color === 'string')
+            )
+          )
+        )
+      )
+    ) &&
     typeof value.cmc === 'number'
 }
 

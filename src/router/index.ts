@@ -33,6 +33,11 @@ const router = createRouter({
       component: () => import('../views/DeckBuilderView.vue'),
     },
     {
+      path: '/decks/:deckId/compare',
+      name: 'deck-comparison',
+      component: () => import('../views/DeckComparisonView.vue'),
+    },
+    {
       path: '/metagame',
       name: 'metagame',
       component: () => import('../views/MetagameView.vue'),

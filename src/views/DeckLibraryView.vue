@@ -40,7 +40,9 @@
       >
         <DeckLibraryCard
           :active="deck.id === deckStore.library.activeDeckId"
+          :can-compare="Boolean(deck.commander && deck.cards.length)"
           :deck="deck"
+          @compare="compareDeck"
           @delete="openDeleteDialog"
           @duplicate="deckStore.duplicateDeck"
           @open="openDeck"
@@ -185,6 +187,13 @@ function openDeck(deckId: string) {
   if (deckStore.openDeck(deckId)) {
     router.push({ name: 'deck-builder' })
   }
+}
+
+function compareDeck(deckId: string) {
+  void router.push({
+    name: 'deck-comparison',
+    params: { deckId },
+  })
 }
 
 function openDeleteDialog(deckId: string) {

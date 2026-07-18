@@ -141,10 +141,25 @@
                   <v-chip size="small" variant="tonal">
                     {{ getDeckCardCount(entry.id) }} cards
                   </v-chip>
+                  <v-spacer />
+                  <TournamentDecklistExport
+                    :cards="decklists[entry.id]?.cards ?? []"
+                    :commanders="decklists[entry.id]?.commanders ?? []"
+                  />
+                  <v-select
+                    v-model="decklistSort"
+                    aria-label="Sort tournament decklist"
+                    density="compact"
+                    hide-details
+                    :items="decklistSortOptions"
+                    label="Sort cards"
+                    variant="outlined"
+                    width="210"
+                  />
                 </div>
                 <div class="card-grid">
                   <TournamentCardImage
-                    v-for="(card, index) in decklists[entry.id]?.cards"
+                    v-for="(card, index) in sortedDeckCards(entry.id)"
                     :key="`${card.oracleId ?? card.name}-${index}`"
                     :card="card"
                   />
@@ -190,6 +205,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import TournamentCardImage from '../components/TournamentCardImage.vue'
+import TournamentDecklistExport from '../components/TournamentDecklistExport.vue'
 import {
   tournamentRepository,
   type TournamentDetail,
@@ -202,6 +218,10 @@ import {
   displayTournamentLocation,
   sourceAttribution,
 } from '../utils/tournamentLocation'
+import {
+  sortTournamentDeckCards,
+  type TournamentDeckSort,
+} from '../utils/tournamentDeckCards'
 
 const route = useRoute()
 const detail = ref<TournamentDetail | null>(null)
@@ -211,12 +231,25 @@ const expandedEntryIds = ref<string[]>([])
 const decklists = ref<Record<string, TournamentEntryDecklist>>({})
 const decklistLoading = ref<Record<string, boolean>>({})
 const decklistErrors = ref<Record<string, string>>({})
+const decklistSort = ref<TournamentDeckSort>('name')
+const decklistSortOptions = [
+  { title: 'Alphabetical', value: 'name' },
+  { title: 'Mana cost', value: 'mana-value' },
+  { title: 'Card type', value: 'card-type' },
+]
 
 function getDeckCardCount(entryId: string): number {
   return decklists.value[entryId]?.cards.reduce(
     (total, card) => total + card.quantity,
     0,
   ) ?? 0
+}
+
+function sortedDeckCards(entryId: string) {
+  return sortTournamentDeckCards(
+    decklists.value[entryId]?.cards ?? [],
+    decklistSort.value,
+  )
 }
 
 onMounted(async () => {

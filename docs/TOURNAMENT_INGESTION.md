@@ -140,12 +140,29 @@ npx supabase db push
 npx supabase functions deploy ingest-tournament-decks
 ```
 
-Use **Admin Panel → Card-level Decklists** after tournament entries have been
-ingested. Start with dry run and a narrow date range. The function prefers
-provider structured data, falls back to embedded plaintext, resolves card
-identity in Scryfall collection batches, and records partial or unavailable
-Decks rather than inventing missing data. External deck-host URLs are retained
-but are not fetched unless an explicit safe adapter is implemented.
+Queued ingestion jobs automatically continue from tournament metadata into
+card-level Deck normalization. Each cron invocation handles one bounded stage,
+and incomplete Deck work returns to the queue for the next invocation. The
+ordinary Admin Panel tournament-ingestion action also creates a Deck-only
+background job after a successful dated import. The
+manual **Admin Panel → Card-level Decklists** tool remains available for dry
+runs, targeted repairs, and data imported outside the durable job workflow.
+The normalizer prefers provider structured data, falls back to embedded
+plaintext, checks persistent canonical aliases, and sends only previously
+unseen names to Scryfall collection batches. Canonical card facts are stored
+once; tournament Deck rows retain only the card reference, board, and quantity.
+Tournament ingestion stores normalized event metadata without retaining the
+large raw event response.
+After a complete snapshot is committed, its redundant provider Deck payload is
+released. Partial and unavailable Decks retain their payload for repair.
+External deck-host URLs are retained but are not fetched unless an explicit
+safe adapter is implemented.
+
+Before Scryfall normalization begins, entries explicitly marked `missing` or
+`url` are classified as unavailable with one database statement for the whole
+tournament window. They do not occupy the 25-entry Edge Function batch used
+for resolvable Decks. Dry runs remain read-only and evaluate those entries
+through the ordinary parser path.
 
 This normalization job is not required to display tournament decklists.
 Tournament detail accordions parse one stored provider entry on demand and
@@ -165,12 +182,14 @@ from the default calculation.
 
 ## Resumable historical backfills
 
-Migration `202607170005_create_tournament_ingestion_jobs.sql` adds durable job
+Migrations `202607170005_create_tournament_ingestion_jobs.sql` and
+`202607170010_connect_tournament_deck_ingestion.sql` add durable two-stage job
 and batch records. The Admin Panel can split a multi-year TopDeck range into
 seven-day requests. Supabase Cron invokes `process-tournament-ingestion`; each
-invocation claims and processes only one batch. Completed work remains
-checkpointed, interrupted work is recovered after 15 minutes, and a batch is
-marked failed after three attempts.
+invocation performs either tournament metadata ingestion or one bounded
+card-level normalization pass. Completed work remains checkpointed,
+interrupted work is recovered after 15 minutes, and a stage is retried after
+failures without repeating successful metadata work.
 
 Generate one private internal secret:
 

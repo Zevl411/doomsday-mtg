@@ -20,7 +20,7 @@ describe('DeckLibraryCard', () => {
     deck.sideboard = [{ card: commander, quantity: 2 }]
 
     const wrapper = mount(DeckLibraryCard, {
-      props: { deck, active: true },
+      props: { deck, active: true, canCompare: true },
       global: { plugins: [vuetify] },
     })
 
@@ -35,7 +35,7 @@ describe('DeckLibraryCard', () => {
   it('emits management intentions without mutating the deck', async () => {
     const deck = createEmptyDeck('Actions')
     const wrapper = mount(DeckLibraryCard, {
-      props: { deck, active: false },
+      props: { deck, active: false, canCompare: false },
       global: { plugins: [vuetify] },
     })
 
@@ -50,6 +50,21 @@ describe('DeckLibraryCard', () => {
     expect(deck.name).toBe('Actions')
   })
 
+  it('emits comparison only when the parent marks the Deck eligible', async () => {
+    const deck = createEmptyDeck('Comparison')
+    const wrapper = mount(DeckLibraryCard, {
+      props: { deck, active: false, canCompare: true },
+      global: { plugins: [vuetify] },
+    })
+    const compare = wrapper.findAll('button')
+      .find((button) => button.text() === 'Compare')
+    await compare?.trigger('click')
+    expect(wrapper.emitted('compare')?.[0]).toEqual([deck.id])
+
+    await wrapper.setProps({ canCompare: false })
+    expect(compare?.attributes('disabled')).toBeDefined()
+  })
+
   it('opens the deck when its Commander artwork is selected', async () => {
     const deck = createEmptyDeck('Artwork link')
     deck.commander = {
@@ -62,7 +77,7 @@ describe('DeckLibraryCard', () => {
       },
     }
     const wrapper = mount(DeckLibraryCard, {
-      props: { deck, active: false },
+      props: { deck, active: false, canCompare: true },
       global: { plugins: [vuetify] },
     })
 

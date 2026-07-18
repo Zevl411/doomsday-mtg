@@ -93,6 +93,8 @@ export interface IngestionJob {
   completedBatches: number
   failedBatches: number
   createdAt: string
+  startedAt?: string
+  completedAt?: string
   lastError?: string
 }
 
@@ -127,6 +129,8 @@ export interface ClearTournamentDataReport {
   entriesDeleted: number
   normalizedDecksDeleted: number
   normalizedCardsDeleted: number
+  canonicalCardsDeleted: number
+  canonicalAliasesDeleted: number
   ingestionJobsDeleted: number
 }
 
@@ -251,6 +255,23 @@ export const ingestionRepository = {
     return result.jobId
   },
 
+  /**
+   * Direct metadata imports enqueue normalization instead of making the
+   * browser wait through every Scryfall batch.
+   */
+  async createDeckNormalizationJob(
+    options: CreateIngestionJobOptions,
+  ): Promise<string> {
+    const result = await invokeAuthenticatedFunction({
+      action: 'create-deck-job',
+      ...options,
+    })
+    if (!isRecord(result) || typeof result.jobId !== 'string') {
+      throw new Error('The Deck normalization job response was invalid.')
+    }
+    return result.jobId
+  },
+
   async updateJob(
     jobId: string,
     action: 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job',
@@ -297,6 +318,8 @@ export const ingestionRepository = {
       typeof result.entriesDeleted !== 'number' ||
       typeof result.normalizedDecksDeleted !== 'number' ||
       typeof result.normalizedCardsDeleted !== 'number' ||
+      typeof result.canonicalCardsDeleted !== 'number' ||
+      typeof result.canonicalAliasesDeleted !== 'number' ||
       typeof result.ingestionJobsDeleted !== 'number'
     ) {
       throw new Error('The tournament reset response was invalid.')
@@ -306,6 +329,8 @@ export const ingestionRepository = {
       entriesDeleted: result.entriesDeleted,
       normalizedDecksDeleted: result.normalizedDecksDeleted,
       normalizedCardsDeleted: result.normalizedCardsDeleted,
+      canonicalCardsDeleted: result.canonicalCardsDeleted,
+      canonicalAliasesDeleted: result.canonicalAliasesDeleted,
       ingestionJobsDeleted: result.ingestionJobsDeleted,
     }
   },
@@ -386,6 +411,8 @@ export const ingestionRepository = {
         completedBatches: row.completed_batches,
         failedBatches: row.failed_batches,
         createdAt: row.created_at,
+        startedAt: row.started_at ?? undefined,
+        completedAt: row.completed_at ?? undefined,
         lastError: errors[0]?.last_error ?? undefined,
       }
     })
@@ -828,6 +855,8 @@ interface IngestionJobRow {
   completed_batches: number
   failed_batches: number
   created_at: string
+  started_at: string | null
+  completed_at: string | null
   tournament_ingestion_batches?: Array<{
     last_error: string | null
     updated_at: string

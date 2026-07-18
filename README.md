@@ -144,10 +144,10 @@ repository path. Use `/` when deploying to a custom domain.
 
 ### v0.3 — Deck Comparison
 
-- [ ] Compare personal decks against tournament averages
-- [ ] Missing core cards
-- [ ] Flex slot analysis
-- [ ] Deck similarity scoring
+- [x] Compare personal decks against tournament averages
+- [x] Missing core cards
+- [x] Flex slot analysis
+- [x] Deck similarity scoring
 
 ### v0.4 — Card Association Engine
 

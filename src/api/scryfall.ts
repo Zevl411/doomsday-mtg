@@ -7,6 +7,11 @@ const LOOKUP_INTERVAL_MS = 100
 const COLLECTION_BATCH_SIZE = 75
 let lastLookupStartedAt = 0
 
+/** Lets callers distinguish an outage from a valid empty search result. */
+export class ScryfallUnavailableError extends Error {
+  override name = 'ScryfallUnavailableError'
+}
+
 // An interface describes the shape of the JSON returned by Scryfall search.
 // `async` functions return a Promise. The type inside Promise describes the
 // value callers receive after awaiting the request.
@@ -249,7 +254,9 @@ async function fetchFromScryfall(
       throw error
     }
 
-    throw new Error('Unable to reach Scryfall. Please try again.')
+    throw new ScryfallUnavailableError(
+      'Unable to reach Scryfall. Please try again.',
+    )
   }
 }
 
@@ -258,14 +265,16 @@ function createScryfallResponseError(
   response: Response,
 ): Error {
   if (response.status === 429) {
-    return new Error(
+    return new ScryfallUnavailableError(
       'Scryfall is temporarily rate-limiting requests. Please wait and try again.',
     )
   }
 
-  return new Error(
-    `Scryfall ${operation} failed (${response.status} ${response.statusText}).`,
-  )
+  const message =
+    `Scryfall ${operation} failed (${response.status} ${response.statusText}).`
+  return response.status >= 500
+    ? new ScryfallUnavailableError(message)
+    : new Error(message)
 }
 
 /**

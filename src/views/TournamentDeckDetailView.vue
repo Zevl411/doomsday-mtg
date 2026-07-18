@@ -22,6 +22,10 @@
           >
             Original decklist
           </v-btn>
+          <TournamentDecklistExport
+            :cards="exportCardsForBoard('mainboard')"
+            :commanders="exportCardsForBoard('commander')"
+          />
           <v-btn color="primary" @click="copyToMyDecks">Copy to My Decks</v-btn>
         </div>
       </div>
@@ -59,6 +63,19 @@
         </v-card-text>
       </v-card>
 
+      <div class="d-flex justify-end mb-4">
+        <v-select
+          v-model="decklistSort"
+          aria-label="Sort normalized tournament decklist"
+          density="compact"
+          hide-details
+          :items="decklistSortOptions"
+          label="Sort cards"
+          variant="outlined"
+          width="210"
+        />
+      </div>
+
       <v-card v-for="board in populatedBoards" :key="board" border class="mb-4">
         <v-card-title class="text-capitalize">{{ board }}</v-card-title>
         <v-list>
@@ -83,6 +100,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import TournamentDecklistExport from '../components/TournamentDecklistExport.vue'
 import type {
   CommanderCardInclusion,
   NormalizedTournamentDeck,
@@ -97,6 +115,10 @@ import {
   displayTournamentLocation,
   sourceAttribution,
 } from '../utils/tournamentLocation'
+import {
+  getSortableCardType,
+  type TournamentDeckSort,
+} from '../utils/tournamentDeckCards'
 
 const route = useRoute()
 const router = useRouter()
@@ -106,6 +128,12 @@ const loading = ref(true)
 const errorMessage = ref('')
 const copyMessage = ref('')
 const aggregate = ref<CommanderCardInclusion[]>([])
+const decklistSort = ref<TournamentDeckSort>('name')
+const decklistSortOptions = [
+  { title: 'Alphabetical', value: 'name' },
+  { title: 'Mana cost', value: 'mana-value' },
+  { title: 'Card type', value: 'card-type' },
+]
 const boardOrder: TournamentDeckBoard[] = [
   'commander', 'mainboard', 'sideboard', 'maybeboard',
   'considering', 'companion', 'unknown',
@@ -137,7 +165,35 @@ onMounted(async () => {
 })
 
 function cardsForBoard(board: TournamentDeckBoard) {
-  return deck.value?.cards.filter((card) => card.board === board) ?? []
+  const cards = deck.value?.cards.filter((card) => card.board === board) ?? []
+  if (board === 'commander') return cards
+
+  return [...cards].sort((left, right) => {
+    if (decklistSort.value === 'mana-value') {
+      const manaDifference =
+        (left.manaValue ?? Number.MAX_SAFE_INTEGER) -
+        (right.manaValue ?? Number.MAX_SAFE_INTEGER)
+      if (manaDifference !== 0) return manaDifference
+    }
+    if (decklistSort.value === 'card-type') {
+      const typeDifference = getSortableCardType(
+        left.typeLine ?? '',
+      ).localeCompare(
+        getSortableCardType(right.typeLine ?? ''),
+      )
+      if (typeDifference !== 0) return typeDifference
+    }
+    return left.cardName.localeCompare(right.cardName)
+  })
+}
+
+function exportCardsForBoard(board: TournamentDeckBoard) {
+  return (deck.value?.cards ?? [])
+    .filter((card) => card.board === board)
+    .map((card) => ({
+      name: card.cardName,
+      quantity: card.quantity,
+    }))
 }
 
 function copyToMyDecks() {

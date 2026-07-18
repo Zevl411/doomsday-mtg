@@ -66,6 +66,18 @@
       <v-btn color="primary" variant="flat" @click="openDeck">
         Open
       </v-btn>
+      <v-btn
+        :disabled="!canCompare"
+        :title="
+          canCompare
+            ? 'Compare with tournament data'
+            : 'A Commander and mainboard card are required'
+        "
+        variant="tonal"
+        @click="emit('compare', deck.id)"
+      >
+        Compare
+      </v-btn>
       <v-btn variant="text" @click="emit('rename', deck.id)">Rename</v-btn>
       <v-btn variant="text" @click="emit('duplicate', deck.id)">
         Duplicate
@@ -86,11 +98,13 @@ import { getTotalDeckCardCount } from '../utils/deckValidation'
 const props = defineProps<{
   deck: Deck
   active: boolean
+  canCompare: boolean
 }>()
 
 // Emits describe user intentions; the library-owning store performs mutations.
 const emit = defineEmits<{
   open: [deckId: string]
+  compare: [deckId: string]
   rename: [deckId: string]
   duplicate: [deckId: string]
   delete: [deckId: string]

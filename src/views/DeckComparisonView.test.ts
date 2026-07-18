@@ -1,0 +1,185 @@
+import { flushPromises, mount } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyDeck } from '../models/createDeck'
+import vuetify from '../plugins/vuetify'
+import DeckComparisonView from './DeckComparisonView.vue'
+
+const mocks = vi.hoisted(() => ({
+  compare: vi.fn(),
+  getLocationOptions: vi.fn(),
+  openDeck: vi.fn(),
+  decks: [] as ReturnType<typeof createEmptyDeck>[],
+}))
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { deckId: 'deck-1' } }),
+}))
+vi.mock('../stores/deck', () => ({
+  useDeckStore: () => ({
+    library: { decks: mocks.decks },
+    openDeck: mocks.openDeck,
+  }),
+}))
+vi.mock('../repositories/deckComparisonRepository', () => ({
+  deckComparisonRepository: { compare: mocks.compare },
+}))
+vi.mock('../repositories/tournamentRepository', () => ({
+  tournamentRepository: { getLocationOptions: mocks.getLocationOptions },
+}))
+
+beforeEach(() => {
+  mocks.compare.mockReset()
+  mocks.getLocationOptions.mockReset()
+  mocks.openDeck.mockReset()
+  mocks.decks.splice(0)
+  mocks.getLocationOptions.mockResolvedValue({
+    countries: [],
+    states: [],
+    regions: [],
+    hasOnline: false,
+  })
+})
+
+function personalDeck() {
+  const deck = createEmptyDeck('Personal Deck')
+  deck.id = 'deck-1'
+  deck.commander = {
+    id: 'commander',
+    name: 'Kinnan, Bonder Prodigy',
+    type_line: 'Legendary Creature',
+    color_identity: ['G', 'U'],
+  }
+  deck.cards = [{
+    card: {
+      id: 'sol-ring-printing',
+      oracle_id: 'sol-ring',
+      name: 'Sol Ring',
+      type_line: 'Artifact',
+      color_identity: [],
+    },
+    quantity: 1,
+  }]
+  return deck
+}
+
+describe('DeckComparisonView', () => {
+  it('shows a missing Deck state', async () => {
+    const wrapper = mount(DeckComparisonView, {
+      global: { plugins: [vuetify] },
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Deck not found')
+    expect(mocks.compare).not.toHaveBeenCalled()
+  })
+
+  it('requires a Commander and mainboard card', async () => {
+    const deck = createEmptyDeck('Empty')
+    deck.id = 'deck-1'
+    mocks.decks.push(deck)
+    const wrapper = mount(DeckComparisonView, {
+      global: { plugins: [vuetify] },
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Select a Commander')
+  })
+
+  it('renders summary categories, sample status, and similar Deck links', async () => {
+    mocks.decks.push(personalDeck())
+    mocks.compare.mockResolvedValue({
+      inclusion: [{
+        normalizedCardKey: 'sol-ring',
+        oracleId: 'sol-ring',
+        cardName: 'Sol Ring',
+        typeLine: 'Artifact',
+        colorIdentity: [],
+        deckCount: 16,
+        totalEligibleDecks: 20,
+        inclusionRate: 0.8,
+        averageQuantity: 1,
+        top16DeckCount: 8,
+        top16InclusionRate: 0.8,
+        firstPlaceDeckCount: 2,
+        firstPlaceInclusionRate: 1,
+      }],
+      similarities: [{
+        tournamentDeckId: 'tournament-deck',
+        tournamentName: 'Championship',
+        sharedCardCount: 1,
+        unionCardCount: 99,
+        similarityRate: 1 / 99,
+        source: 'topdeck',
+      }],
+    })
+    const wrapper = mount(DeckComparisonView, {
+      global: { plugins: [vuetify] },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('20 eligible Decks')
+    expect(wrapper.text()).toContain('Aggregate overlap')
+    expect(wrapper.text()).toContain('Shared Core')
+    expect(wrapper.text()).toContain('Championship')
+    expect(wrapper.text()).toContain('View Deck')
+    const cardImage = wrapper.findComponent({ name: 'VImg' })
+    expect(cardImage.props('src')).toContain(
+      '/cards/named?exact=Sol%20Ring&format=image&version=small',
+    )
+    expect(wrapper.find('img[alt="Sol Ring card"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Row 1"]').text()).toBe('1')
+    expect(wrapper.find('tbody tr').classes()).toContain(
+      'comparison-row--high',
+    )
+    expect(wrapper.text()).toContain('In my Deck · 75%+')
+  })
+
+  it('shows limited sample and repository failure states', async () => {
+    const deck = personalDeck()
+    mocks.decks.push(deck)
+    mocks.compare.mockResolvedValueOnce({
+      inclusion: [{
+        normalizedCardKey: 'sol-ring',
+        oracleId: 'sol-ring',
+        cardName: 'Sol Ring',
+        colorIdentity: [],
+        deckCount: 4,
+        totalEligibleDecks: 5,
+        inclusionRate: 0.8,
+        averageQuantity: 1,
+        top16DeckCount: 4,
+        top16InclusionRate: 0.8,
+        firstPlaceDeckCount: 1,
+        firstPlaceInclusionRate: 1,
+      }],
+      similarities: [],
+    })
+    const wrapper = mount(DeckComparisonView, {
+      global: { plugins: [vuetify] },
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('limited sample may be volatile')
+
+    mocks.compare.mockRejectedValueOnce(new Error('Comparison failed.'))
+    await wrapper.get('button').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Comparison failed.')
+  })
+
+  it('does not present missing normalized data as a zero-percent result', async () => {
+    mocks.decks.push(personalDeck())
+    mocks.compare.mockResolvedValue({
+      inclusion: [],
+      similarities: [],
+    })
+    const wrapper = mount(DeckComparisonView, {
+      global: { plugins: [vuetify] },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('No normalized comparison data')
+    expect(wrapper.text()).toContain(
+      'at least 25 normalized mainboard cards',
+    )
+    expect(wrapper.text()).not.toContain('Aggregate overlap')
+    expect(wrapper.text()).not.toContain('0.0%')
+  })
+})

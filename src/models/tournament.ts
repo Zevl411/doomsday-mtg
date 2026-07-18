@@ -57,7 +57,9 @@ export interface TournamentDeckCard {
   oracleId: string | null
   typeLine: string
   manaCost: string
+  manaValue: number | null
   imageUrl: string
+  backImageUrl?: string
 }
 
 export interface TournamentEntryDecklist {

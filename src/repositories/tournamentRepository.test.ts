@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { tournamentRepository } from './tournamentRepository'
+import {
+  parseCommanderInclusionRows,
+  tournamentRepository,
+} from './tournamentRepository'
 
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
 
@@ -13,6 +16,33 @@ beforeEach(() => {
 })
 
 describe('tournamentRepository', () => {
+  it('validates successful Commander inclusion responses', () => {
+    const valid = [{
+      normalized_card_key: 'sol-ring',
+      oracle_id: null,
+      card_name: 'Sol Ring',
+      type_line: 'Artifact',
+      color_identity: [],
+      mana_value: 1,
+      deck_count: 8,
+      total_eligible_decks: 10,
+      inclusion_rate: 0.8,
+      average_quantity: 1,
+      top16_deck_count: 4,
+      top16_inclusion_rate: 0.8,
+      first_place_deck_count: 1,
+      first_place_inclusion_rate: 1,
+    }]
+    expect(parseCommanderInclusionRows(valid)[0]).toMatchObject({
+      cardName: 'Sol Ring',
+      totalEligibleDecks: 10,
+    })
+    expect(() => parseCommanderInclusionRows([{
+      ...valid[0],
+      inclusion_rate: 'invalid',
+    }])).toThrow('deck comparison response was invalid')
+  })
+
   it('maps normalized filters and database rows', async () => {
     rpc.mockResolvedValue({
       data: [{

@@ -2,11 +2,15 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import CardSearch from './CardSearch.vue'
 import { searchCards } from '../api/scryfall'
+import { searchCanonicalCards } from '../repositories/canonicalCardRepository'
 import vuetify from '../plugins/vuetify'
 import type { ScryfallCard } from '../types/card'
 
 vi.mock('../api/scryfall', () => ({
   searchCards: vi.fn(),
+}))
+vi.mock('../repositories/canonicalCardRepository', () => ({
+  searchCanonicalCards: vi.fn(),
 }))
 
 const card: ScryfallCard = {
@@ -18,6 +22,7 @@ const card: ScryfallCard = {
 
 afterEach(() => {
   vi.mocked(searchCards).mockReset()
+  vi.mocked(searchCanonicalCards).mockReset()
 })
 
 function mountSearch(props: { commanderOnly?: boolean } = {}) {
@@ -116,6 +121,29 @@ describe('CardSearch', () => {
     rejectSearch?.(new Error('No matching cards found.'))
     await flushPromises()
     expect(wrapper.text()).toContain('No matching cards found.')
+    wrapper.unmount()
+  })
+
+  it('falls back to cached canonical cards during a Scryfall outage', async () => {
+    vi.useFakeTimers()
+    const unavailable = new Error('Unable to reach Scryfall.')
+    unavailable.name = 'ScryfallUnavailableError'
+    vi.mocked(searchCards).mockRejectedValue(unavailable)
+    vi.mocked(searchCanonicalCards).mockResolvedValue([card])
+    const wrapper = mountSearch()
+
+    await wrapper.find('input').setValue('test')
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+
+    expect(searchCanonicalCards).toHaveBeenCalledWith('test', {
+      commanderOnly: false,
+      allowedColorIdentity: undefined,
+    })
+    expect(wrapper.text()).toContain(
+      'Scryfall is unavailable. Showing cached tournament cards.',
+    )
+    expect(wrapper.text()).toContain('Test Card')
     wrapper.unmount()
   })
 

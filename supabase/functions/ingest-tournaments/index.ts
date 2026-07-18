@@ -33,7 +33,8 @@ interface IngestionRequest {
 
 interface JobActionRequest {
   action:
-    | 'create-job' | 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job'
+    | 'create-job' | 'create-deck-job'
+    | 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job'
     | 'purge-casual-events' | 'clear-tournament-data'
   jobId?: string
   provider?: 'edhtop16' | 'topdeck'
@@ -328,7 +329,8 @@ function mapTournament(
     event_date: tournament.date,
     player_count: tournament.playerCount,
     source_url: tournament.url,
-    source_payload: tournament.raw,
+    // Tournament metadata is fully represented by the normalized columns
+    // above. Avoid retaining the large provider response for every event.
     imported_at: new Date().toISOString(),
     source_updated_at: tournament.sourceUpdatedAt,
     venue_name: tournament.location?.venueName,
@@ -490,6 +492,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isJobAction(value: unknown): value is JobActionRequest {
   return isRecord(value) && [
     'create-job',
+    'create-deck-job',
     'pause-job',
     'resume-job',
     'cancel-job',
@@ -517,7 +520,10 @@ async function handleJobAction(
   if (request.action === 'purge-casual-events') {
     return await purgeCasualEvents(admin, request)
   }
-  if (request.action === 'create-job') {
+  if (
+    request.action === 'create-job' ||
+    request.action === 'create-deck-job'
+  ) {
     if (
       request.provider !== 'topdeck' && request.provider !== 'edhtop16'
     ) throw new Error('A supported provider is required.')
@@ -552,6 +558,15 @@ async function handleJobAction(
       { target_job_id: job.id },
     )
     if (batchError) throw batchError
+    if (request.action === 'create-deck-job') {
+      // Direct metadata ingestion can enqueue only the second stage. The cron
+      // worker then drains normalized Decks without holding the browser open.
+      const { error: stageError } = await admin
+        .from('tournament_ingestion_batches')
+        .update({ stage: 'decks' })
+        .eq('job_id', job.id)
+      if (stageError) throw stageError
+    }
     return { jobId: job.id }
   }
 

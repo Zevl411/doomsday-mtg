@@ -12,6 +12,8 @@ describe('router', () => {
 
   it('resolves the deck-library route', () => {
     expect(router.resolve('/decks').name).toBe('deck-library')
+    expect(router.resolve('/decks/deck-1/compare').name)
+      .toBe('deck-comparison')
   })
 
   it('resolves Supabase auth and callback routes under hash history', () => {

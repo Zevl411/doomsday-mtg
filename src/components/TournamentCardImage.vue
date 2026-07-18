@@ -1,16 +1,21 @@
 <template>
   <v-card
-    :aria-label="card.name"
+    :aria-label="cardAriaLabel"
     border
     color="surface"
     rounded="lg"
+    :tabindex="card.backImageUrl ? 0 : undefined"
     variant="flat"
+    @blur="showBack = false"
+    @focus="showBack = true"
+    @mouseenter="showBack = true"
+    @mouseleave="showBack = false"
   >
     <v-img
       :alt="`${card.name} card image`"
       aspect-ratio="0.716"
       cover
-      :src="card.imageUrl"
+      :src="displayedImageUrl"
     >
       <v-chip
         v-if="card.quantity > 1"
@@ -22,23 +27,28 @@
         {{ card.quantity }}×
       </v-chip>
     </v-img>
-    <v-card-text class="pa-3">
-      <div class="text-body-2 font-weight-medium">
-        <span v-if="card.quantity > 1">{{ card.quantity }}× </span>{{ card.name }}
-      </div>
-      <div v-if="card.manaCost" class="text-caption text-medium-emphasis">
-        {{ card.manaCost }}
-      </div>
-    </v-card-text>
   </v-card>
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import type { TournamentDeckCard } from '../models/tournament'
 
-defineProps<{
+const props = defineProps<{
   card: TournamentDeckCard
 }>()
+
+const showBack = ref(false)
+const displayedImageUrl = computed(() =>
+  showBack.value && props.card.backImageUrl
+    ? props.card.backImageUrl
+    : props.card.imageUrl,
+)
+const cardAriaLabel = computed(() =>
+  props.card.backImageUrl
+    ? `${props.card.name}. Focus or hover to view the back face.`
+    : props.card.name,
+)
 </script>
 
 <style scoped>
