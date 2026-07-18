@@ -83,8 +83,14 @@
             </template>
             <v-list>
               <v-list-item
+                v-if="isAdmin"
                 :to="{ name: 'admin-ingestion' }"
                 title="Admin Panel"
+              />
+              <v-list-item
+                v-if="isAdmin"
+                :to="{ name: 'admin-data-health' }"
+                title="Data Health"
               />
               <v-divider />
               <v-list-item title="Sign Out" @click="auth.signOut" />
@@ -112,11 +118,26 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { appConfig } from '../config/app'
+import { dataHealthRepository } from '../repositories/dataHealthRepository'
 import { useAuthStore } from '../stores/auth'
 import { RouterLink } from 'vue-router'
 
 const auth = useAuthStore()
+const isAdmin = ref(false)
+
+// Navigation is hidden for non-admins; route and database checks still enforce
+// authorization because presentation alone is never a security boundary.
+watch(
+  () => auth.isSignedIn,
+  async (signedIn) => {
+    isAdmin.value = signedIn
+      ? await dataHealthRepository.isCurrentUserAdmin()
+      : false
+  },
+  { immediate: true },
+)
 // BASE_URL keeps the logo working from a GitHub Pages repository subdirectory.
 const brandLogoUrl =
   `${import.meta.env.BASE_URL}brand/oracle-app-icon-1024.png`

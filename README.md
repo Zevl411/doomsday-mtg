@@ -22,7 +22,7 @@ The project has completed its core deck-building functionality and now includes
 tournament ingestion from TopDeck and EDHTop16, normalized tournament
 decklists, regional tracking, and Commander card analytics.
 
-Current focus: deck comparison built on normalized tournament deck data.
+Current focus: production data validation and card-association groundwork.
 
 ## Features
 
@@ -148,6 +148,14 @@ repository path. Use `/` when deploying to a custom domain.
 - [x] Missing core cards
 - [x] Flex slot analysis
 - [x] Deck similarity scoring
+
+### v0.3.1 — Data Stabilization
+
+- [x] Data health dashboard
+- [x] Analytics readiness reporting
+- [x] Unresolved-card diagnostics
+- [x] Comparison consistency checks
+- [x] Production smoke-test tooling
 
 ### v0.4 — Card Association Engine
 

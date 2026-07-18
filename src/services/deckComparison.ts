@@ -13,6 +13,7 @@ import type {
 import type { ScryfallCard } from '../types/card'
 import { normalizeCommanderIdentity } from '../utils/commanderIdentity'
 import { getInclusionTier } from '../utils/cardInclusion'
+import { getAnalyticsSampleStatus } from '../utils/sampleStatus'
 
 export const MINIMUM_AGGREGATE_INCLUSION = 0.2
 
@@ -76,10 +77,7 @@ export function getComparisonCommander(deck: Deck) {
 export function getSampleStatus(
   count: number,
 ): DeckComparisonSampleStatus {
-  if (count >= 20) return 'sufficient'
-  if (count >= 5) return 'limited'
-  if (count >= 1) return 'insufficient'
-  return 'unavailable'
+  return getAnalyticsSampleStatus(count)
 }
 
 /**

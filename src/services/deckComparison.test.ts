@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { createEmptyDeck } from '../models/createDeck'
 import type { CommanderCardInclusion } from '../models/tournament'
+import { normalizeCommanderIdentity } from '../utils/commanderIdentity'
 import {
   buildDeckComparisonSummary,
   getAnalyticalCardIdentity,
+  getComparisonCommander,
   getSampleStatus,
   getTournamentMainboardIdentityKeys,
 } from './deckComparison'
@@ -97,5 +99,17 @@ describe('deck comparison service', () => {
       { id: '2', board: 'mainboard', oracleId: 'x', normalizedCardKey: 'x', cardName: 'X', quantity: 2, colorIdentity: [], colors: [], isBasicLand: false },
       { id: '3', board: 'sideboard', oracleId: 'y', normalizedCardKey: 'y', cardName: 'Y', quantity: 1, colorIdentity: [], colors: [], isBasicLand: false },
     ])).toEqual(['oracle:x'])
+  })
+
+  it('uses the same unordered pair key as tournament Commander identity', () => {
+    const deck = createEmptyDeck('Partners')
+    deck.commander = {
+      id: 'a', name: 'Tymna', type_line: '', color_identity: [],
+    }
+    deck.partnerCommander = {
+      id: 'b', name: 'Kraum', type_line: '', color_identity: [],
+    }
+    expect(getComparisonCommander(deck).key)
+      .toBe(normalizeCommanderIdentity('Kraum // Tymna').key)
   })
 })

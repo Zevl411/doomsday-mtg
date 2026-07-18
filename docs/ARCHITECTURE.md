@@ -296,3 +296,33 @@ Location normalization is a pure server-side boundary and region keys remain
 granular so regional taxonomy can be changed later.
 Administrative ingestion is authorized by `admin_users` in both the UI and
 Edge Function, while RLS gives browser clients read-only tournament access.
+
+## Production Data Health
+
+The administrator-only `#/admin/data-health` view uses one typed flow:
+
+```text
+normalized tournament tables
+    ↓
+bounded, security-definer health RPCs
+    ↓
+runtime response parsers and pure consistency checks
+    ↓
+Vuetify operational dashboard
+```
+
+The route guard checks `admin_users`, and every health RPC repeats that check
+inside PostgreSQL. RPCs return aggregates and bounded diagnostics only. They
+never read private `decks`, raw provider payloads, user identities, or
+provider credentials.
+
+Commander readiness uses complete normalized Decks and the comparison
+thresholds: unavailable at 0, insufficient at 1–4, limited at 5–19, and
+sufficient at 20 or more. Inclusion is available at one complete Deck and
+comparison at five. Unresolved names remain visible diagnostics and are never
+fuzzy-remapped. Pure checks surface impossible status totals and disagreement
+between inclusion, aggregate, similarity, and placement samples.
+
+Paired Commander keys use the shared unordered `a // b` normalization rule.
+Tests verify reversed pairs produce the same key, do not collide with either
+single Commander, and are used consistently by personal Deck comparison.

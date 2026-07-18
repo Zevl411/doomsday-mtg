@@ -24,4 +24,12 @@ describe('normalizeCommanderIdentity', () => {
       'kenrith, the returned king',
     )
   })
+
+  it('treats pair order as identical without colliding with either Commander', () => {
+    const forward = normalizeCommanderIdentity('Tymna // Kraum').key
+    const reverse = normalizeCommanderIdentity('Kraum // Tymna').key
+    expect(forward).toBe(reverse)
+    expect(forward).not.toBe(normalizeCommanderIdentity('Tymna').key)
+    expect(forward).not.toBe(normalizeCommanderIdentity('Kraum').key)
+  })
 })

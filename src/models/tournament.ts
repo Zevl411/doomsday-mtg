@@ -159,6 +159,8 @@ export interface CommanderCardInclusion {
   typeLine?: string
   colorIdentity: string[]
   manaValue?: number
+  imageUrl?: string
+  backImageUrl?: string
   deckCount: number
   totalEligibleDecks: number
   inclusionRate: number

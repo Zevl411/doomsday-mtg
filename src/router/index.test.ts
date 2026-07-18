@@ -31,5 +31,8 @@ describe('router', () => {
     expect(router.resolve('/tournaments').name).toBe('tournaments')
     expect(router.resolve('/tournaments/event-id').name).toBe('tournament-detail')
     expect(router.resolve('/admin/ingestion').name).toBe('admin-ingestion')
+    const dataHealth = router.resolve('/admin/data-health')
+    expect(dataHealth.name).toBe('admin-data-health')
+    expect(dataHealth.meta.requiresAdmin).toBe(true)
   })
 })

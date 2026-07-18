@@ -33,6 +33,12 @@ export interface CommanderDetail {
   entries: TournamentEntry[]
 }
 
+export interface CommanderIdentitySummary {
+  name: string
+  colorIdentity: string[]
+  imageUrls: string[]
+}
+
 export interface TournamentLocationOptions {
   countries: string[]
   states: string[]
@@ -43,6 +49,10 @@ export interface TournamentLocationOptions {
 const metagameCache = new Map<string, CommanderMetagameStats[]>()
 const entryDecklistCache = new Map<string, TournamentEntryDecklist>()
 const commanderColorCache = new Map<string, string[]>()
+const inclusionImageCache = new Map<string, {
+  imageUrl?: string
+  backImageUrl?: string
+}>()
 
 /** Queries only normalized public tables and shields views from Supabase rows. */
 export const tournamentRepository = {
@@ -223,7 +233,50 @@ export const tournamentRepository = {
       },
     )
     if (error) throw friendlyError('load Commander card inclusion', error)
-    return parseCommanderInclusionRows(data ?? [])
+    const rows = parseCommanderInclusionRows(data ?? [])
+    await enrichInclusionCardImages(rows)
+    return rows
+  },
+
+  async getCommanderIdentity(
+    commanderKey: string,
+  ): Promise<CommanderIdentitySummary | null> {
+    requireSupabase()
+    const { data, error } = await supabase!
+      .from('tournament_entries')
+      .select('commander_name, color_identity')
+      .eq('commander_key', commanderKey)
+      .limit(1)
+      .maybeSingle()
+    if (error) throw friendlyError('load Commander identity', error)
+    if (!data) return null
+    if (
+      !isRecord(data) ||
+      typeof data.commander_name !== 'string' ||
+      !isStringArrayOrNull(data.color_identity)
+    ) {
+      throw new Error('The Commander identity response was invalid.')
+    }
+    const identity: CommanderIdentitySummary = {
+      name: data.commander_name,
+      colorIdentity: data.color_identity ?? [],
+      imageUrls: [],
+    }
+    try {
+      const commanders = await getCardsByExactNames(
+        getCommanderLookupNames(identity.name),
+      )
+      identity.imageUrls = commanders
+        .map((card) =>
+          card.image_uris?.normal ??
+          card.card_faces?.[0]?.image_uris?.normal,
+        )
+        .filter((url): url is string => Boolean(url))
+    } catch (error) {
+      // Identity text remains useful if Scryfall images are temporarily down.
+      console.warn('Unable to load Commander inclusion header images.', error)
+    }
+    return identity
   },
 
   async getNormalizedTournamentDeck(
@@ -324,7 +377,52 @@ export const tournamentRepository = {
     metagameCache.clear()
     entryDecklistCache.clear()
     commanderColorCache.clear()
+    inclusionImageCache.clear()
   },
+}
+
+async function enrichInclusionCardImages(
+  rows: CommanderCardInclusion[],
+): Promise<void> {
+  if (!rows.length) return
+  const missingRows = rows.filter(
+    (row) => !inclusionImageCache.has(row.normalizedCardKey),
+  )
+  try {
+    const scryfallCards = missingRows.length
+      ? await getCardsByExactNames(missingRows.map((row) => row.cardName))
+      : []
+    const imagesByName = new Map(
+      scryfallCards.flatMap((card) => {
+        const imageUrl =
+          card.image_uris?.normal ??
+          card.card_faces?.[0]?.image_uris?.normal
+        const backImageUrl = card.card_faces?.[1]?.image_uris?.normal
+        const names = [
+          card.name,
+          card.flavor_name,
+          card.printed_name,
+          card.name.split('//')[0]?.trim(),
+          ...(card.card_faces?.map((face) => face.name) ?? []),
+        ].filter((name): name is string => Boolean(name))
+        return names.map((name) => [
+          name.toLocaleLowerCase(),
+          { imageUrl, backImageUrl },
+        ] as const)
+      }),
+    )
+    for (const row of rows) {
+      const resolved = imagesByName.get(row.cardName.toLocaleLowerCase())
+      if (resolved) inclusionImageCache.set(row.normalizedCardKey, resolved)
+      const images =
+        resolved ?? inclusionImageCache.get(row.normalizedCardKey)
+      row.imageUrl = images?.imageUrl
+      row.backImageUrl = images?.backImageUrl
+    }
+  } catch (error) {
+    // Inclusion statistics remain useful during a temporary Scryfall outage.
+    console.warn('Unable to load Commander inclusion card images.', error)
+  }
 }
 
 /** Inclusion rows are also used by Deck comparison, so validate every field. */

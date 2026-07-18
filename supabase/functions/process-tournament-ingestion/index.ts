@@ -100,6 +100,7 @@ Deno.serve(async (request) => {
         entries_fetched: numberValue(report.entriesFetched),
         entries_inserted: numberValue(report.entriesInserted),
         entries_updated: numberValue(report.entriesUpdated),
+        tournaments_excluded: numberValue(report.tournamentsExcluded),
         completed_at: null,
         updated_at: new Date().toISOString(),
       })

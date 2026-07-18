@@ -93,3 +93,74 @@ must contain only public tournament metadata,
 shared/union counts, and similarity. Confirm the migration contains no read
 from `public.decks`, does not alter its RLS policies, and grants no write
 permission to tournament tables.
+
+## Data Health deployment and verification
+
+Apply migrations in timestamp order through
+`202607180007_add_data_health_reporting.sql`:
+
+```bash
+npx supabase db push --dry-run
+npx supabase db push
+```
+
+Verify the functions and grants:
+
+```sql
+select routine_name
+from information_schema.routines
+where routine_schema = 'public'
+  and routine_name in (
+    'get_data_health_summary',
+    'get_data_health_region_coverage',
+    'get_commander_analytics_readiness',
+    'get_unresolved_card_health',
+    'get_ingestion_job_health'
+  );
+
+select
+  has_function_privilege('anon', 'public.get_data_health_summary()', 'execute')
+    as anon_can_execute,
+  has_function_privilege(
+    'authenticated',
+    'public.get_data_health_summary()',
+    'execute'
+  ) as authenticated_can_execute;
+```
+
+`anon_can_execute` must be false. Authenticated execution is still rejected
+unless `auth.uid()` belongs to `admin_users`.
+
+Verify the report indexes:
+
+```sql
+select indexname
+from pg_indexes
+where schemaname = 'public'
+  and indexname in (
+    'tournament_entries_commander_tournament_idx',
+    'tournament_decks_status_commander_idx',
+    'tournament_ingestion_jobs_status_updated_idx'
+  );
+```
+
+While authenticated as an administrator, smoke-test bounded results:
+
+```sql
+select * from public.get_data_health_summary();
+select * from public.get_data_health_region_coverage(p_limit := 10);
+select * from public.get_commander_analytics_readiness(p_limit := 5);
+select * from public.get_unresolved_card_health(p_limit := 5);
+select * from public.get_ingestion_job_health(p_limit := 5);
+```
+
+Open `#/admin/data-health`, compare summary totals to the table editor, inspect
+unresolved names and paired Commander rows, then run the read-only smoke test
+for a Commander with at least five complete Decks. Inclusion and aggregate
+sample counts should agree; similarity results must not exceed that sample.
+
+Before release, use `EXPLAIN (ANALYZE, BUFFERS)` on representative readiness
+and unresolved-card calls, confirm no unexpected production-scale sequential
+scan, confirm a non-admin receives SQLSTATE 42501, and inspect returned columns
+for absence of private Deck data and provider payloads. This flow does not
+write data or call external APIs.

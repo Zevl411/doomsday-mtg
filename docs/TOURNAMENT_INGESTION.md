@@ -253,3 +253,27 @@ Core/Common/Flexible/Rare labels are display buckets for descriptive
 frequency. They are not recommendations or claims about card quality.
 
 Missing dates, standings, pilots, locations, and decklists remain nullable.
+
+## Interpreting Data Health
+
+- `complete`: the normalized Commander and mainboard are analytics-eligible;
+- `partial`: useful cards were retained, but unresolved or missing data keeps
+  the Deck out of complete-only analytics;
+- `unavailable`: the provider supplied no resolvable decklist;
+- `invalid`: the supplied list could not form a usable normalized Deck.
+
+Unresolved card names remain in `parsing_issues`, contribute to the bounded
+unresolved-card report, and can prevent a Deck from becoming complete. They
+are not guessed or fuzzy-remapped. Review frequent names by provider before
+adding a deterministic canonical alias.
+
+To resume work, correct the provider or parsing failure and resume the paused
+job in the Admin Panel. Pending batches retain their date window, and the
+worker claims unfinished work without repeating completed batches. Data Health
+job filters expose failed or stale batches and the last successful tournament
+and Deck-normalization timestamps.
+
+Weak coverage is visible in provider totals, missing decklist counts, location
+coverage, and Commander readiness region counts. Compare TopDeck and EDHTop16
+over the same date range before treating a low regional sample as a metagame
+conclusion.
