@@ -130,44 +130,44 @@ or refreshed on GitHub Pages.
 
 ### ✅ v0.1 — Core Deck Builder
 
-- Complete Commander deck builder
-- Guest draft and authenticated cloud deck libraries
-- Plaintext import and export
-- Authentication
-- Cloud persistence
-- Automated testing
+- [x] Complete Commander deck builder
+- [x] Guest draft and authenticated cloud deck libraries
+- [x] Plaintext import and export
+- [x] Authentication
+- [x] Cloud persistence
+- [x] Automated testing
 
 ### 🚧 v0.2 — Tournament Explorer
 
-- Tournament ingestion
-- Commander metagame
-- Regional analytics
-- Tournament deck normalization
-- Canonical card identities
-- Card-inclusion analytics
-- Tournament deck viewer
+- [x] Tournament ingestion
+- [x] Commander metagame
+- [x] Regional analytics
+- [x] Tournament deck normalization
+- [x] Canonical card identities
+- [x] Card-inclusion analytics
+- [x] Tournament deck viewer
 
 ### v0.3 — Deck Comparison
 
-- Compare personal decks with tournament averages
-- Identify missing core cards
-- Analyze flex slots
-- Calculate deck-similarity scores
+- [ ] Compare personal decks with tournament averages
+- [ ] Identify missing core cards
+- [ ] Analyze flex slots
+- [ ] Calculate deck-similarity scores
 
 ### v0.4 — Card Association Engine
 
-- Pairwise card statistics
-- Package detection
-- Archetype clustering
-- Regional package trends
+- [ ] Pairwise card statistics
+- [ ] Package detection
+- [ ] Archetype clustering
+- [ ] Regional package trends
 
 ### v0.5 — Intelligent Recommendations
 
-- Commander-aware recommendations
-- Package recommendations
-- Suggested additions and cuts
-- Replacement analysis
-- Confidence scoring
+- [ ] Commander-aware recommendations
+- [ ] Package recommendations
+- [ ] Suggested additions and cuts
+- [ ] Replacement analysis
+- [ ] Confidence scoring
 
 ## Inspiration
 
