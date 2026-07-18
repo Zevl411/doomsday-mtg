@@ -82,10 +82,17 @@ describe('CommanderCardsView', () => {
       .find((chip) => chip.text().includes('80.0% inclusion'))
     expect(inclusionChip?.attributes('style')).toContain('color:')
     expect(inclusionChip?.classes()).toContain('v-chip--variant-outlined')
+    const inclusionCard = wrapper.find(
+      '[aria-label="View Sol Ring inclusion history"]',
+    )
+    expect(inclusionCard.classes()).toContain('inclusion-card')
+    expect(inclusionCard.attributes('style')).toContain('border-color:')
     expect(wrapper.text()).toContain('Top 16: 50.0%')
     expect(wrapper.text()).not.toContain('Average quantity')
-    expect(wrapper.find('img[alt="Sol Ring card image"]').attributes('src'))
+    const cardImage = wrapper.find('img[alt="Sol Ring card image"]')
+    expect(cardImage.attributes('src'))
       .toContain('sol-ring.jpg')
+    expect(wrapper.find('.inclusion-card-image').exists()).toBe(true)
   })
 
   it('shows the insufficient-sample empty state', async () => {

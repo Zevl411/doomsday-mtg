@@ -133,9 +133,11 @@
           <v-card
             :aria-label="`View ${card.cardName} inclusion history`"
             border
+            class="inclusion-card"
             color="surface"
             height="100%"
             link
+            :style="{ borderColor: inclusionColor(card.inclusionRate) }"
             variant="flat"
             @click="openHistory(card)"
           >
@@ -143,6 +145,7 @@
               v-if="card.imageUrl"
               :alt="`${card.cardName} card image`"
               aspect-ratio="0.716"
+              class="inclusion-card-image"
               :src="card.imageUrl"
             />
             <v-sheet
@@ -527,7 +530,9 @@ function formatTick(value: string) {
 function inclusionColor(value: number) {
   const boundedValue = Math.max(0, Math.min(value, 1))
   const hue = Math.round(boundedValue * 120)
-  return `hsl(${hue}, 68%, 48%)`
+  // Keep low-inclusion reds readable while deepening the green end.
+  const lightness = Math.round(39 - boundedValue * 9)
+  return `hsl(${hue}, 64%, ${lightness}%)`
 }
 
 function getSubsetSize(
@@ -557,3 +562,18 @@ onMounted(async () => {
   await load()
 })
 </script>
+
+<style scoped>
+.inclusion-card {
+  border-width: 2px;
+}
+
+/*
+ * Scryfall prints vary slightly at the outermost pixels. This tiny crop keeps
+ * the visible card frame while removing inconsistent square or white corners.
+ */
+.inclusion-card-image {
+  clip-path: inset(0.8% round 4.5%);
+  transform: scale(1.015);
+}
+</style>
