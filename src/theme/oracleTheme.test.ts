@@ -9,6 +9,8 @@ describe('Oracle theme', () => {
     expect(oracleDarkTheme.colors?.primary).toBe('#D7A24A')
     expect(oracleDarkTheme.colors?.secondary).toBe('#9462A0')
     expect(oracleDarkTheme.colors?.accent).toBe('#3A183D')
+    expect(oracleDarkTheme.colors?.['placement-gold']).toBe('#D4AF37')
+    expect(oracleDarkTheme.colors?.['placement-top-cut']).toBe('#587A9B')
   })
 
   it('uses readable approved colors for code and keyboard hints', () => {

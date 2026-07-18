@@ -8,15 +8,6 @@ const COLLECTION_BATCH_SIZE = 75
 let lastLookupStartedAt = 0
 
 // An interface describes the shape of the JSON returned by Scryfall search.
-interface ScryfallSearchResponse {
-  data: ScryfallCard[]
-}
-
-interface ScryfallCollectionResponse {
-  data: ScryfallCard[]
-  not_found?: Array<{ name?: string }>
-}
-
 // `async` functions return a Promise. The type inside Promise describes the
 // value callers receive after awaiting the request.
 export async function searchCards(
@@ -47,8 +38,7 @@ export async function searchCards(
     throw createScryfallResponseError('search', response)
   }
 
-  const result: ScryfallSearchResponse = await response.json()
-  return result.data
+  return await readCardList(response, 'search')
 }
 
 /**
@@ -94,8 +84,8 @@ export async function getCardsByExactNames(
       throw createScryfallResponseError('collection lookup', response)
     }
 
-    const result: ScryfallCollectionResponse = await response.json()
-    cards.push(...result.data)
+    const batchCards = await readCardList(response, 'collection lookup')
+    cards.push(...batchCards)
 
     // The collection endpoint does not resolve flavor names and may not accept
     // a full modal double-faced name. Retry only genuinely unresolved original
@@ -103,7 +93,7 @@ export async function getCardsByExactNames(
     // import to one request per card.
     const unresolvedNames = batch.filter((originalName) => {
       const lookupName = getCollectionLookupName(originalName)
-      return !result.data.some((card) =>
+      return !batchCards.some((card) =>
         getCardLookupNames(card).has(lookupName.toLowerCase()),
       )
     })
@@ -167,7 +157,11 @@ async function getCardByExactName(
     throw createScryfallResponseError('exact-name lookup', response)
   }
 
-  return await response.json()
+  const value = await readJson(response, 'exact-name lookup')
+  if (!isScryfallCard(value)) {
+    throw invalidScryfallResponseError('exact-name lookup')
+  }
+  return value
 }
 
 function getUniqueCardNames(names: string[]): string[] {
@@ -272,4 +266,55 @@ function createScryfallResponseError(
   return new Error(
     `Scryfall ${operation} failed (${response.status} ${response.statusText}).`,
   )
+}
+
+/**
+ * Network JSON starts as `unknown`: a successful HTTP status does not prove
+ * that an upstream response still matches the fields used by the application.
+ */
+async function readCardList(
+  response: Response,
+  operation: string,
+): Promise<ScryfallCard[]> {
+  const value = await readJson(response, operation)
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.data) ||
+    !value.data.every(isScryfallCard)
+  ) {
+    throw invalidScryfallResponseError(operation)
+  }
+  return value.data
+}
+
+function isScryfallCard(value: unknown): value is ScryfallCard {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.type_line === 'string' &&
+    Array.isArray(value.color_identity) &&
+    value.color_identity.every((color) => typeof color === 'string')
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function invalidScryfallResponseError(operation: string): Error {
+  return new Error(
+    `Scryfall ${operation} returned an unexpected response. Please try again.`,
+  )
+}
+
+async function readJson(
+  response: Response,
+  operation: string,
+): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch {
+    throw invalidScryfallResponseError(operation)
+  }
 }

@@ -2,14 +2,10 @@
   <v-app>
     <v-app-bar border="b" color="surface" flat height="76">
       <v-container class="d-flex align-center mx-auto px-4 px-sm-6">
-        <v-btn
-          :active="false"
+        <RouterLink
           :aria-label="`Go to ${appConfig.name} home`"
           class="app-brand-link mr-3"
-          icon
-          :ripple="false"
           :to="{ name: 'home' }"
-          variant="plain"
         >
           <v-img
             :alt="`${appConfig.name} logo`"
@@ -19,7 +15,7 @@
             :src="brandLogoUrl"
             width="56"
           />
-        </v-btn>
+        </RouterLink>
         <v-app-bar-title>
           <span class="text-h6 text-sm-h5 font-weight-bold text-primary">
             {{ appConfig.name }}
@@ -118,6 +114,7 @@
 <script setup lang="ts">
 import { appConfig } from '../config/app'
 import { useAuthStore } from '../stores/auth'
+import { RouterLink } from 'vue-router'
 
 const auth = useAuthStore()
 // BASE_URL keeps the logo working from a GitHub Pages repository subdirectory.

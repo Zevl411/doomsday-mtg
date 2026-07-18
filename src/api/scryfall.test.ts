@@ -66,6 +66,22 @@ describe('Scryfall client', () => {
     )
   })
 
+  it('rejects a successful response with an invalid card shape', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({ data: [{ id: 'missing-required-fields' }] }),
+      } as Response),
+    )
+
+    await expect(searchCards('Sol Ring')).rejects.toThrow(
+      'returned an unexpected response',
+    )
+  })
+
   it('falls back to exact-name lookup for a flavor name', async () => {
     const flavorPrinting = {
       ...solRing,

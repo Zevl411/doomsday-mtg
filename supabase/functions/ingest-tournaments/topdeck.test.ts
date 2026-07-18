@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { TopDeckProvider } from './topdeck'
+import { TopDeckProvider } from './topdeck.ts'
 
 const fixture = [{
   TID: 'T-100',

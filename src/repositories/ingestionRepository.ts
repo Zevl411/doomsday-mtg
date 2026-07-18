@@ -199,7 +199,7 @@ export const ingestionRepository = {
     if (error) {
       throw new Error(await getFunctionErrorMessage(error))
     }
-    return data as IngestionReport
+    return parseIngestionReport(data)
   },
 
   /**
@@ -274,7 +274,16 @@ export const ingestionRepository = {
     ) {
       throw new Error('The casual-event purge response was invalid.')
     }
-    return result as unknown as PurgeCasualEventsReport
+    return {
+      dryRun: result.dryRun === true,
+      eventsMatched: result.eventsMatched,
+      eventsPurged: result.eventsPurged,
+      entriesAffected: result.entriesAffected,
+      titles: result.titles.filter(
+        (title): title is string => typeof title === 'string',
+      ),
+      truncated: result.truncated === true,
+    }
   },
 
   async clearTournamentData(): Promise<ClearTournamentDataReport> {
@@ -292,7 +301,13 @@ export const ingestionRepository = {
     ) {
       throw new Error('The tournament reset response was invalid.')
     }
-    return result as unknown as ClearTournamentDataReport
+    return {
+      tournamentsDeleted: result.tournamentsDeleted,
+      entriesDeleted: result.entriesDeleted,
+      normalizedDecksDeleted: result.normalizedDecksDeleted,
+      normalizedCardsDeleted: result.normalizedCardsDeleted,
+      ingestionJobsDeleted: result.ingestionJobsDeleted,
+    }
   },
 
   async ingestTournamentDecks(
@@ -310,7 +325,7 @@ export const ingestionRepository = {
       },
     )
     if (error) throw new Error(await getFunctionErrorMessage(error))
-    return data as TournamentDeckIngestionReport
+    return parseTournamentDeckIngestionReport(data)
   },
 
   /**
@@ -660,6 +675,127 @@ export function createAuthorizationHeaders(
   accessToken: string,
 ): Record<string, string> {
   return { Authorization: `Bearer ${accessToken}` }
+}
+
+/**
+ * Edge Function payloads cross a network boundary and therefore start as
+ * `unknown`. Explicit validation prevents a changed server response from
+ * silently introducing `undefined` into report totals.
+ */
+export function parseIngestionReport(value: unknown): IngestionReport {
+  if (
+    !isRecord(value) ||
+    !hasNumberFields(value, INGESTION_REPORT_NUMBER_FIELDS) ||
+    typeof value.dryRun !== 'boolean' ||
+    !isStringArray(value.validationIssues) ||
+    !isStringArray(value.providerErrors) ||
+    !isStringArray(value.excludedTournamentTitles)
+  ) {
+    throw new Error('The tournament ingestion response was invalid.')
+  }
+
+  return {
+    tournamentsFetched: value.tournamentsFetched,
+    tournamentsInserted: value.tournamentsInserted,
+    tournamentsUpdated: value.tournamentsUpdated,
+    entriesFetched: value.entriesFetched,
+    entriesInserted: value.entriesInserted,
+    entriesUpdated: value.entriesUpdated,
+    entriesSkipped: value.entriesSkipped,
+    validationIssues: value.validationIssues,
+    providerErrors: value.providerErrors,
+    durationMs: value.durationMs,
+    dryRun: value.dryRun,
+    requestsMade: value.requestsMade,
+    retries: value.retries,
+    rateLimitedRequests: value.rateLimitedRequests,
+    exhaustedRequests: value.exhaustedRequests,
+    tournamentsPartiallyIngested: value.tournamentsPartiallyIngested,
+    tournamentsExcluded: value.tournamentsExcluded,
+    tournamentsPurged: value.tournamentsPurged,
+    excludedTournamentTitles: value.excludedTournamentTitles,
+  }
+}
+
+export function parseTournamentDeckIngestionReport(
+  value: unknown,
+): TournamentDeckIngestionReport {
+  if (
+    !isRecord(value) ||
+    !hasNumberFields(value, DECK_REPORT_NUMBER_FIELDS) ||
+    !isStringArray(value.errors) ||
+    typeof value.hasMore !== 'boolean'
+  ) {
+    throw new Error('The card-level ingestion response was invalid.')
+  }
+
+  return {
+    entriesConsidered: value.entriesConsidered,
+    decklistsAvailable: value.decklistsAvailable,
+    structuredDecksUsed: value.structuredDecksUsed,
+    plaintextDecksUsed: value.plaintextDecksUsed,
+    externalUrlsFetched: value.externalUrlsFetched,
+    decksCompleted: value.decksCompleted,
+    decksPartial: value.decksPartial,
+    decksUnavailable: value.decksUnavailable,
+    cardsResolved: value.cardsResolved,
+    cardsUnresolved: value.cardsUnresolved,
+    decksInserted: value.decksInserted,
+    decksUpdated: value.decksUpdated,
+    decksUnchanged: value.decksUnchanged,
+    errors: value.errors,
+    durationMs: value.durationMs,
+    hasMore: value.hasMore,
+  }
+}
+
+const INGESTION_REPORT_NUMBER_FIELDS = [
+  'tournamentsFetched',
+  'tournamentsInserted',
+  'tournamentsUpdated',
+  'entriesFetched',
+  'entriesInserted',
+  'entriesUpdated',
+  'entriesSkipped',
+  'durationMs',
+  'requestsMade',
+  'retries',
+  'rateLimitedRequests',
+  'exhaustedRequests',
+  'tournamentsPartiallyIngested',
+  'tournamentsExcluded',
+  'tournamentsPurged',
+] as const
+
+const DECK_REPORT_NUMBER_FIELDS = [
+  'entriesConsidered',
+  'decklistsAvailable',
+  'structuredDecksUsed',
+  'plaintextDecksUsed',
+  'externalUrlsFetched',
+  'decksCompleted',
+  'decksPartial',
+  'decksUnavailable',
+  'cardsResolved',
+  'cardsUnresolved',
+  'decksInserted',
+  'decksUpdated',
+  'decksUnchanged',
+  'durationMs',
+] as const
+
+function hasNumberFields(
+  value: Record<string, unknown>,
+  fields: readonly string[],
+): value is Record<string, number> {
+  return fields.every((field) =>
+    typeof value[field] === 'number' && Number.isFinite(value[field])
+  )
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) &&
+    value.every((item) => typeof item === 'string')
 }
 
 interface AdminTournamentRow {

@@ -362,7 +362,7 @@ async function resolveCandidates(
     if (!response) throw new Error('Scryfall collection lookup returned no response.')
     const body: unknown = await response.json()
     const cards = isRecord(body) && Array.isArray(body.data)
-      ? body.data.filter(isRecord) as unknown as ResolvedCard[]
+      ? body.data.filter(isResolvedCard)
       : []
     for (const name of names) {
       const key = normalizeCardKey(name)
@@ -432,16 +432,6 @@ async function fetchWithRetry(
     ))
   }
   throw new Error('Scryfall collection lookup failed.')
-}
-
-function isResolvedCard(value: unknown): value is ResolvedCard {
-  return isRecord(value) &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    typeof value.type_line === 'string' &&
-    Array.isArray(value.color_identity) &&
-    Array.isArray(value.colors) &&
-    typeof value.cmc === 'number'
 }
 
 function sumBoard(candidates: CardCandidate[], board: CardCandidate['board']) {
@@ -516,6 +506,18 @@ function json(value: unknown, status = 200) {
 }
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function isResolvedCard(value: unknown): value is ResolvedCard {
+  return isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.type_line === 'string' &&
+    Array.isArray(value.color_identity) &&
+    value.color_identity.every((color) => typeof color === 'string') &&
+    Array.isArray(value.colors) &&
+    value.colors.every((color) => typeof color === 'string') &&
+    typeof value.cmc === 'number'
 }
 
 function databaseError(operation: string, value: unknown) {

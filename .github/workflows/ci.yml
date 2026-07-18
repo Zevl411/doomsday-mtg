@@ -31,13 +31,17 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Check Supabase Edge Functions
+      - name: Check Supabase Edge Functions and tests
         run: |
           deno check \
             supabase/functions/ingest-tournaments/index.ts \
             supabase/functions/ingest-tournament-decks/index.ts \
             supabase/functions/process-tournament-ingestion/index.ts \
-            supabase/functions/tournament-decklist/index.ts
+            supabase/functions/tournament-decklist/index.ts \
+            supabase/functions/ingest-tournaments/location.test.ts \
+            supabase/functions/ingest-tournaments/topdeck.test.ts \
+            supabase/functions/ingest-tournaments/tournamentRelevance.test.ts \
+            supabase/functions/ingest-tournament-decks/normalizer.test.ts
 
       - name: Run tests
         run: npm run test

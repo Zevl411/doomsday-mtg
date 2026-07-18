@@ -4,7 +4,7 @@ import {
   normalizeCardKey,
   normalizePlaintextDeck,
   normalizeStructuredDeck,
-} from '../_shared/tournamentDeckNormalizer'
+} from '../_shared/tournamentDeckNormalizer.ts'
 
 describe('tournament Deck normalization', () => {
   it('maps structured TopDeck sections, quantities, partners, and boards', () => {

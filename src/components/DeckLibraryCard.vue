@@ -6,15 +6,12 @@
     rounded="lg"
     variant="flat"
   >
-    <div
+    <button
       v-if="commanderImage"
       :aria-label="`Open ${deck.name}`"
       class="deck-summary-art"
-      role="button"
-      tabindex="0"
+      type="button"
       @click="openDeck"
-      @keydown.enter="openDeck"
-      @keydown.space.prevent="openDeck"
     >
       <v-img
         :alt="`${deck.commander?.name} card art`"
@@ -22,7 +19,7 @@
         cover
         :src="commanderImage"
       />
-    </div>
+    </button>
     <v-sheet
       v-else
       class="d-flex align-center justify-center text-medium-emphasis"
@@ -123,7 +120,14 @@ function openDeck() {
 
 <style scoped>
 .deck-summary-art {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
   cursor: pointer;
+  padding: 0;
+  text-align: inherit;
+  width: 100%;
 }
 
 .deck-summary-art:focus-visible {

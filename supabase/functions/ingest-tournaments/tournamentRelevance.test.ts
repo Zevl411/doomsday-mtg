@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildExcludedTitleKeywords,
   evaluateTournamentTitle,
-} from './tournamentRelevance'
+} from './tournamentRelevance.ts'
 
 describe('tournament relevance', () => {
   it('excludes explicit casual, budget, and precon titles', () => {

@@ -76,15 +76,12 @@
         lg="3"
       >
         <v-card border class="d-flex flex-column h-100" color="surface">
-          <div
+          <button
             v-if="commanderImage(deck)"
             :aria-label="`Continue editing ${deck.name}`"
             class="deck-summary-art"
-            role="button"
-            tabindex="0"
+            type="button"
             @click="openDeck(deck.id)"
-            @keydown.enter="openDeck(deck.id)"
-            @keydown.space.prevent="openDeck(deck.id)"
           >
             <v-img
               :alt="`${deck.commander?.name} card art`"
@@ -92,7 +89,7 @@
               cover
               :src="commanderImage(deck)"
             />
-          </div>
+          </button>
           <v-sheet
             v-else
             class="d-flex align-center justify-center text-medium-emphasis"
@@ -342,7 +339,14 @@ function percent(value: number) {
 
 <style scoped>
 .deck-summary-art {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
   cursor: pointer;
+  padding: 0;
+  text-align: inherit;
+  width: 100%;
 }
 
 .deck-summary-art:focus-visible {

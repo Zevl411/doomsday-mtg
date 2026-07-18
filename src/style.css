@@ -21,13 +21,12 @@ body {
 }
 
 .app-brand-link {
-  background: transparent !important;
-  height: 64px !important;
-  min-width: 64px !important;
-  opacity: 1 !important;
+  align-items: center;
+  display: flex;
+  height: 64px;
+  min-width: 64px;
   overflow: hidden;
-  padding: 0 !important;
-  width: 64px !important;
+  width: 64px;
 }
 
 .app-brand-logo {

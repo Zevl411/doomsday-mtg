@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createRegionKey,
   normalizeTournamentLocation,
-} from './location'
+} from './location.ts'
 
 describe('normalizeTournamentLocation', () => {
   it('normalizes coordinates, country, precision, and granular region', () => {

@@ -66,7 +66,9 @@ describe('DeckLibraryCard', () => {
       global: { plugins: [vuetify] },
     })
 
-    const artwork = wrapper.get('[role="button"][aria-label="Open Artwork link"]')
+    const artwork = wrapper.get(
+      'button[aria-label="Open Artwork link"]',
+    )
     await artwork.trigger('click')
 
     expect(wrapper.emitted('open')?.[0]).toEqual([deck.id])

@@ -304,19 +304,19 @@ function getPlacementClass(standing?: number): string {
 }
 
 .placement-panel--gold {
-  border-color: #d4af37;
+  border-color: rgb(var(--v-theme-placement-gold));
 }
 
 .placement-panel--silver {
-  border-color: #aeb4bd;
+  border-color: rgb(var(--v-theme-placement-silver));
 }
 
 .placement-panel--bronze {
-  border-color: #b87333;
+  border-color: rgb(var(--v-theme-placement-bronze));
 }
 
 .placement-panel--top-cut {
-  border-color: #587a9b;
+  border-color: rgb(var(--v-theme-placement-top-cut));
 }
 
 .card-grid {
