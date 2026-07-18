@@ -125,6 +125,24 @@ describe('deck synchronization store', () => {
     expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).not.toBeNull()
   })
 
+  it('keeps loaded cloud decks visible when guest transfer saving fails', async () => {
+    const cloudDeck = createEmptyDeck('Existing Cloud Deck')
+    const guest = createEmptyDeck('Guest Transfer')
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: guest.id,
+      decks: [guest],
+    })
+    loadDecks.mockResolvedValueOnce([cloudDeck])
+    saveDeck.mockRejectedValueOnce(new Error('schema cache mismatch'))
+
+    await useDeckSyncStore().handleUser('user-a')
+
+    expect(useDeckStore().decks).toEqual([cloudDeck])
+    expect(useDeckSyncStore().syncStatus).toBe('error')
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).not.toBeNull()
+  })
+
   it('retries a failed guest transfer with the same stable ID', async () => {
     const guest = createEmptyDeck('Retry Guest')
     guestDraftRepository.saveLibrary({

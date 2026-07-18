@@ -6,9 +6,10 @@ export interface CloudDeckRecord {
   user_id: string
   deck_id: string
   name: string
-  description: string
-  visibility: NonNullable<Deck['visibility']>
-  creator_username: string
+  // Legacy rows created before deck sharing may not expose these columns yet.
+  description?: string | null
+  visibility?: NonNullable<Deck['visibility']> | null
+  creator_username?: string | null
   deck_data: Deck
   schema_version: number
   created_at: string

@@ -77,10 +77,12 @@ export const useDeckSyncStore = defineStore('deck-sync', {
       const guestDraft = guestDraftRepository.loadLibrary().decks[0] ?? null
       this.syncStatus = 'syncing'
       deckStore.useRepository(memoryDeckRepository, 'cloud')
+      let loadedCloudDecks: Deck[] = []
 
       try {
         const repository = createSupabaseDeckRepository(supabase, userId)
         let cloudDecks = await repository.loadDecks()
+        loadedCloudDecks = cloudDecks
         if (generation !== sessionGeneration) return
 
         if (guestDraft && isMeaningfulGuestDraft(guestDraft)) {
@@ -109,6 +111,14 @@ export const useDeckSyncStore = defineStore('deck-sync', {
       } catch (error) {
         if (generation !== sessionGeneration) return
         console.warn('Cloud deck initialization failed.', error)
+        if (loadedCloudDecks.length > 0) {
+          this.cloudDeckIds = loadedCloudDecks.map((deck) => deck.id)
+          deckStore.useRepository(
+            memoryDeckRepository,
+            'cloud',
+            createCloudLibrary(loadedCloudDecks, null),
+          )
+        }
         this.hasUnsyncedChanges = Boolean(guestDraft)
         this.syncStatus = 'error'
         this.syncError = 'Unable to sync — your guest draft is still safe'

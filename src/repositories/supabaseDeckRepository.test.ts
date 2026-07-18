@@ -62,6 +62,29 @@ describe('supabaseDeckRepository', () => {
     )
   })
 
+  it('falls back to legacy deck columns while sharing migration is pending', async () => {
+    const deck = createEmptyDeck('Legacy Cloud')
+    const { client, upsert } = createClient()
+    upsert
+      .mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: 'PGRST204',
+          message: "Could not find the 'description' column of 'decks'",
+        },
+      })
+      .mockResolvedValueOnce({ data: null, error: null })
+
+    await createSupabaseDeckRepository(client, 'user-a').saveDeck(deck)
+
+    expect(upsert).toHaveBeenCalledTimes(2)
+    expect(upsert.mock.calls[1]?.[0]).not.toHaveProperty('description')
+    expect(upsert.mock.calls[1]?.[0]).not.toHaveProperty('visibility')
+    expect(upsert.mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({ deck_data: deck }),
+    )
+  })
+
   it('loads one valid user-owned deck by stable ID', async () => {
     const deck = createEmptyDeck('Cloud')
     const { client } = createClient([

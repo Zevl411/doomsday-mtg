@@ -107,9 +107,10 @@ import type {
   TournamentDeckBoard,
 } from '../models/tournament'
 import { createEmptyDeck } from '../models/createDeck'
-import type { DeckCard } from '../models/deck'
+import { getCardsByExactNames } from '../api/scryfall'
 import { tournamentRepository } from '../repositories/tournamentRepository'
 import { useDeckStore } from '../stores/deck'
+import type { ScryfallCard } from '../types/card'
 import { compareDeckToAggregate } from '../utils/cardInclusion'
 import {
   displayTournamentLocation,
@@ -119,6 +120,10 @@ import {
   getSortableCardType,
   type TournamentDeckSort,
 } from '../utils/tournamentDeckCards'
+import {
+  createTournamentCardLookup,
+  toCopiedDeckCard,
+} from '../utils/tournamentDeckCopy'
 
 const route = useRoute()
 const router = useRouter()
@@ -196,37 +201,35 @@ function exportCardsForBoard(board: TournamentDeckBoard) {
     }))
 }
 
-function copyToMyDecks() {
+async function copyToMyDecks() {
   if (!deck.value) return
+  let resolvedCards: ScryfallCard[] = []
+  try {
+    resolvedCards = await getCardsByExactNames(
+      deck.value.cards.map((card) => card.cardName),
+    )
+  } catch (error) {
+    console.warn('Unable to hydrate copied tournament card images.', error)
+  }
+  const cardLookup = createTournamentCardLookup(resolvedCards)
   const copy = createEmptyDeck(
     `${deck.value.commanderName} — ${deck.value.tournament.name}`,
   )
-  const commanders = cardsForBoard('commander').map(toDeckCard)
+  const copyBoard = (board: TournamentDeckBoard) =>
+    cardsForBoard(board).map((card) => toCopiedDeckCard(card, cardLookup))
+  const commanders = copyBoard('commander')
   copy.commander = commanders[0]?.card ?? null
   copy.partnerCommander = commanders[1]?.card ?? null
-  copy.cards = cardsForBoard('mainboard').map(toDeckCard)
-  copy.sideboard = cardsForBoard('sideboard').map(toDeckCard)
-  copy.maybeboard = cardsForBoard('maybeboard').map(toDeckCard)
-  copy.considering = cardsForBoard('considering').map(toDeckCard)
+  copy.cards = copyBoard('mainboard')
+  copy.sideboard = copyBoard('sideboard')
+  copy.maybeboard = copyBoard('maybeboard')
+  copy.considering = copyBoard('considering')
   // createDeck() allocates a fresh application ID; replacing its contents
   // never mutates the public tournament snapshot.
   deckStore.createDeck(copy.name, 'Tournament import')
   deckStore.replaceActiveDeck(copy)
   copyMessage.value = 'Tournament Deck copied to your Decks.'
   void router.push({ name: 'deck-builder' })
-}
-
-function toDeckCard(card: NormalizedTournamentDeck['cards'][number]): DeckCard {
-  return {
-    quantity: card.quantity,
-    card: {
-      id: card.scryfallId ?? card.oracleId ?? card.normalizedCardKey,
-      oracle_id: card.oracleId,
-      name: card.cardName,
-      type_line: card.typeLine ?? '',
-      color_identity: card.colorIdentity,
-    },
-  }
 }
 
 function percent(value: number) {

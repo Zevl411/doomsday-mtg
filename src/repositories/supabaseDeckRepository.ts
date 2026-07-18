@@ -62,21 +62,37 @@ export function createSupabaseDeckRepository(
     },
 
     async saveDeck(deck) {
+      const baseRecord = {
+        user_id: userId,
+        deck_id: deck.id,
+        name: deck.name,
+        deck_data: deck,
+        schema_version: 1,
+        created_at: deck.createdAt,
+        updated_at: deck.updatedAt,
+      }
       const { error } = await client.from('decks').upsert(
         {
-          user_id: userId,
-          deck_id: deck.id,
-          name: deck.name,
+          ...baseRecord,
           description: deck.description ?? '',
           visibility: deck.visibility ?? 'private',
-          deck_data: deck,
-          schema_version: 1,
-          created_at: deck.createdAt,
-          updated_at: deck.updatedAt,
         },
         { onConflict: 'user_id,deck_id' },
       )
-      if (error) throw repositoryError('save', error)
+      if (!error) return
+
+      // Deployments can briefly run newer clients before the sharing migration
+      // reaches PostgREST. The full Deck remains safe inside deck_data, so a
+      // legacy upsert keeps saves working until the schema cache catches up.
+      if (isMissingSharingColumn(error)) {
+        const legacyResult = await client.from('decks').upsert(
+          baseRecord,
+          { onConflict: 'user_id,deck_id' },
+        )
+        if (!legacyResult.error) return
+        throw repositoryError('save', legacyResult.error)
+      }
+      throw repositoryError('save', error)
     },
 
     async deleteDeck(deckId) {
@@ -104,4 +120,14 @@ function hydrateDeck(record: CloudDeckRecord): Deck {
 function repositoryError(operation: string, error: unknown): Error {
   console.warn(`Supabase deck ${operation} failed.`, error)
   return new Error(`Cloud deck ${operation} failed.`)
+}
+
+function isMissingSharingColumn(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const value = error as { code?: unknown; message?: unknown }
+  return (
+    value.code === 'PGRST204' &&
+    typeof value.message === 'string' &&
+    /\b(description|visibility|creator_username)\b/.test(value.message)
+  )
 }
