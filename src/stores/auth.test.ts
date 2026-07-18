@@ -2,10 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from './auth'
 
-const { getSession, onAuthStateChange, signInWithOtp } = vi.hoisted(() => ({
+const {
+  getSession,
+  onAuthStateChange,
+  signInWithOtp,
+  signInWithPassword,
+  signUp,
+} = vi.hoisted(() => ({
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
   signInWithOtp: vi.fn(),
+  signInWithPassword: vi.fn(),
+  signUp: vi.fn(),
 }))
 
 vi.mock('../lib/supabase', () => ({
@@ -14,6 +22,8 @@ vi.mock('../lib/supabase', () => ({
       getSession,
       onAuthStateChange,
       signInWithOtp,
+      signInWithPassword,
+      signUp,
     },
   },
 }))
@@ -26,6 +36,11 @@ beforeEach(() => {
   })
   onAuthStateChange.mockReset()
   signInWithOtp.mockReset().mockResolvedValue({ error: null })
+  signInWithPassword.mockReset().mockResolvedValue({ error: null })
+  signUp.mockReset().mockResolvedValue({
+    data: { session: null, user: { id: 'new-user' } },
+    error: null,
+  })
 })
 
 describe('authentication store', () => {
@@ -46,5 +61,38 @@ describe('authentication store', () => {
         },
       }),
     )
+  })
+
+  it('waits for email confirmation instead of signing in new registrations', async () => {
+    const auth = useAuthStore()
+
+    await expect(
+      auth.register('new-player@example.com', 'password'),
+    ).resolves.toBe(true)
+
+    expect(auth.isSignedIn).toBe(false)
+    expect(auth.registrationConfirmationRequired).toBe(true)
+    expect(signUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'new-player@example.com',
+        options: {
+          emailRedirectTo: expect.stringMatching(/\/#\/auth\/callback$/),
+        },
+      }),
+    )
+  })
+
+  it('recognizes registration sessions when email confirmation is disabled', async () => {
+    const user = { id: 'new-user', user_metadata: {} }
+    signUp.mockResolvedValueOnce({
+      data: { session: { user }, user },
+      error: null,
+    })
+    const auth = useAuthStore()
+
+    await auth.register('new-player@example.com', 'password')
+
+    expect(auth.isSignedIn).toBe(true)
+    expect(auth.registrationConfirmationRequired).toBe(false)
   })
 })

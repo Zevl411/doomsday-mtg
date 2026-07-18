@@ -22,6 +22,14 @@
           <v-alert v-if="magicLinkSent" type="success" variant="tonal">
             Check your email for the sign-in link.
           </v-alert>
+          <v-alert
+            v-if="auth.registrationConfirmationRequired"
+            type="success"
+            variant="tonal"
+          >
+            Account created. Check your email to confirm your account, then
+            sign in.
+          </v-alert>
         </v-card-text>
         <v-card-actions class="px-6 pb-6">
           <v-btn :to="{ name: 'deck-library' }" variant="text">Cancel</v-btn>
@@ -56,7 +64,9 @@ async function submit(register: boolean) {
   const succeeded = register
     ? await auth.register(email.value.trim(), password.value)
     : await auth.signIn(email.value.trim(), password.value)
-  if (succeeded) await router.push({ name: 'deck-library' })
+  if (succeeded && (!register || auth.isSignedIn)) {
+    await router.push({ name: 'deck-library' })
+  }
 }
 
 async function sendMagicLink() {

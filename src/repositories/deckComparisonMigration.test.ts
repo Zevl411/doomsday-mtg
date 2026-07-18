@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import migration from '../../supabase/migrations/202607180001_add_deck_comparison.sql?raw'
 import canonicalMigration from '../../supabase/migrations/202607180005_use_canonical_cards_for_deck_comparison.sql?raw'
 import partialSampleMigration from '../../supabase/migrations/202607180006_allow_partial_deck_comparison_samples.sql?raw'
+import performanceMigration from '../../supabase/migrations/202607180014_optimize_similar_tournament_decks.sql?raw'
 
 const sql = migration.toLowerCase()
 const canonicalSql = canonicalMigration.toLowerCase()
 const partialSampleSql = partialSampleMigration.toLowerCase()
+const performanceSql = performanceMigration.toLowerCase()
 
 describe('deck comparison migration', () => {
   it('uses only complete matching Commander mainboards', () => {
@@ -67,6 +69,38 @@ describe('deck comparison migration', () => {
     expect(partialSampleSql).toContain('>= 25')
     expect(partialSampleSql).toContain(
       'from public.tournament_decks_for_comparison deck',
+    )
+  })
+
+  it('scores similar Decks in one grouped pass with covering indexes', () => {
+    expect(performanceSql).toContain(
+      'tournament_deck_cards_mainboard_cover_idx',
+    )
+    expect(performanceSql).toContain(
+      'tournament_decks_commander_comparison_idx',
+    )
+    expect(performanceSql).toContain('deck_metrics.deck_card_count')
+    expect(performanceSql).toContain('user_total.card_count')
+    expect(performanceSql).toContain('deck_metrics.shared_count')
+    expect(performanceSql).not.toContain(
+      'where compared.tournament_deck_id = sample.id',
+    )
+  })
+
+  it('checks comparison eligibility without canonical detail joins', () => {
+    const viewDefinition = performanceSql.slice(
+      performanceSql.indexOf(
+        'create or replace view public.tournament_decks_for_comparison',
+      ),
+      performanceSql.indexOf(
+        'create or replace function public.get_similar_tournament_decks',
+      ),
+    )
+    expect(viewDefinition).toContain(
+      'from public.tournament_deck_cards card',
+    )
+    expect(viewDefinition).not.toContain(
+      'from public.tournament_deck_card_details card',
     )
   })
 })

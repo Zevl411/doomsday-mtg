@@ -11,6 +11,7 @@ export const useAuthStore = defineStore('auth', {
     initialized: false,
     loading: false,
     errorMessage: '',
+    registrationConfirmationRequired: false,
   }),
 
   getters: {
@@ -61,6 +62,7 @@ export const useAuthStore = defineStore('auth', {
       }
       this.loading = true
       this.errorMessage = ''
+      this.registrationConfirmationRequired = false
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -81,8 +83,9 @@ export const useAuthStore = defineStore('auth', {
       }
       this.loading = true
       this.errorMessage = ''
+      this.registrationConfirmationRequired = false
       const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}#/auth/callback`
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: redirectTo },
@@ -93,6 +96,8 @@ export const useAuthStore = defineStore('auth', {
         this.errorMessage = 'Unable to create the account. Please try again.'
         return false
       }
+      this.user = data.session?.user ?? null
+      this.registrationConfirmationRequired = data.session === null
       return true
     },
 
