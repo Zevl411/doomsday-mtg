@@ -20,8 +20,9 @@ and card-level statistics.
 
 The project has completed its core deck-building functionality and now includes
 tournament ingestion from TopDeck and EDHTop16, normalized tournament
-decklists, regional tracking, and Commander card analytics. The next major
-milestone is building deck comparison and intelligent recommendation systems.
+decklists, regional tracking, and Commander card analytics.
+
+Current focus: deck comparison built on normalized tournament deck data.
 
 ## Features
 
@@ -109,10 +110,7 @@ authentication and cloud decks, copy `.env.example` to `.env.local` and
 provide the browser-safe Supabase project URL and publishable key. Never expose
 the Supabase service-role key in frontend environment variables.
 
-## Configuration
-
-The public name, tagline, and deployment base path can be changed without
-editing Vue components:
+## Environment Variables
 
 ```env
 VITE_APP_NAME=DoomsdayMTG
@@ -122,9 +120,6 @@ VITE_BASE_PATH=/doomsday-mtg/
 
 For a renamed GitHub Pages repository, change `VITE_BASE_PATH` to the new
 repository path. Use `/` when deploying to a custom domain.
-
-Hash-based routing is used so application routes continue to work when opened
-or refreshed on GitHub Pages.
 
 ## Roadmap
 
@@ -137,7 +132,7 @@ or refreshed on GitHub Pages.
 - [x] Cloud persistence
 - [x] Automated testing
 
-### 🚧 v0.2 — Tournament Explorer
+### 🚧 v0.2 — Tournament Intelligence
 
 - [x] Tournament ingestion
 - [x] Commander metagame
@@ -149,10 +144,10 @@ or refreshed on GitHub Pages.
 
 ### v0.3 — Deck Comparison
 
-- [ ] Compare personal decks with tournament averages
-- [ ] Identify missing core cards
-- [ ] Analyze flex slots
-- [ ] Calculate deck-similarity scores
+- [ ] Compare personal decks against tournament averages
+- [ ] Missing core cards
+- [ ] Flex slot analysis
+- [ ] Deck similarity scoring
 
 ### v0.4 — Card Association Engine
 
@@ -165,7 +160,8 @@ or refreshed on GitHub Pages.
 
 - [ ] Commander-aware recommendations
 - [ ] Package recommendations
-- [ ] Suggested additions and cuts
+- [ ] Suggested additions
+- [ ] Suggested cuts
 - [ ] Replacement analysis
 - [ ] Confidence scoring
 
