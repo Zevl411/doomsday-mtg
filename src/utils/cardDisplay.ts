@@ -30,6 +30,23 @@ export function getCardImage(
   )
 }
 
+/** Returns a specific printed face image without falling back to another face. */
+export function getCardFaceImage(
+  card: ScryfallCard,
+  faceIndex: number,
+  preferredSize: CardImageSize = 'normal',
+): string | undefined {
+  const images = card.card_faces?.[faceIndex]?.image_uris
+  if (!images) return undefined
+
+  return (
+    images[preferredSize] ??
+    images.normal ??
+    images.small ??
+    images.large
+  )
+}
+
 /**
  * Deck tiles use the illustration instead of the complete printed card. New
  * Scryfall responses provide art_crop directly; the URL conversion preserves

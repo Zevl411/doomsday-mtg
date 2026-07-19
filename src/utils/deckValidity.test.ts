@@ -51,4 +51,35 @@ describe('deck validity', () => {
     }))
     expect(getDeckValiditySeverity(issues)).toBe('error')
   })
+
+  it('condenses all color identity violations into one deck-level warning', () => {
+    const deck = createEmptyDeck()
+    deck.commander = {
+      ...commander,
+      color_identity: ['G'],
+    }
+    deck.cards = [
+      {
+        card: { ...card, id: 'blue', name: 'Blue Card', color_identity: ['U'] },
+        quantity: 1,
+      },
+      {
+        card: { ...card, id: 'red', name: 'Red Card', color_identity: ['R'] },
+        quantity: 1,
+      },
+    ]
+
+    const colorIssues = getDeckValidityIssues(deck).filter(
+      (issue) => issue.rule === 'color-identity',
+    )
+
+    expect(colorIssues).toEqual([
+      expect.objectContaining({
+        message:
+          "This deck contains cards outside the Commander's color identity.",
+      }),
+    ])
+    expect(colorIssues[0]?.message).not.toContain('Blue Card')
+    expect(colorIssues[0]?.message).not.toContain('Red Card')
+  })
 })

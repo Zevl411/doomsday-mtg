@@ -10,6 +10,10 @@ import {
   guestDraftRepository,
   memoryDeckRepository,
 } from '../repositories/localDeckRepository'
+import {
+  clearLocalDecksAfterAccountTransfer,
+  loadLocalDecksForAccountTransfer,
+} from '../utils/deckStorage'
 import { useDeckStore } from './deck'
 
 export type SyncStatus =
@@ -66,15 +70,13 @@ export const useDeckSyncStore = defineStore('deck-sync', {
 
       if (!userId || !supabase) {
         deckStore.useRepository(guestDraftRepository, 'guest')
-        if (!deckStore.hasActiveDeck) {
-          deckStore.createDeck()
-        }
         this.syncStatus = 'local-only'
         this.needsInitializationRetry = false
         return
       }
 
-      const guestDraft = guestDraftRepository.loadLibrary().decks[0] ?? null
+      const localTransfer = loadLocalDecksForAccountTransfer()
+      const localDecks = localTransfer.decks.filter(isMeaningfulGuestDraft)
       this.syncStatus = 'syncing'
       deckStore.useRepository(memoryDeckRepository, 'cloud')
       let loadedCloudDecks: Deck[] = []
@@ -85,16 +87,34 @@ export const useDeckSyncStore = defineStore('deck-sync', {
         loadedCloudDecks = cloudDecks
         if (generation !== sessionGeneration) return
 
-        if (guestDraft && isMeaningfulGuestDraft(guestDraft)) {
+        if (localDecks.length > 0) {
           this.transferringGuestDraft = true
-          await repository.saveDeck(guestDraft)
+          const existingIds = new Set(cloudDecks.map((deck) => deck.id))
+          const usedNames = new Set(
+            cloudDecks.map((deck) => normalizeDeckTitle(deck.name)),
+          )
+          for (const localDeck of localDecks) {
+            if (!existingIds.has(localDeck.id)) {
+              const uniqueName = getAvailableDeckTitle(
+                localDeck.name,
+                usedNames,
+              )
+              usedNames.add(normalizeDeckTitle(uniqueName))
+              await repository.saveDeck(
+                uniqueName === localDeck.name
+                  ? localDeck
+                  : { ...localDeck, name: uniqueName },
+              )
+            }
+          }
           cloudDecks = await repository.loadDecks()
           if (generation !== sessionGeneration) return
 
-          if (cloudDecks.some((deck) => deck.id === guestDraft.id)) {
-            guestDraftRepository.clearLibrary()
+          const confirmedIds = new Set(cloudDecks.map((deck) => deck.id))
+          if (localDecks.every((deck) => confirmedIds.has(deck.id))) {
+            clearLocalDecksAfterAccountTransfer()
           } else {
-            throw new Error('Transferred guest deck was not confirmed.')
+            throw new Error('Transferred local Decks were not confirmed.')
           }
         }
 
@@ -102,7 +122,7 @@ export const useDeckSyncStore = defineStore('deck-sync', {
         deckStore.useRepository(
           memoryDeckRepository,
           'cloud',
-          createCloudLibrary(cloudDecks, guestDraft?.id ?? null),
+          createCloudLibrary(cloudDecks, localTransfer.preferredActiveId),
         )
         this.hasUnsyncedChanges = false
         this.needsInitializationRetry = false
@@ -119,9 +139,9 @@ export const useDeckSyncStore = defineStore('deck-sync', {
             createCloudLibrary(loadedCloudDecks, null),
           )
         }
-        this.hasUnsyncedChanges = Boolean(guestDraft)
+        this.hasUnsyncedChanges = localDecks.length > 0
         this.syncStatus = 'error'
-        this.syncError = 'Unable to sync — your guest draft is still safe'
+        this.syncError = 'Unable to sync — your local Decks are still safe'
         this.needsInitializationRetry = true
         initializedUserId = null
       } finally {
@@ -193,4 +213,22 @@ function createCloudLibrary(
       ? preferredActiveId
       : decks[0]?.id ?? null,
   }
+}
+
+function getAvailableDeckTitle(
+  requestedName: string,
+  usedNames: Set<string>,
+): string {
+  const baseName = requestedName.trim() || 'Untitled Deck'
+  if (!usedNames.has(normalizeDeckTitle(baseName))) return baseName
+
+  let suffix = 2
+  while (usedNames.has(normalizeDeckTitle(`${baseName} ${suffix}`))) {
+    suffix += 1
+  }
+  return `${baseName} ${suffix}`
+}
+
+function normalizeDeckTitle(name: string) {
+  return name.trim().toLocaleLowerCase()
 }

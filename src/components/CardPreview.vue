@@ -11,13 +11,13 @@
     </v-card-title>
 
     <template v-if="card">
-      <v-img
+      <DoubleFacedCardImage
         v-if="getCardImage(card, 'large')"
-        :alt="`${card.name} card art`"
         aspect-ratio="0.716"
+        :card="card"
         class="mx-5 mt-4 rounded-lg"
         cover
-        :src="getCardImage(card, 'large')"
+        image-size="large"
       />
 
       <v-card-title class="px-5 pt-5 text-wrap">
@@ -79,6 +79,7 @@
 <script setup lang="ts">
 import type { ScryfallCard } from '../types/card'
 import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
+import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
 import { getCardImage } from '../utils/cardDisplay'
 
 defineProps<{

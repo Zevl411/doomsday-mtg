@@ -3,7 +3,11 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createEmptyDeck } from '../models/createDeck'
 import { guestDraftRepository } from '../repositories/localDeckRepository'
 import { createSupabaseDeckRepository } from '../repositories/supabaseDeckRepository'
-import { GUEST_DRAFT_STORAGE_KEY } from '../utils/deckStorage'
+import {
+  DECK_LIBRARY_STORAGE_KEY,
+  GUEST_DRAFT_STORAGE_KEY,
+  saveDeckLibrary,
+} from '../utils/deckStorage'
 import { useDeckStore } from './deck'
 import { isMeaningfulGuestDraft, useDeckSyncStore } from './deckSync'
 
@@ -73,6 +77,96 @@ describe('deck synchronization store', () => {
     expect(saveDeck).toHaveBeenCalledWith(guest)
     expect(useDeckStore().deck.id).toBe(guest.id)
     expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).toBeNull()
+  })
+
+  it('transfers every local Deck and removes them from browser storage', async () => {
+    const first = createEmptyDeck('First Local Deck')
+    const active = createEmptyDeck('Active Local Deck')
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: active.id,
+      decks: [active],
+    })
+    saveDeckLibrary({
+      version: 1,
+      activeDeckId: active.id,
+      decks: [first, active],
+    })
+    loadDecks
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([first, active])
+
+    const sync = useDeckSyncStore()
+    await sync.handleUser('user-a')
+
+    expect(saveDeck).toHaveBeenCalledTimes(2)
+    expect(saveDeck.mock.calls.map(([deck]) => deck.id)).toEqual([
+      first.id,
+      active.id,
+    ])
+    expect(useDeckStore().decks).toEqual([first, active])
+    expect(useDeckStore().deck.id).toBe(active.id)
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).toBeNull()
+
+    await sync.handleUser(null)
+
+    expect(useDeckStore().decks).toHaveLength(0)
+    expect(useDeckStore().hasActiveDeck).toBe(false)
+    expect(useDeckStore().decks.some((deck) => deck.id === first.id)).toBe(false)
+    expect(useDeckStore().decks.some((deck) => deck.id === active.id)).toBe(false)
+  })
+
+  it('does not overwrite a cloud Deck already transferred with the same ID', async () => {
+    const cloudDeck = createEmptyDeck('Cloud Version')
+    const staleLocalDeck = { ...cloudDeck, name: 'Stale Local Version' }
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: staleLocalDeck.id,
+      decks: [staleLocalDeck],
+    })
+    loadDecks
+      .mockResolvedValueOnce([cloudDeck])
+      .mockResolvedValueOnce([cloudDeck])
+
+    await useDeckSyncStore().handleUser('user-a')
+
+    expect(saveDeck).not.toHaveBeenCalled()
+    expect(useDeckStore().decks).toEqual([cloudDeck])
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).toBeNull()
+  })
+
+  it('increments duplicate local titles while preserving every Deck', async () => {
+    const cloudDeck = createEmptyDeck('Primer')
+    const firstLocal = createEmptyDeck('Primer')
+    const secondLocal = createEmptyDeck('Primer')
+    guestDraftRepository.saveLibrary({
+      version: 1,
+      activeDeckId: secondLocal.id,
+      decks: [secondLocal],
+    })
+    saveDeckLibrary({
+      version: 1,
+      activeDeckId: secondLocal.id,
+      decks: [firstLocal, secondLocal],
+    })
+    const firstCopy = { ...firstLocal, name: 'Primer 2' }
+    const secondCopy = { ...secondLocal, name: 'Primer 3' }
+    loadDecks
+      .mockResolvedValueOnce([cloudDeck])
+      .mockResolvedValueOnce([cloudDeck, firstCopy, secondCopy])
+
+    await useDeckSyncStore().handleUser('user-a')
+
+    expect(saveDeck.mock.calls.map(([deck]) => deck.name)).toEqual([
+      'Primer 2',
+      'Primer 3',
+    ])
+    expect(useDeckStore().decks.map((deck) => deck.name)).toEqual([
+      'Primer',
+      'Primer 2',
+      'Primer 3',
+    ])
   })
 
   it('deduplicates concurrent and repeated sign-in initialization', async () => {
@@ -188,11 +282,11 @@ describe('deck synchronization store', () => {
 
     await sync.handleUser(null)
 
-    expect(useDeckStore().decks).toHaveLength(1)
-    expect(useDeckStore().deck.name).toBe('Untitled Deck')
+    expect(useDeckStore().decks).toHaveLength(0)
+    expect(useDeckStore().hasActiveDeck).toBe(false)
     expect(useDeckStore().storageMode).toBe('guest')
     expect(deleteDeck).not.toHaveBeenCalled()
-    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).not.toBeNull()
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).toBeNull()
   })
 
   it('does not let a stale cloud load overwrite guest state after logout', async () => {
@@ -210,8 +304,8 @@ describe('deck synchronization store', () => {
     await signIn
 
     expect(useDeckStore().storageMode).toBe('guest')
-    expect(useDeckStore().decks).toHaveLength(1)
-    expect(useDeckStore().deck.name).toBe('Untitled Deck')
+    expect(useDeckStore().decks).toHaveLength(0)
+    expect(useDeckStore().hasActiveDeck).toBe(false)
   })
 })
 

@@ -42,10 +42,11 @@ const deckValidityRules: DeckValidityRule[] = [
     id: 'color-identity',
     severity: 'warning',
     evaluate: (deck) =>
-      getColorIdentityViolations(deck).map(
-        (entry) =>
-          `${entry.card.name} is outside the Commander's color identity.`,
-      ),
+      getColorIdentityViolations(deck).length
+        ? [
+            "This deck contains cards outside the Commander's color identity.",
+          ]
+        : [],
   },
   {
     id: 'banned-card',

@@ -1,5 +1,11 @@
 <template>
-  <v-card border color="surface-bright" rounded="lg" variant="flat">
+  <v-card
+    border
+    class="deck-builder-header"
+    color="surface-bright"
+    rounded="lg"
+    variant="flat"
+  >
     <v-card-text class="deck-header-content pa-3">
       <div class="deck-header-summary">
         <div class="d-flex flex-wrap align-center ga-2">
@@ -106,9 +112,31 @@
         />
       </v-card-text>
       <v-card-actions>
+        <v-btn color="error" variant="text" @click="openDeleteConfirmation">
+          Delete deck
+        </v-btn>
         <v-spacer />
         <v-btn @click="showSettings = false">Cancel</v-btn>
         <v-btn color="primary" variant="flat" @click="saveSettings">Save</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="showDeleteConfirmation" max-width="480">
+    <v-card color="surface" rounded="lg">
+      <v-card-title class="px-5 pt-5">Delete this deck?</v-card-title>
+      <v-card-text class="px-5">
+        This permanently removes “{{ deck.name }}”
+        {{ auth.isSignedIn ? 'from your account' : 'from this browser' }}.
+      </v-card-text>
+      <v-card-actions class="px-5 pb-5">
+        <v-spacer />
+        <v-btn variant="text" @click="showDeleteConfirmation = false">
+          Cancel
+        </v-btn>
+        <v-btn color="error" variant="flat" @click="deleteDeck">
+          Delete
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -152,7 +180,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import type { DeckVisibility } from '../models/deck'
+import { useAuthStore } from '../stores/auth'
 import { useDeckStore } from '../stores/deck'
 import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
 import DeckActionIcon from './DeckActionIcon.vue'
@@ -163,8 +193,14 @@ import {
 
 const emit = defineEmits<{ import: []; export: [] }>()
 const deckStore = useDeckStore()
-const deck = computed(() => deckStore.deck)
+const auth = useAuthStore()
+const router = useRouter()
+// Deletion clears the active Deck immediately, while route navigation finishes
+// on the next render. Keep the current object long enough for that transition.
+const currentDeck = ref(deckStore.deck)
+const deck = computed(() => deckStore.activeDeck ?? currentDeck.value)
 const showSettings = ref(false)
+const showDeleteConfirmation = ref(false)
 const showCopy = ref(false)
 const settingsName = ref('')
 const settingsDescription = ref('')
@@ -176,7 +212,7 @@ const visibilityOptions = [
   { title: 'Unlisted — anyone with the link can access it', value: 'unlisted' },
   { title: 'Public — visible and findable', value: 'public' },
 ]
-const canCompare = computed(() => Boolean(deck.value.commander && deck.value.cards.length))
+const canCompare = computed(() => Boolean(deck.value.commander))
 const deckColorIdentity = computed(() => [
   ...new Set([
     ...(deck.value.commander?.color_identity ?? []),
@@ -201,6 +237,15 @@ function saveSettings() {
     visibility: settingsVisibility.value,
   })) showSettings.value = false
 }
+function openDeleteConfirmation() {
+  showSettings.value = false
+  showDeleteConfirmation.value = true
+}
+function deleteDeck() {
+  const deleted = deckStore.deleteDeck(deck.value.id)
+  showDeleteConfirmation.value = false
+  if (deleted) void router.push({ name: 'deck-library' })
+}
 function openCopy() {
   copyName.value =
     `${deck.value.name} (copied from ${deck.value.creatorUsername ?? 'Unknown'})`
@@ -221,6 +266,12 @@ function copyDeck() {
   display: grid;
   gap: 12px 24px;
   grid-template-columns: minmax(280px, 1fr) minmax(520px, 620px);
+}
+
+.deck-builder-header {
+  overflow: visible;
+  position: relative;
+  z-index: 100;
 }
 
 .deck-header-summary {

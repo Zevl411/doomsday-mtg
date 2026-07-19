@@ -6,6 +6,7 @@ import vuetify from '../plugins/vuetify'
 import { memoryDeckRepository } from '../repositories/localDeckRepository'
 import { useDeckStore } from '../stores/deck'
 import HomeView from './HomeView.vue'
+import DeckCreationDialog from '../components/DeckCreationDialog.vue'
 
 const {
   getCommanderMetagame,
@@ -40,7 +41,7 @@ beforeEach(() => {
 })
 
 describe('HomeView', () => {
-  it('creates a new Deck when the hero action is clicked', async () => {
+  it('opens deck creation before replacing the active Deck', async () => {
     const store = useDeckStore()
     store.useRepository(memoryDeckRepository, 'cloud')
     const existingDeck = store.createDeck('Existing Deck')
@@ -54,10 +55,11 @@ describe('HomeView', () => {
       .find((button) => button.text().includes('Start building'))
     await startButton?.trigger('click')
 
-    expect(store.activeDeckId).not.toBe(existingDeck.id)
-    expect(store.activeDeck?.name).toBe('Untitled Deck')
-    expect(store.activeDeck?.cards).toEqual([])
-    expect(routerPush).toHaveBeenCalledWith({ name: 'deck-builder' })
+    expect(store.activeDeckId).toBe(existingDeck.id)
+    expect(
+      wrapper.findComponent(DeckCreationDialog).props('modelValue'),
+    ).toBe(true)
+    expect(routerPush).not.toHaveBeenCalled()
   })
 
   it('shows only the four most recently edited decks in newest-first order', async () => {

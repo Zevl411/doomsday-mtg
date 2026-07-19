@@ -72,7 +72,7 @@ describe('DeckComparisonView', () => {
     expect(mocks.compare).not.toHaveBeenCalled()
   })
 
-  it('requires a Commander and mainboard card', async () => {
+  it('requires a Commander', async () => {
     const deck = createEmptyDeck('Empty')
     deck.id = 'deck-1'
     mocks.decks.push(deck)
@@ -81,6 +81,27 @@ describe('DeckComparisonView', () => {
     })
     await flushPromises()
     expect(wrapper.text()).toContain('Select a Commander')
+  })
+
+  it('compares a Commander deck with an empty mainboard', async () => {
+    const deck = personalDeck()
+    deck.cards = []
+    mocks.decks.push(deck)
+    mocks.compare.mockResolvedValue({ inclusion: [], similarities: [] })
+
+    const wrapper = mount(DeckComparisonView, {
+      global: { plugins: [vuetify] },
+    })
+    await flushPromises()
+
+    expect(mocks.compare).toHaveBeenCalledWith(
+      expect.any(String),
+      [],
+      expect.any(Object),
+    )
+    expect(wrapper.text()).not.toContain(
+      'Add at least one mainboard card',
+    )
   })
 
   it('renders summary categories, sample status, and similar Deck links', async () => {
@@ -177,7 +198,7 @@ describe('DeckComparisonView', () => {
 
     expect(wrapper.text()).toContain('No normalized comparison data')
     expect(wrapper.text()).toContain(
-      'at least 25 normalized mainboard cards',
+      'No normalized tournament card data',
     )
     expect(wrapper.text()).not.toContain('Aggregate overlap')
     expect(wrapper.text()).not.toContain('0.0%')

@@ -11,9 +11,11 @@ import {
   LEGACY_DECK_STORAGE_KEY,
   LEGACY_LIBRARY_STORAGE_KEY,
   clearDeckLibrary,
+  clearLocalDecksAfterAccountTransfer,
   isUsableDeck,
   loadDeckLibrary,
   loadGuestDraft,
+  loadLocalDecksForAccountTransfer,
   saveGuestDraft,
   saveDeckLibrary,
 } from './deckStorage'
@@ -251,5 +253,40 @@ describe('guest draft storage', () => {
       JSON.stringify({ version: 1, deck }),
     )
     expect(loadGuestDraft()).toBeNull()
+  })
+
+  it('keeps a former multi-Deck library available for account transfer', () => {
+    const first = createStoredDeck('first')
+    const active = createStoredDeck('active')
+    saveDeckLibrary({
+      version: DECK_LIBRARY_VERSION,
+      activeDeckId: active.id,
+      decks: [first, active],
+    })
+
+    expect(loadGuestDraft()?.id).toBe(active.id)
+    expect(loadDeckLibrary().decks).toHaveLength(2)
+    expect(loadLocalDecksForAccountTransfer()).toEqual({
+      decks: [first, active],
+      preferredActiveId: active.id,
+    })
+  })
+
+  it('clears every local Deck key after cloud confirmation', () => {
+    const deck = createStoredDeck()
+    saveGuestDraft(deck)
+    saveDeckLibrary({
+      version: DECK_LIBRARY_VERSION,
+      activeDeckId: deck.id,
+      decks: [deck],
+    })
+    localStorage.setItem(LEGACY_LIBRARY_STORAGE_KEY, '{}')
+    localStorage.setItem(LEGACY_DECK_STORAGE_KEY, '{}')
+
+    expect(clearLocalDecksAfterAccountTransfer()).toBe(true)
+    expect(localStorage.getItem(GUEST_DRAFT_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(DECK_LIBRARY_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(LEGACY_LIBRARY_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(LEGACY_DECK_STORAGE_KEY)).toBeNull()
   })
 })

@@ -86,15 +86,31 @@ export const useDeckStore = defineStore('deck', {
 
   // Actions are the store's named methods for changing its state.
   actions: {
-    createDeck(name?: string, creatorUsername = 'Guest'): Deck {
-      const deckName = name?.trim() || getNextDefaultDeckName(
+    getNextAvailableDefaultName(): string {
+      return getNextDefaultDeckName(
         this.library.decks.map((deck) => deck.name),
       )
+    },
+
+    createDeck(name?: string, creatorUsername = 'Guest'): Deck {
+      const deckName = name?.trim() || this.getNextAvailableDefaultName()
       const deck = createEmptyDeck(
         deckName,
         creatorUsername,
         useUserPreferencesStore().values.defaultDeckVisibility,
       )
+      if (this.storageMode === 'guest') {
+        this.library.decks = [deck]
+      } else {
+        this.library.decks.push(deck)
+      }
+      this.library.activeDeckId = deck.id
+      this.rejectionMessage = ''
+      this.persistLibrary()
+      return deck
+    },
+
+    addPreparedDeck(deck: Deck): Deck {
       if (this.storageMode === 'guest') {
         this.library.decks = [deck]
       } else {

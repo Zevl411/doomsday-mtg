@@ -13,10 +13,7 @@
         class="board-section"
       >
         <div
-          class="
-            board-header widget-header-bar
-            d-flex flex-wrap align-center ga-3
-          "
+          class="board-header widget-header-bar"
           :class="{ 'board-header--accordion': board.value !== 'mainboard' }"
           :aria-expanded="
             board.value === 'mainboard'
@@ -34,56 +31,81 @@
           @keydown.enter.prevent="toggleBoard(board.value)"
           @keydown.space.prevent="toggleBoard(board.value)"
         >
-          <h2 class="text-h6">{{ board.title }} ({{ boardCount(board.value) }})</h2>
-          <v-icon
-            v-if="board.value !== 'mainboard'"
-            :icon="
-              expandedBoards[board.value]
-                ? 'mdi-chevron-up'
-                : 'mdi-chevron-down'
-            "
-          />
-          <v-spacer />
-          <v-select
-            v-if="isBoardExpanded(board.value)"
-            v-model="sortSettings[board.value].primary"
-            density="compact"
-            hide-details
-            :items="sortOptions"
-            label="Group by"
-            style="max-width: 180px"
-            variant="outlined"
+          <div class="board-title d-flex align-center ga-3">
+            <h2 class="text-h6">
+              {{ board.title }} ({{ boardCount(board.value) }})
+            </h2>
+            <v-icon
+              v-if="board.value !== 'mainboard'"
+              :icon="
+                expandedBoards[board.value]
+                  ? 'mdi-chevron-up'
+                  : 'mdi-chevron-down'
+              "
+            />
+          </div>
+
+          <div
+            class="board-search"
             @click.stop
-          />
-          <v-select
-            v-if="isBoardExpanded(board.value)"
-            v-model="sortSettings[board.value].secondary"
-            density="compact"
-            hide-details
-            :items="secondarySortOptions"
-            label="Order by"
-            style="max-width: 180px"
-            variant="outlined"
-            @click.stop
-          />
-          <v-btn-toggle
-            v-if="isBoardExpanded(board.value)"
-            v-model="viewModes[board.value]"
-            mandatory
-            variant="outlined"
-            @click.stop
+            @keydown.stop
           >
-            <v-btn :aria-label="`Grid view for ${board.title}`" value="grid">
-              <svg aria-hidden="true" class="view-toggle-icon" viewBox="0 0 24 24">
-                <path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z" />
-              </svg>
-            </v-btn>
-            <v-btn :aria-label="`List view for ${board.title}`" value="list">
-              <svg aria-hidden="true" class="view-toggle-icon" viewBox="0 0 24 24">
-                <path d="M4 5h3v3H4V5Zm5 0h11v3H9V5ZM4 10.5h3v3H4v-3Zm5 0h11v3H9v-3ZM4 16h3v3H4v-3Zm5 0h11v3H9v-3Z" />
-              </svg>
-            </v-btn>
-          </v-btn-toggle>
+            <DeckCardSearch
+              :board="board.value"
+              @card-selected="emit('card-selected', $event, board.value)"
+            />
+          </div>
+
+          <div
+            v-if="isBoardExpanded(board.value)"
+            class="board-controls d-flex flex-wrap justify-end ga-3"
+            @click.stop
+            @keydown.stop
+          >
+            <v-select
+              v-model="sortSettings[board.value].primary"
+              density="compact"
+              hide-details
+              :items="sortOptions"
+              label="Group by"
+              style="max-width: 180px"
+              variant="outlined"
+            />
+            <v-select
+              v-model="sortSettings[board.value].secondary"
+              density="compact"
+              hide-details
+              :items="secondarySortOptions"
+              label="Order by"
+              style="max-width: 180px"
+              variant="outlined"
+            />
+            <v-btn-toggle
+              v-model="viewModes[board.value]"
+              density="compact"
+              mandatory
+              variant="outlined"
+            >
+              <v-btn
+                :aria-label="`Grid view for ${board.title}`"
+                density="compact"
+                value="grid"
+              >
+                <svg aria-hidden="true" class="view-toggle-icon" viewBox="0 0 24 24">
+                  <path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z" />
+                </svg>
+              </v-btn>
+              <v-btn
+                :aria-label="`List view for ${board.title}`"
+                density="compact"
+                value="list"
+              >
+                <svg aria-hidden="true" class="view-toggle-icon" viewBox="0 0 24 24">
+                  <path d="M4 5h3v3H4V5Zm5 0h11v3H9V5ZM4 10.5h3v3H4v-3Zm5 0h11v3H9v-3ZM4 16h3v3H4v-3Zm5 0h11v3H9v-3Z" />
+                </svg>
+              </v-btn>
+            </v-btn-toggle>
+          </div>
         </div>
 
         <v-expand-transition>
@@ -290,6 +312,7 @@ import { useDeckStore } from '../stores/deck'
 import { getCardIdentity } from '../utils/cardIdentity'
 import { getCardImage } from '../utils/cardDisplay'
 import DeckActionIcon from './DeckActionIcon.vue'
+import DeckCardSearch from './DeckCardSearch.vue'
 import { useUserPreferencesStore } from '../stores/userPreferences'
 import ManaCost from './ManaCost.vue'
 
@@ -306,6 +329,9 @@ interface DeckPanelPreferences {
 }
 
 const deckStore = useDeckStore()
+const emit = defineEmits<{
+  'card-selected': [card: DeckCard['card'], board: VisibleBoard]
+}>()
 const userPreferences = useUserPreferencesStore()
 const preferencesStorageKey = 'doomsday-mtg-deck-panel-preferences'
 const savedPreferences = loadPreferences()
@@ -592,7 +618,51 @@ function move(board: VisibleBoard) {
 }
 
 .deck-panel {
+  overflow: visible;
   position: relative;
+}
+
+.board-header {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+}
+
+.board-search {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  max-width: 100%;
+  position: relative;
+  width: 480px;
+  z-index: 5;
+}
+
+.board-title {
+  align-self: center;
+  min-height: 40px;
+}
+
+.board-controls {
+  align-items: center;
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  max-width: 100%;
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .board-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .board-search,
+  .board-controls {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
 }
 
 .board-header--accordion {

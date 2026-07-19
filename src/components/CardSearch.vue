@@ -1,4 +1,9 @@
 <template>
+  <div
+    ref="searchRoot"
+    class="card-search"
+    :class="{ 'card-search--elevated': elevatedResults }"
+  >
   <v-text-field
     :id="searchInputId"
     v-model="query"
@@ -6,19 +11,40 @@
     color="primary"
     :density="compact ? 'compact' : 'default'"
     :hide-details="compact"
-    label="Search for a Magic card"
-    placeholder="Card name"
+    :label="selectedCard ? undefined : 'Search for a Magic card'"
+    :placeholder="selectedCard ? undefined : 'Card name'"
     type="search"
     variant="outlined"
-    :clearable="clearable"
+    :clearable="showClearButton"
     @click:clear="emit('cleared')"
+    @focus="openResults"
   >
+    <template v-if="selectedCard" #prepend-inner>
+      <v-chip
+        class="selected-card-chip"
+        color="primary"
+        size="small"
+        variant="outlined"
+      >
+        <span class="selected-card-chip__label">{{
+          getCompactCardName(selectedCard.name)
+        }}</span>
+        <button
+          :aria-label="`Clear ${selectedCard.name}`"
+          class="selected-card-chip__close"
+          type="button"
+          @click.stop="clearSelectedCard"
+        >
+          ×
+        </button>
+      </v-chip>
+    </template>
     <template v-if="$slots.actions" #append>
       <slot name="actions" />
     </template>
   </v-text-field>
 
-  <div class="search-results" aria-live="polite">
+  <div v-show="resultsVisible" class="search-results" aria-live="polite">
     <div v-if="isLoading" class="d-flex align-center ga-3 py-4">
       <v-progress-circular color="primary" indeterminate size="24" width="3" />
       <span class="text-body-2 text-medium-emphasis">Searching…</span>
@@ -73,26 +99,37 @@
           />
         </template>
 
-        <v-list-item-title class="font-weight-bold">
-          {{ card.name }}
+        <v-list-item-title
+          class="card-result-name d-flex flex-column align-start ga-2 font-weight-bold"
+        >
+          <span>{{ card.name }}</span>
+          <ManaCost
+            v-if="getCastingCost(card)"
+            class="card-result-mana-cost flex-shrink-0"
+            :cost="getCastingCost(card)"
+          />
         </v-list-item-title>
-        <v-list-item-subtitle>{{ card.type_line }}</v-list-item-subtitle>
-        <v-list-item-subtitle>
-          <span class="mr-2">Color identity:</span>
-          <ColorIdentitySymbols :colors="card.color_identity" size="small" />
-        </v-list-item-subtitle>
       </v-list-item>
     </v-list>
+  </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, useId, watch } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  useId,
+  watch,
+} from 'vue'
 import { searchCards } from '../api/scryfall'
 import { searchCanonicalCards } from '../repositories/canonicalCardRepository'
 import type { ScryfallCard } from '../types/card'
-import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
+import ManaCost from './ManaCost.vue'
 import { getCardImage } from '../utils/cardDisplay'
+import { getCompactCardName } from '../utils/cardName'
 
 // Props are values a parent component can pass into this component.
 const props = withDefaults(
@@ -103,7 +140,11 @@ const props = withDefaults(
     modelValue?: string
     clearable?: boolean
     compact?: boolean
+    elevatedResults?: boolean
     clearOnSelect?: boolean
+    retainSelectedName?: boolean
+    resultFilter?: (card: ScryfallCard) => boolean
+    selectedCard?: ScryfallCard | null
   }>(),
   {
     commanderOnly: false,
@@ -112,7 +153,11 @@ const props = withDefaults(
     modelValue: '',
     clearable: false,
     compact: false,
+    elevatedResults: false,
     clearOnSelect: false,
+    retainSelectedName: false,
+    resultFilter: undefined,
+    selectedCard: null,
   },
 )
 
@@ -131,23 +176,37 @@ const searchInputId = useId()
 // ref() makes a value reactive, so Vue updates the page when it changes.
 const query = ref(props.modelValue)
 const cards = ref<ScryfallCard[]>([])
+const searchRoot = ref<HTMLElement | null>(null)
 const errorMessage = ref('')
 const fallbackMessage = ref('')
 const isLoading = ref(false)
+const resultsVisible = ref(true)
 // A Set provides constant-time selection checks for every rendered result.
 const selectedCardIdSet = computed(() => new Set(props.selectedCardIds))
+const showClearButton = computed(
+  () => !props.commanderOnly && !props.selectedCard,
+)
 let searchTimer: number | undefined
+let suppressNextSearch = false
 // AbortController lets us intentionally cancel a fetch that is no longer needed.
 let activeController: AbortController | null = null
 
 // Watching both values also refreshes results when a parent changes the filter.
 watch([query, () => props.searchFilter], ([newQuery]) => {
+  resultsVisible.value = true
   emit('update:modelValue', newQuery)
   window.clearTimeout(searchTimer)
   activeController?.abort()
   activeController = null
   errorMessage.value = ''
   fallbackMessage.value = ''
+
+  if (suppressNextSearch) {
+    suppressNextSearch = false
+    cards.value = []
+    isLoading.value = false
+    return
+  }
 
   if (!newQuery.trim()) {
     cards.value = []
@@ -167,7 +226,9 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
         : `${newQuery} ${props.searchFilter}`.trim()
 
       try {
-        cards.value = await searchCards(scryfallQuery, controller.signal)
+        cards.value = filterResults(
+          await searchCards(scryfallQuery, controller.signal),
+        )
       } catch (error) {
         if (
           controller.signal.aborted ||
@@ -177,10 +238,12 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
           throw error
         }
 
-        cards.value = await searchCanonicalCards(newQuery, {
-          commanderOnly: props.commanderOnly,
-          allowedColorIdentity: getFallbackColorIdentity(props.searchFilter),
-        })
+        cards.value = filterResults(
+          await searchCanonicalCards(newQuery, {
+            commanderOnly: props.commanderOnly,
+            allowedColorIdentity: getFallbackColorIdentity(props.searchFilter),
+          }),
+        )
         if (controller.signal.aborted) return
         fallbackMessage.value = cards.value.length
           ? 'Scryfall is unavailable. Showing cached tournament cards.'
@@ -211,9 +274,14 @@ watch(
 )
 
 // onUnmounted() runs cleanup when Vue removes this component from the page.
+onMounted(() => {
+  document.addEventListener('pointerdown', closeResultsWhenClickingOutside)
+})
+
 onUnmounted(() => {
   window.clearTimeout(searchTimer)
   activeController?.abort()
+  document.removeEventListener('pointerdown', closeResultsWhenClickingOutside)
 })
 
 function isCardSelected(card: ScryfallCard): boolean {
@@ -222,7 +290,45 @@ function isCardSelected(card: ScryfallCard): boolean {
 
 function selectCard(card: ScryfallCard) {
   emit('card-selected', card)
-  if (props.clearOnSelect) query.value = ''
+  if (props.clearOnSelect) {
+    query.value = ''
+  } else if (props.retainSelectedName) {
+    suppressNextSearch = true
+    query.value = card.name
+    cards.value = []
+  }
+}
+
+function clearSelectedCard() {
+  query.value = ''
+  emit('cleared')
+}
+
+function closeResultsWhenClickingOutside(event: PointerEvent) {
+  const target = event.target
+  if (!(target instanceof Node) || searchRoot.value?.contains(target)) return
+
+  window.clearTimeout(searchTimer)
+  activeController?.abort()
+  activeController = null
+  resultsVisible.value = false
+  isLoading.value = false
+}
+
+function openResults() {
+  if (query.value.trim()) resultsVisible.value = true
+}
+
+function filterResults(results: ScryfallCard[]): ScryfallCard[] {
+  return props.resultFilter ? results.filter(props.resultFilter) : results
+}
+
+function getCastingCost(card: ScryfallCard): string {
+  if (card.mana_cost) return card.mana_cost
+  return (card.card_faces ?? [])
+    .map((face) => face.mana_cost)
+    .filter((cost): cost is string => Boolean(cost))
+    .join(' // ')
 }
 
 function getFallbackColorIdentity(searchFilter: string): string[] | undefined {
@@ -231,3 +337,93 @@ function getFallbackColorIdentity(searchFilter: string): string[] | undefined {
   return match?.[1]?.toUpperCase().split('')
 }
 </script>
+
+<style scoped>
+.card-search {
+  position: relative;
+  width: 100%;
+}
+
+.card-search--elevated {
+  z-index: 20;
+}
+
+.card-search--elevated .search-results {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.18);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+  left: 0;
+  min-height: 0;
+  padding: 8px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+}
+
+.selected-card-chip {
+  max-width: min(240px, 40vw);
+}
+
+.card-result-name {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.card-result-name > span:first-child {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-result-mana-cost {
+  max-width: 100%;
+}
+
+.selected-card-chip :deep(.v-chip__content) {
+  justify-content: center;
+  overflow: hidden;
+}
+
+.selected-card-chip__label {
+  display: block;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-card-chip__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: currentColor;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1rem;
+  height: 18px;
+  justify-content: center;
+  line-height: 1;
+  margin-inline-start: 4px;
+  opacity: 0.82;
+  padding: 0;
+  width: 18px;
+}
+
+.selected-card-chip__close:hover,
+.selected-card-chip__close:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.selected-card-chip:has(.selected-card-chip__close:hover),
+.selected-card-chip:has(.selected-card-chip__close:focus-visible) {
+  border-color: rgb(var(--v-theme-error)) !important;
+  color: rgb(var(--v-theme-error)) !important;
+}
+</style>

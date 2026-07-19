@@ -39,7 +39,7 @@
         lg="4"
       >
         <DeckLibraryCard
-          :can-compare="Boolean(deck.commander && deck.cards.length)"
+          :can-compare="Boolean(deck.commander)"
           :deck="deck"
           @compare="compareDeck"
           @delete="openDeleteDialog"
@@ -59,6 +59,11 @@
         Create a deck
       </v-btn>
     </v-card>
+
+    <DeckCreationDialog
+      v-model="showCreateDialog"
+      @created="openCreatedDeck"
+    />
 
     <v-dialog v-model="showNameDialog" max-width="480">
       <v-card color="surface" rounded="lg">
@@ -108,6 +113,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import DeckLibraryCard from '../components/DeckLibraryCard.vue'
+import DeckCreationDialog from '../components/DeckCreationDialog.vue'
 import { useDeckStore } from '../stores/deck'
 import { useDeckSyncStore } from '../stores/deckSync'
 import { useAuthStore } from '../stores/auth'
@@ -116,6 +122,7 @@ const deckStore = useDeckStore()
 const sync = useDeckSyncStore()
 const auth = useAuthStore()
 const router = useRouter()
+const showCreateDialog = ref(false)
 const showNameDialog = ref(false)
 const showDeleteDialog = ref(false)
 const editingDeckId = ref<string | null>(null)
@@ -150,10 +157,11 @@ const deletingDeck = computed(() =>
 )
 
 function openCreateDialog() {
-  editingDeckId.value = null
-  deckName.value = ''
-  nameError.value = ''
-  showNameDialog.value = true
+  showCreateDialog.value = true
+}
+
+function openCreatedDeck() {
+  void router.push({ name: 'deck-builder' })
 }
 
 function openRenameDialog(deckId: string) {
@@ -175,9 +183,6 @@ function submitName() {
 
   if (editingDeckId.value) {
     deckStore.renameDeck(editingDeckId.value, trimmedName)
-  } else {
-    deckStore.createDeck(trimmedName || undefined, auth.username)
-    router.push({ name: 'deck-builder' })
   }
   showNameDialog.value = false
 }

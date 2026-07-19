@@ -463,16 +463,14 @@ export function loadGuestDraft(): Deck | null {
       return null
     }
 
-    // One-time correction from the former guest library: retain only its
-    // active Deck because guest mode now intentionally exposes one draft.
+    // Guest mode displays one active draft, but retain the full former local
+    // library so every Deck can be transferred if the user later signs in.
     const previous = loadDeckLibrary()
     const active =
       previous.decks.find((deck) => deck.id === previous.activeDeckId) ??
       previous.decks[0] ??
       null
-    if (active && saveGuestDraft(active)) {
-      clearDeckLibrary()
-    }
+    if (active) saveGuestDraft(active)
     return active
   } catch (error) {
     console.warn('The guest draft could not be loaded.', error)
@@ -497,6 +495,41 @@ export function clearGuestDraft(): boolean {
     return true
   } catch (error) {
     console.warn('The guest draft could not be removed.', error)
+    return false
+  }
+}
+
+export interface LocalDeckTransfer {
+  decks: Deck[]
+  preferredActiveId: string | null
+}
+
+/** Collects both the current guest draft and any former multi-Deck library. */
+export function loadLocalDecksForAccountTransfer(): LocalDeckTransfer {
+  const guestDraft = loadGuestDraft()
+  const library = loadDeckLibrary()
+  const decksById = new Map<string, Deck>()
+
+  for (const deck of library.decks) decksById.set(deck.id, deck)
+  if (guestDraft) decksById.set(guestDraft.id, guestDraft)
+
+  return {
+    decks: [...decksById.values()],
+    preferredActiveId:
+      guestDraft?.id ?? library.activeDeckId ?? library.decks[0]?.id ?? null,
+  }
+}
+
+/** Removes Deck keys only after every transferred ID is confirmed in cloud. */
+export function clearLocalDecksAfterAccountTransfer(): boolean {
+  const guestCleared = clearGuestDraft()
+  const libraryCleared = clearDeckLibrary()
+  try {
+    localStorage.removeItem(LEGACY_LIBRARY_STORAGE_KEY)
+    localStorage.removeItem(LEGACY_DECK_STORAGE_KEY)
+    return guestCleared && libraryCleared
+  } catch (error) {
+    console.warn('Legacy deck data could not be removed.', error)
     return false
   }
 }

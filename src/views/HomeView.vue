@@ -131,7 +131,7 @@
       <v-card-title>No decks yet</v-card-title>
       <v-card-text>Create a deck to begin building.</v-card-text>
       <v-card-actions class="justify-center">
-        <v-btn color="primary" :to="{ name: 'deck-builder' }">
+        <v-btn color="primary" @click="startNewDeck">
           Create a deck
         </v-btn>
       </v-card-actions>
@@ -241,12 +241,17 @@
       <a href="https://edhtop16.com" target="_blank" rel="noopener noreferrer">EDHTop16</a>.
     </p>
   </v-container>
+  <DeckCreationDialog
+    v-model="showCreateDialog"
+    @created="openCreatedDeck"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
+import DeckCreationDialog from '../components/DeckCreationDialog.vue'
 import type { Deck } from '../models/deck'
 import type {
   CommanderMetagameStats,
@@ -254,13 +259,12 @@ import type {
 } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'
 import { useDeckStore } from '../stores/deck'
-import { useAuthStore } from '../stores/auth'
 import { getCardArt } from '../utils/cardDisplay'
 import { getTotalDeckCardCount } from '../utils/deckValidation'
 
 const deckStore = useDeckStore()
-const auth = useAuthStore()
 const router = useRouter()
+const showCreateDialog = ref(false)
 const commanderStats = ref<CommanderMetagameStats[]>([])
 const recentTournaments = ref<Tournament[]>([])
 const tournamentLoading = ref(true)
@@ -316,7 +320,10 @@ function openDeck(deckId: string) {
 }
 
 function startNewDeck() {
-  deckStore.createDeck(undefined, auth.username)
+  showCreateDialog.value = true
+}
+
+function openCreatedDeck() {
   void router.push({ name: 'deck-builder' })
 }
 

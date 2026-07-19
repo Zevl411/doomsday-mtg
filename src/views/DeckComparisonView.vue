@@ -23,9 +23,6 @@
       <v-alert v-if="!deck.commander" type="warning" variant="tonal">
         Select a Commander before comparing this Deck.
       </v-alert>
-      <v-alert v-else-if="!deck.cards.length" type="warning" variant="tonal">
-        Add at least one mainboard card before comparing this Deck.
-      </v-alert>
 
       <template v-else>
         <v-card border class="mb-5 pa-4">
@@ -91,7 +88,6 @@
           >
             <strong>{{ summary.totalEligibleDecks }} eligible Decks</strong>
             are included. {{ sampleMessage }}
-            Each included Deck has at least 25 normalized mainboard cards.
             Tournament inclusion does not prove card quality.
           </v-alert>
 
@@ -103,9 +99,9 @@
           >
             <v-card-title>No normalized comparison data</v-card-title>
             <v-card-text>
-              No tournament Decks with at least 25 normalized mainboard cards
-              match this Commander and filter set. Tournament metadata alone
-              cannot calculate card overlap.
+              No normalized tournament card data matches this Commander and
+              filter set. Tournament metadata alone cannot calculate card
+              overlap.
             </v-card-text>
             <v-btn
               :to="{ name: 'admin-ingestion' }"
@@ -393,7 +389,7 @@ const sampleMessage = computed(() => {
 })
 
 async function loadComparison() {
-  if (!deck.value?.commander || !deck.value.cards.length) return
+  if (!deck.value?.commander) return
   loading.value = true
   errorMessage.value = ''
   try {

@@ -67,4 +67,19 @@ describe('commander pairing', () => {
     expect(getCommanderColorIdentity(deck)).toEqual(['G', 'U'])
     expect(getPartnerSearchFilter(deck.commander)).toBe('!"Toothy"')
   })
+
+  it('creates targeted filters for every supported pairing mechanic', () => {
+    expect(getPartnerSearchFilter(card('Tymna', 'Partner'))).toBe(
+      'o:/^Partner( \\\\(|$)/',
+    )
+    expect(
+      getPartnerSearchFilter(card('Cecily', 'Partner—Friends forever')),
+    ).toBe('o:"Partner—Friends forever"')
+    expect(getPartnerSearchFilter(card('Volo', 'Choose a Background'))).toBe(
+      't:background',
+    )
+    expect(
+      getPartnerSearchFilter(card('Rose Tyler', "Doctor's companion")),
+    ).toBe('t:doctor')
+  })
 })

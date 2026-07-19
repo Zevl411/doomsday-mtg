@@ -16,6 +16,7 @@ vi.mock('../repositories/canonicalCardRepository', () => ({
 const card: ScryfallCard = {
   id: 'card-printing',
   name: 'Test Card',
+  mana_cost: '{2}{U}',
   type_line: 'Artifact',
   color_identity: [],
 }
@@ -25,7 +26,14 @@ afterEach(() => {
   vi.mocked(searchCanonicalCards).mockReset()
 })
 
-function mountSearch(props: { commanderOnly?: boolean } = {}) {
+function mountSearch(
+  props: {
+    commanderOnly?: boolean
+    retainSelectedName?: boolean
+    resultFilter?: (card: ScryfallCard) => boolean
+    selectedCard?: ScryfallCard | null
+  } = {},
+) {
   return mount(CardSearch, {
     props,
     global: {
@@ -39,6 +47,15 @@ describe('CardSearch', () => {
     const wrapper = mountSearch()
 
     expect(wrapper.find('input[type="search"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('shows a clear control for standard card searches', async () => {
+    const wrapper = mountSearch()
+
+    await wrapper.find('input').setValue('test')
+
+    expect(wrapper.find('.v-field__clearable').exists()).toBe(true)
     wrapper.unmount()
   })
 
@@ -70,6 +87,59 @@ describe('CardSearch', () => {
       expect.any(AbortSignal),
     )
     expect(wrapper.text()).toContain('Test Card')
+    expect(wrapper.find('.card-result-name').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Mana cost {2}{U}"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('Artifact')
+    expect(wrapper.text()).not.toContain('Color identity')
+    wrapper.unmount()
+  })
+
+  it('closes card results when clicking outside the search', async () => {
+    vi.useFakeTimers()
+    vi.mocked(searchCards).mockResolvedValue([card])
+    const wrapper = mount(CardSearch, {
+      attachTo: document.body,
+      global: { plugins: [vuetify] },
+    })
+
+    await wrapper.find('input').setValue('test')
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+    expect(wrapper.find('.card-result').exists()).toBe(true)
+
+    document.body.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true }),
+    )
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.search-results').isVisible()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('reopens existing results when the search input regains focus', async () => {
+    vi.useFakeTimers()
+    vi.mocked(searchCards).mockResolvedValue([card])
+    const wrapper = mount(CardSearch, {
+      attachTo: document.body,
+      global: { plugins: [vuetify] },
+    })
+
+    const input = wrapper.find('input')
+    await input.setValue('test')
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+
+    document.body.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true }),
+    )
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.search-results').isVisible()).toBe(false)
+
+    await input.trigger('focus')
+
+    expect(wrapper.find('.search-results').isVisible()).toBe(true)
+    expect(wrapper.find('.card-result').exists()).toBe(true)
+    expect(searchCards).toHaveBeenCalledTimes(1)
     wrapper.unmount()
   })
 
@@ -99,6 +169,58 @@ describe('CardSearch', () => {
     await wrapper.find('.card-result').trigger('click')
 
     expect(wrapper.emitted('card-selected')?.[0]).toEqual([card])
+    wrapper.unmount()
+  })
+
+  it('only displays results accepted by the compatibility filter', async () => {
+    vi.useFakeTimers()
+    const incompatible = { ...card, id: 'other', name: 'Other Card' }
+    vi.mocked(searchCards).mockResolvedValue([card, incompatible])
+    const wrapper = mountSearch({
+      resultFilter: (result) => result.id === card.id,
+    })
+
+    await wrapper.find('input').setValue('card')
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Test Card')
+    expect(wrapper.text()).not.toContain('Other Card')
+    wrapper.unmount()
+  })
+
+  it('keeps a selected card name in the input without leaving results open', async () => {
+    vi.useFakeTimers()
+    vi.mocked(searchCards).mockResolvedValue([card])
+    const wrapper = mountSearch({ retainSelectedName: true })
+
+    await wrapper.find('input').setValue('test')
+    await vi.advanceTimersByTimeAsync(250)
+    await flushPromises()
+    await wrapper.find('.card-result').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('input').element.value).toBe('Test Card')
+    expect(wrapper.find('.card-result').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('shows and clears a selected card chip inside the input', async () => {
+    const wrapper = mountSearch({ selectedCard: card })
+
+    const chip = wrapper.find('.selected-card-chip')
+    const chipLabel = wrapper.find('.selected-card-chip__label')
+    expect(chipLabel.text()).toBe('Test')
+    expect(chipLabel.element.textContent).toBe('Test')
+    expect(chip.text()).not.toContain('Test Card')
+    expect(wrapper.find('input').attributes('placeholder')).toBeUndefined()
+    expect(wrapper.text()).not.toContain('Search for a Magic card')
+    const closeButton = chip.find('.selected-card-chip__close')
+    expect(closeButton.text()).toBe('×')
+    expect(closeButton.attributes('aria-label')).toBe('Clear Test Card')
+    await closeButton.trigger('click')
+
+    expect(wrapper.emitted('cleared')).toHaveLength(1)
     wrapper.unmount()
   })
 

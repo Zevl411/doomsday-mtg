@@ -3,11 +3,13 @@ import migration from '../../supabase/migrations/202607180001_add_deck_compariso
 import canonicalMigration from '../../supabase/migrations/202607180005_use_canonical_cards_for_deck_comparison.sql?raw'
 import partialSampleMigration from '../../supabase/migrations/202607180006_allow_partial_deck_comparison_samples.sql?raw'
 import performanceMigration from '../../supabase/migrations/202607180014_optimize_similar_tournament_decks.sql?raw'
+import unrestrictedSampleMigration from '../../supabase/migrations/202607180015_remove_comparison_mainboard_minimum.sql?raw'
 
 const sql = migration.toLowerCase()
 const canonicalSql = canonicalMigration.toLowerCase()
 const partialSampleSql = partialSampleMigration.toLowerCase()
 const performanceSql = performanceMigration.toLowerCase()
+const unrestrictedSampleSql = unrestrictedSampleMigration.toLowerCase()
 
 describe('deck comparison migration', () => {
   it('uses only complete matching Commander mainboards', () => {
@@ -102,5 +104,16 @@ describe('deck comparison migration', () => {
     expect(viewDefinition).not.toContain(
       'from public.tournament_deck_card_details card',
     )
+  })
+
+  it('removes the tournament mainboard card-count requirement', () => {
+    expect(unrestrictedSampleSql).toContain(
+      'create or replace view public.tournament_decks_for_comparison',
+    )
+    expect(unrestrictedSampleSql).toContain(
+      "deck.parsing_status in ('complete', 'partial')",
+    )
+    expect(unrestrictedSampleSql).not.toContain('tournament_deck_cards')
+    expect(unrestrictedSampleSql).not.toContain('>= 25')
   })
 })

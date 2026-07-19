@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-builder-page">
+  <div v-if="deckStore.hasActiveDeck" class="deck-builder-page">
   <v-row align="start">
     <v-col cols="12">
       <DeckBuilderHeader
@@ -8,14 +8,8 @@
       >
         <template #searches>
           <v-row align="start" dense>
-            <v-col cols="12" md="6">
+            <v-col cols="12">
               <CommanderPanel search-only />
-            </v-col>
-            <v-col cols="12" md="6">
-              <DeckCardSearch
-                embedded
-                @card-selected="addDeckCard($event, 'mainboard')"
-              />
             </v-col>
           </v-row>
         </template>
@@ -25,8 +19,23 @@
   </v-row>
 
   <div class="builder-workspace">
-    <div class="workspace-commander d-flex">
-      <CommanderPanel display-only />
+    <div
+      class="workspace-commander d-flex"
+      :class="{ 'workspace-commander--paired': showPartnerPanel }"
+    >
+      <div class="workspace-commander-slot">
+        <CommanderPanel
+          :compact-display="showPartnerPanel"
+          display-only
+        />
+      </div>
+      <div v-if="showPartnerPanel" class="workspace-commander-slot">
+        <CommanderPanel
+          compact-display
+          display-only
+          display-target="partner"
+        />
+      </div>
     </div>
 
     <div class="workspace-statistics d-flex">
@@ -34,7 +43,7 @@
     </div>
 
     <div class="workspace-deck">
-      <DeckPanel />
+      <DeckPanel @card-selected="addDeckCard" />
     </div>
 
     <div class="workspace-preview">
@@ -84,30 +93,38 @@
     </v-card>
   </v-dialog>
   </div>
+  <v-card v-else border class="pa-8 text-center" color="surface" rounded="lg">
+    <v-card-title>No deck selected</v-card-title>
+    <v-card-text>
+      Create a deck before opening the deck builder.
+    </v-card-text>
+    <v-btn color="primary" :to="{ name: 'deck-library' }">
+      View decks
+    </v-btn>
+  </v-card>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import CardPreview from '../components/CardPreview.vue'
 import CommanderPanel from '../components/CommanderPanel.vue'
 import DeckBuilderHeader from '../components/DeckBuilderHeader.vue'
-import DeckCardSearch from '../components/DeckCardSearch.vue'
 import DeckImportExport from '../components/DeckImportExport.vue'
 import DeckPanel from '../components/DeckPanel.vue'
 import DeckStatisticsPanel from '../components/DeckStatisticsPanel.vue'
 import { useDeckStore } from '../stores/deck'
-import { useAuthStore } from '../stores/auth'
 import type { TrackedDeckBoard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
+import { canHavePartner } from '../utils/commanderPairing'
 
 const deckStore = useDeckStore()
-const auth = useAuthStore()
+const showPartnerPanel = computed(() =>
+  Boolean(
+    deckStore.deck.commander
+    && canHavePartner(deckStore.deck.commander),
+  ),
+)
 const importExport = ref<InstanceType<typeof DeckImportExport> | null>(null)
-// Opening the builder directly creates a first local deck when the library is
-// empty. Returning later reuses the active deck held by Pinia.
-if (!deckStore.hasActiveDeck) {
-  deckStore.createDeck(undefined, auth.username)
-}
 watch(
   () => deckStore.deck.id,
   () => {
@@ -119,6 +136,7 @@ watch(
   { immediate: true },
 )
 const pendingIllegalCard = ref<ScryfallCard | null>(null)
+const pendingIllegalBoard = ref<TrackedDeckBoard>('mainboard')
 const pendingIllegalReason = ref('')
 const showIllegalCardDialog = ref(false)
 const validationCanBeOverridden = ref(false)
@@ -135,6 +153,7 @@ function addDeckCard(card: ScryfallCard, board: TrackedDeckBoard) {
     }
 
     pendingIllegalCard.value = result.overridable ? card : null
+    pendingIllegalBoard.value = board
     pendingIllegalReason.value =
       result.reason ?? 'That card cannot be added to this deck.'
     validationCanBeOverridden.value = result.overridable ?? false
@@ -148,7 +167,7 @@ function confirmIllegalCard() {
   closeIllegalCardDialog()
 
   if (card) {
-    deckStore.addCard(card, true)
+    deckStore.addCardToBoard(card, pendingIllegalBoard.value, 1, true)
   }
 }
 
@@ -167,6 +186,7 @@ function handleConfirmationVisibility(isOpen: boolean) {
 function closeIllegalCardDialog() {
   showIllegalCardDialog.value = false
   pendingIllegalCard.value = null
+  pendingIllegalBoard.value = 'mainboard'
   pendingIllegalReason.value = ''
   validationCanBeOverridden.value = false
 }
@@ -182,6 +202,22 @@ function closeIllegalCardDialog() {
   );
 }
 
+.workspace-commander--paired {
+  flex-direction: column;
+  gap: 16px;
+}
+
+.workspace-commander {
+  position: relative;
+  z-index: 40;
+}
+
+.workspace-commander-slot {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+}
+
 @media (min-width: 1280px) {
   .builder-workspace {
     display: grid;
@@ -194,6 +230,14 @@ function closeIllegalCardDialog() {
     grid-column: 1;
     grid-row: 1;
     min-width: 0;
+  }
+
+  .workspace-commander--paired {
+    height: 530px;
+  }
+
+  .workspace-commander--paired .workspace-commander-slot {
+    flex: 1 1 0;
   }
 
   .workspace-statistics {
