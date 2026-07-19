@@ -144,6 +144,46 @@
             color="primary"
             label="Limit card search to Commander colors by default"
           />
+          <div class="mb-2 mt-2 text-subtitle-2">
+            Deck Builder Search
+          </div>
+          <v-btn-toggle
+            v-model="preferenceDraft.deckBuilderSearchSide"
+            class="deck-builder-side-toggle mb-4"
+            color="primary"
+            divided
+            mandatory
+            variant="outlined"
+          >
+            <v-btn value="left">
+              <v-icon class="mr-2" icon="mdi-dock-left" />
+              Left
+            </v-btn>
+            <v-btn value="right">
+              <v-icon class="mr-2" icon="mdi-dock-right" />
+              Right
+            </v-btn>
+          </v-btn-toggle>
+          <div class="mb-2 text-subtitle-2">
+            Deck Statistics
+          </div>
+          <v-btn-toggle
+            v-model="preferenceDraft.deckStatisticsPosition"
+            class="deck-builder-side-toggle mb-4"
+            color="primary"
+            divided
+            mandatory
+            variant="outlined"
+          >
+            <v-btn value="above">
+              <v-icon class="mr-2" icon="mdi-dock-top" />
+              Above Boards
+            </v-btn>
+            <v-btn value="below">
+              <v-icon class="mr-2" icon="mdi-dock-bottom" />
+              Below Boards
+            </v-btn>
+          </v-btn-toggle>
           <v-alert v-if="preferenceError" type="error" variant="tonal">
             {{ preferenceError }}
           </v-alert>
@@ -232,3 +272,14 @@ async function savePreferences() {
   if (saved) showPreferences.value = false
 }
 </script>
+
+<style scoped>
+.deck-builder-side-toggle {
+  display: flex;
+  width: 100%;
+}
+
+.deck-builder-side-toggle :deep(.v-btn) {
+  flex: 1 1 50%;
+}
+</style>

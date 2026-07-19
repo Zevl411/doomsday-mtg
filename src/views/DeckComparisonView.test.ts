@@ -121,6 +121,20 @@ describe('DeckComparisonView', () => {
         top16InclusionRate: 0.8,
         firstPlaceDeckCount: 2,
         firstPlaceInclusionRate: 1,
+      }, {
+        normalizedCardKey: 'rhystic-study',
+        oracleId: 'rhystic-study',
+        cardName: 'Rhystic Study',
+        typeLine: 'Enchantment',
+        colorIdentity: ['U'],
+        deckCount: 14,
+        totalEligibleDecks: 20,
+        inclusionRate: 0.7,
+        averageQuantity: 1,
+        top16DeckCount: 7,
+        top16InclusionRate: 0.7,
+        firstPlaceDeckCount: 1,
+        firstPlaceInclusionRate: 0.5,
       }],
       similarities: [{
         tournamentDeckId: 'tournament-deck',
@@ -146,11 +160,18 @@ describe('DeckComparisonView', () => {
       '/cards/named?exact=Sol%20Ring&format=image&version=small',
     )
     expect(wrapper.find('img[alt="Sol Ring card"]').exists()).toBe(true)
-    expect(wrapper.find('[aria-label="Row 1"]').text()).toBe('1')
+    expect(wrapper.find('[aria-label="Cards in Your Deck row 1"]').text())
+      .toBe('1')
     expect(wrapper.find('tbody tr').classes()).toContain(
       'comparison-row--high',
     )
     expect(wrapper.text()).toContain('In my Deck · 75%+')
+    expect(wrapper.text()).toContain('Cards in Your Deck')
+    expect(wrapper.text()).toContain('Usual Inclusions Not in Your Deck')
+    expect(wrapper.text()).toContain('Rhystic Study')
+    expect(wrapper.text().indexOf('Cards in Your Deck')).toBeLessThan(
+      wrapper.text().indexOf('Usual Inclusions Not in Your Deck'),
+    )
   })
 
   it('shows limited sample and repository failure states', async () => {

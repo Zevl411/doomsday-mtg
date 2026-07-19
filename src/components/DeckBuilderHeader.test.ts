@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import DeckBuilderHeader from './DeckBuilderHeader.vue'
 import vuetify from '../plugins/vuetify'
 import { useDeckStore } from '../stores/deck'
+import { useUserPreferencesStore } from '../stores/userPreferences'
 
 const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }))
 
@@ -36,6 +37,21 @@ describe('DeckBuilderHeader', () => {
     const metadata = wrapper.find('.deck-header-metadata')
     expect(metadata.text()).toContain('private')
     expect(metadata.text()).toContain('Warning (1)')
+    wrapper.unmount()
+  })
+
+  it('swaps the header columns when search is preferred on the left', () => {
+    useUserPreferencesStore().values.deckBuilderSearchSide = 'left'
+    const wrapper = mount(DeckBuilderHeader, {
+      global: {
+        plugins: [vuetify],
+        stubs: { RouterLink: true },
+      },
+    })
+
+    expect(wrapper.find('.deck-builder-header').classes()).toContain(
+      'deck-builder-header--search-left',
+    )
     wrapper.unmount()
   })
 

@@ -2,13 +2,17 @@
   <v-card
     border
     class="deck-builder-header"
+    :class="{
+      'deck-builder-header--search-left':
+        preferencesStore.values.deckBuilderSearchSide === 'left',
+    }"
     color="surface-bright"
     rounded="lg"
     variant="flat"
   >
     <v-card-text class="deck-header-content pa-3">
       <div class="deck-header-summary">
-        <div class="d-flex flex-wrap align-center ga-2">
+        <div class="deck-header-title-row d-flex flex-wrap align-center ga-2">
           <h1 class="text-h4 font-weight-bold">{{ deck.name }}</h1>
           <span class="text-h5 text-medium-emphasis">|</span>
           <ColorIdentitySymbols :colors="deckColorIdentity" size="medium" />
@@ -184,6 +188,7 @@ import { useRouter } from 'vue-router'
 import type { DeckVisibility } from '../models/deck'
 import { useAuthStore } from '../stores/auth'
 import { useDeckStore } from '../stores/deck'
+import { useUserPreferencesStore } from '../stores/userPreferences'
 import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
 import DeckActionIcon from './DeckActionIcon.vue'
 import {
@@ -193,6 +198,7 @@ import {
 
 const emit = defineEmits<{ import: []; export: [] }>()
 const deckStore = useDeckStore()
+const preferencesStore = useUserPreferencesStore()
 const auth = useAuthStore()
 const router = useRouter()
 // Deletion clears the active Deck immediately, while route navigation finishes
@@ -288,6 +294,27 @@ function copyDeck() {
   width: 100%;
 }
 
+.deck-builder-header--search-left .deck-header-summary {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+}
+
+.deck-builder-header--search-left .deck-header-title-row,
+.deck-builder-header--search-left .deck-header-metadata {
+  justify-content: flex-end;
+}
+
+.deck-builder-header--search-left .deck-header-content {
+  grid-template-columns: minmax(520px, 620px) minmax(280px, 1fr);
+}
+
+.deck-builder-header--search-left .deck-header-tools {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+
 .deck-header-actions {
   width: 100%;
 }
@@ -328,6 +355,16 @@ function copyDeck() {
   .deck-header-tools {
     align-items: stretch;
     justify-self: stretch;
+  }
+
+  .deck-builder-header--search-left .deck-header-summary,
+  .deck-builder-header--search-left .deck-header-tools {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .deck-builder-header--search-left .deck-header-content {
+    grid-template-columns: 1fr;
   }
 }
 </style>

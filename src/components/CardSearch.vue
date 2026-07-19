@@ -44,7 +44,14 @@
     </template>
   </v-text-field>
 
-  <div v-show="resultsVisible" class="search-results" aria-live="polite">
+  <div
+    v-show="
+      resultsVisible
+      && (isLoading || errorMessage || fallbackMessage || cards.length)
+    "
+    class="search-results"
+    aria-live="polite"
+  >
     <div v-if="isLoading" class="d-flex align-center ga-3 py-4">
       <v-progress-circular color="primary" indeterminate size="24" width="3" />
       <span class="text-body-2 text-medium-emphasis">Searching…</span>
@@ -180,7 +187,7 @@ const searchRoot = ref<HTMLElement | null>(null)
 const errorMessage = ref('')
 const fallbackMessage = ref('')
 const isLoading = ref(false)
-const resultsVisible = ref(true)
+const resultsVisible = ref(false)
 // A Set provides constant-time selection checks for every rendered result.
 const selectedCardIdSet = computed(() => new Set(props.selectedCardIds))
 const showClearButton = computed(
@@ -193,7 +200,7 @@ let activeController: AbortController | null = null
 
 // Watching both values also refreshes results when a parent changes the filter.
 watch([query, () => props.searchFilter], ([newQuery]) => {
-  resultsVisible.value = true
+  resultsVisible.value = Boolean(newQuery.trim())
   emit('update:modelValue', newQuery)
   window.clearTimeout(searchTimer)
   activeController?.abort()
@@ -204,6 +211,7 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
   if (suppressNextSearch) {
     suppressNextSearch = false
     cards.value = []
+    resultsVisible.value = false
     isLoading.value = false
     return
   }

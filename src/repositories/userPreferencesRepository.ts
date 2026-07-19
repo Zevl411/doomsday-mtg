@@ -21,6 +21,8 @@ export async function loadUserPreferences(
       defaultSecondaryGrouping: data.default_secondary_grouping,
       defaultDeckVisibility: data.default_deck_visibility,
       defaultCommanderColorFilter: data.default_commander_color_filter,
+      deckBuilderSearchSide: data.deck_builder_search_side,
+      deckStatisticsPosition: data.deck_statistics_position,
     })
     if (error) console.warn('Unable to load user preferences.', error)
   }
@@ -44,6 +46,8 @@ export async function saveUserPreferences(
       default_secondary_grouping: preferences.defaultSecondaryGrouping,
       default_deck_visibility: preferences.defaultDeckVisibility,
       default_commander_color_filter: preferences.defaultCommanderColorFilter,
+      deck_builder_search_side: preferences.deckBuilderSearchSide,
+      deck_statistics_position: preferences.deckStatisticsPosition,
       updated_at: new Date().toISOString(),
     })
     if (error) {
@@ -82,5 +86,9 @@ function normalizePreferences(value: Partial<UserPreferences>): UserPreferences 
       typeof value.defaultCommanderColorFilter === 'boolean'
         ? value.defaultCommanderColorFilter
         : defaults.defaultCommanderColorFilter,
+    deckBuilderSearchSide:
+      value.deckBuilderSearchSide === 'left' ? 'left' : 'right',
+    deckStatisticsPosition:
+      value.deckStatisticsPosition === 'below' ? 'below' : 'above',
   }
 }

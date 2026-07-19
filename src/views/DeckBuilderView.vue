@@ -1,5 +1,14 @@
 <template>
-  <div v-if="deckStore.hasActiveDeck" class="deck-builder-page">
+  <div
+    v-if="deckStore.hasActiveDeck"
+    class="deck-builder-page"
+    :class="{
+      'deck-builder-page--search-left':
+        preferencesStore.values.deckBuilderSearchSide === 'left',
+      'deck-builder-page--statistics-below':
+        preferencesStore.values.deckStatisticsPosition === 'below',
+    }"
+  >
   <v-row align="start">
     <v-col cols="12">
       <DeckBuilderHeader
@@ -7,11 +16,11 @@
         @import="importExport?.openImportDialog()"
       >
         <template #searches>
-          <v-row align="start" dense>
-            <v-col cols="12">
-              <CommanderPanel search-only />
-            </v-col>
-          </v-row>
+          <div class="text-subtitle-1 mb-2">Mainboard Search</div>
+          <DeckCardSearch
+            board="mainboard"
+            @card-selected="addDeckCard($event, 'mainboard')"
+          />
         </template>
       </DeckBuilderHeader>
     </v-col>
@@ -43,7 +52,7 @@
     </div>
 
     <div class="workspace-deck">
-      <DeckPanel @card-selected="addDeckCard" />
+      <DeckPanel />
     </div>
 
     <div class="workspace-preview">
@@ -109,15 +118,18 @@ import { computed, ref, watch } from 'vue'
 import CardPreview from '../components/CardPreview.vue'
 import CommanderPanel from '../components/CommanderPanel.vue'
 import DeckBuilderHeader from '../components/DeckBuilderHeader.vue'
+import DeckCardSearch from '../components/DeckCardSearch.vue'
 import DeckImportExport from '../components/DeckImportExport.vue'
 import DeckPanel from '../components/DeckPanel.vue'
 import DeckStatisticsPanel from '../components/DeckStatisticsPanel.vue'
 import { useDeckStore } from '../stores/deck'
+import { useUserPreferencesStore } from '../stores/userPreferences'
 import type { TrackedDeckBoard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import { canHavePartner } from '../utils/commanderPairing'
 
 const deckStore = useDeckStore()
+const preferencesStore = useUserPreferencesStore()
 const showPartnerPanel = computed(() =>
   Boolean(
     deckStore.deck.commander
@@ -207,6 +219,10 @@ function closeIllegalCardDialog() {
   gap: 16px;
 }
 
+.deck-builder-page--statistics-below .workspace-commander--paired {
+  flex-direction: row;
+}
+
 .workspace-commander {
   position: relative;
   z-index: 40;
@@ -222,12 +238,12 @@ function closeIllegalCardDialog() {
   .builder-workspace {
     display: grid;
     gap: 16px;
-    grid-template-columns: 3fr 6fr 3fr;
+    grid-template-columns: 3fr 3fr 6fr;
     margin-top: 16px;
   }
 
   .workspace-commander {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 1;
     min-width: 0;
   }
@@ -241,19 +257,19 @@ function closeIllegalCardDialog() {
   }
 
   .workspace-statistics {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
     min-width: 0;
   }
 
   .workspace-deck {
-    grid-column: 1 / 3;
+    grid-column: 2 / 4;
     grid-row: 2;
   }
 
   .workspace-preview {
     align-self: start;
-    grid-column: 3;
+    grid-column: 1;
     grid-row: 1 / span 2;
     max-height: calc(100vh - 116px);
     overflow-y: auto;
@@ -264,6 +280,46 @@ function closeIllegalCardDialog() {
   .workspace-preview :deep(.preview-panel) {
     width: 100%;
   }
+
+  .deck-builder-page--search-left .builder-workspace {
+    grid-template-columns: 3fr 6fr 3fr;
+  }
+
+  .deck-builder-page--search-left .workspace-statistics {
+    grid-column: 2;
+  }
+
+  .deck-builder-page--search-left .workspace-commander {
+    grid-column: 1;
+  }
+
+  .deck-builder-page--search-left .workspace-preview {
+    grid-column: 3;
+  }
+
+  .deck-builder-page--search-left .workspace-deck {
+    grid-column: 1 / 3;
+  }
+
+  .deck-builder-page--statistics-below .workspace-statistics {
+    grid-column: 2 / 4;
+    grid-row: 3;
+  }
+
+  .deck-builder-page--statistics-below .workspace-commander--paired {
+    align-self: start;
+    flex-direction: row;
+    grid-column: 2 / 4;
+    height: calc((530px - 16px) / 2);
+    max-width: calc(66.6667% + 5.333px);
+  }
+
+  .deck-builder-page--search-left.deck-builder-page--statistics-below
+    .workspace-statistics,
+  .deck-builder-page--search-left.deck-builder-page--statistics-below
+    .workspace-commander--paired {
+    grid-column: 1 / 3;
+  }
 }
 
 @media (max-width: 1279px) {
@@ -272,6 +328,18 @@ function closeIllegalCardDialog() {
     flex-direction: column;
     gap: 16px;
     margin-top: 16px;
+  }
+
+  .deck-builder-page--statistics-below .workspace-deck {
+    order: 2;
+  }
+
+  .deck-builder-page--statistics-below .workspace-statistics {
+    order: 3;
+  }
+
+  .deck-builder-page--statistics-below .workspace-preview {
+    order: 4;
   }
 }
 </style>

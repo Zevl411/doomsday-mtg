@@ -180,62 +180,77 @@
                   max-width="320"
                 />
               </v-card-text>
-              <v-table>
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th><span class="sr-only">Card image</span></th>
-                    <th>Card</th>
-                    <th>Status</th>
-                    <th>Inclusion</th>
-                    <th>Decks</th>
-                    <th>Average quantity</th>
-                    <th>Top 16</th>
-                    <th>First place</th>
-                    <th>My quantity</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="(card, index) in visibleCards"
-                    :key="card.identityKey"
-                    :class="comparisonRowClass(card)"
-                  >
-                    <td>
-                      <v-chip
-                        :aria-label="`Row ${index + 1}`"
-                        size="small"
-                        variant="tonal"
-                      >
-                        {{ index + 1 }}
-                      </v-chip>
-                    </td>
-                    <td class="comparison-card-image-cell">
-                      <v-img
-                        :alt="`${card.cardName} card`"
-                        aspect-ratio="0.714"
-                        class="comparison-card-image"
-                        contain
-                        :src="comparisonCardImageUrl(card)"
-                        width="72"
-                      />
-                    </td>
-                    <td>
-                      <div class="font-weight-medium">{{ card.cardName }}</div>
-                      <div class="text-caption text-medium-emphasis">
-                        {{ card.typeLine || 'Type unavailable' }}
-                      </div>
-                    </td>
-                    <td><v-chip size="small" variant="tonal">{{ categoryLabel(card.category) }}</v-chip></td>
-                    <td>{{ percent(card.inclusionRate) }}</td>
-                    <td>{{ card.deckCount }} / {{ card.totalEligibleDecks }}</td>
-                    <td>{{ card.averageQuantity.toFixed(2) }}</td>
-                    <td>{{ percent(card.top16InclusionRate) }}</td>
-                    <td>{{ percent(card.firstPlaceInclusionRate) }}</td>
-                    <td>{{ card.userQuantity }}</td>
-                  </tr>
-                </tbody>
-              </v-table>
+              <section
+                v-for="section in cardSections"
+                :key="section.key"
+                class="comparison-card-section"
+              >
+                <div class="comparison-card-section__header px-4 py-3">
+                  <h3 class="text-h6">{{ section.title }}</h3>
+                  <p class="text-body-2 text-medium-emphasis">
+                    {{ section.description }}
+                  </p>
+                </div>
+                <v-table v-if="section.cards.length">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th><span class="sr-only">Card image</span></th>
+                      <th>Card</th>
+                      <th>Status</th>
+                      <th>Inclusion</th>
+                      <th>Decks</th>
+                      <th>Average quantity</th>
+                      <th>Top 16</th>
+                      <th>First place</th>
+                      <th>My quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="(card, index) in section.cards"
+                      :key="card.identityKey"
+                      :class="comparisonRowClass(card)"
+                    >
+                      <td>
+                        <v-chip
+                          :aria-label="`${section.title} row ${index + 1}`"
+                          size="small"
+                          variant="tonal"
+                        >
+                          {{ index + 1 }}
+                        </v-chip>
+                      </td>
+                      <td class="comparison-card-image-cell">
+                        <v-img
+                          :alt="`${card.cardName} card`"
+                          aspect-ratio="0.714"
+                          class="comparison-card-image"
+                          contain
+                          :src="comparisonCardImageUrl(card)"
+                          width="72"
+                        />
+                      </td>
+                      <td>
+                        <div class="font-weight-medium">{{ card.cardName }}</div>
+                        <div class="text-caption text-medium-emphasis">
+                          {{ card.typeLine || 'Type unavailable' }}
+                        </div>
+                      </td>
+                      <td><v-chip size="small" variant="tonal">{{ categoryLabel(card.category) }}</v-chip></td>
+                      <td>{{ percent(card.inclusionRate) }}</td>
+                      <td>{{ card.deckCount }} / {{ card.totalEligibleDecks }}</td>
+                      <td>{{ card.averageQuantity.toFixed(2) }}</td>
+                      <td>{{ percent(card.top16InclusionRate) }}</td>
+                      <td>{{ percent(card.firstPlaceInclusionRate) }}</td>
+                      <td>{{ card.userQuantity }}</td>
+                    </tr>
+                  </tbody>
+                </v-table>
+                <v-card-text v-else class="text-medium-emphasis">
+                  {{ section.emptyMessage }}
+                </v-card-text>
+              </section>
             </v-card>
 
             <v-card border>
@@ -369,6 +384,24 @@ const visibleCards = computed(() => {
     return right.inclusionRate - left.inclusionRate
   })
 })
+const cardSections = computed(() => [
+  {
+    key: 'in-deck',
+    title: 'Cards in Your Deck',
+    description:
+      'Your mainboard cards and how often they appear in the tournament sample.',
+    emptyMessage: 'No cards in your deck match the selected filter.',
+    cards: visibleCards.value.filter((card) => card.isInUserDeck),
+  },
+  {
+    key: 'usual-inclusions',
+    title: 'Usual Inclusions Not in Your Deck',
+    description:
+      'Common tournament inclusions that are not currently in your mainboard.',
+    emptyMessage: 'No absent usual inclusions match the selected filter.',
+    cards: visibleCards.value.filter((card) => !card.isInUserDeck),
+  },
+])
 const summaryMetrics = computed(() => summary.value ? [
   { label: 'My unique mainboard cards', value: summary.value.userMainboardUniqueCards },
   { label: 'Aggregate card set', value: summary.value.aggregateUniqueCards },
@@ -461,6 +494,14 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.comparison-card-section {
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.comparison-card-section__header {
+  background: rgba(var(--v-theme-on-surface), 0.035);
+}
+
 .comparison-row--high {
   box-shadow: inset 0 0 0 2px rgb(var(--v-theme-success));
 }

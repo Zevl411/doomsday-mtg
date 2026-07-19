@@ -196,4 +196,33 @@ describe('DeckPanel', () => {
       restored.find('[aria-label="List view for Mainboard"]').classes(),
     ).toContain('v-btn--active')
   })
+
+  it('restores and independently persists stepped grid card sizes', async () => {
+    localStorage.setItem(
+      'doomsday-mtg-deck-panel-preferences',
+      JSON.stringify({
+        gridSizes: {
+          mainboard: 4,
+          sideboard: 2,
+          maybeboard: 1,
+        },
+      }),
+    )
+    useDeckStore().deck.cards = [{ card: artifact, quantity: 1 }]
+    const wrapper = mountPanel()
+
+    expect(
+      wrapper.find('.deck-card-grid').attributes('style'),
+    ).toContain('--deck-card-min-width: 220px')
+
+    const slider = wrapper.findComponent({ name: 'VSlider' })
+    slider.vm.$emit('update:modelValue', 1)
+    await wrapper.vm.$nextTick()
+
+    const saved = JSON.parse(
+      localStorage.getItem('doomsday-mtg-deck-panel-preferences') ?? '{}',
+    )
+    expect(saved.gridSizes.mainboard).toBe(1)
+    expect(saved.gridSizes.sideboard).toBe(2)
+  })
 })

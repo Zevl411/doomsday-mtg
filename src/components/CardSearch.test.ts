@@ -47,6 +47,17 @@ describe('CardSearch', () => {
     const wrapper = mountSearch()
 
     expect(wrapper.find('input[type="search"]').exists()).toBe(true)
+    expect(wrapper.find('.search-results').isVisible()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('does not show an empty dropdown while a query is debouncing', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountSearch()
+
+    await wrapper.find('input').setValue('test')
+
+    expect(wrapper.find('.search-results').isVisible()).toBe(false)
     wrapper.unmount()
   })
 

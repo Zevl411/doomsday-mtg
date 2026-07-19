@@ -46,22 +46,34 @@
           </div>
 
           <div
-            class="board-search"
-            @click.stop
-            @keydown.stop
-          >
-            <DeckCardSearch
-              :board="board.value"
-              @card-selected="emit('card-selected', $event, board.value)"
-            />
-          </div>
-
-          <div
             v-if="isBoardExpanded(board.value)"
             class="board-controls d-flex flex-wrap justify-end ga-3"
             @click.stop
             @keydown.stop
           >
+            <div
+              v-if="viewModes[board.value] === 'grid'"
+              class="card-size-control"
+            >
+              <v-icon
+                aria-hidden="true"
+                color="primary"
+                icon="mdi-image-size-select-large"
+                size="small"
+              />
+              <v-slider
+                v-model="gridSizes[board.value]"
+                :aria-label="`Card size for ${board.title}`"
+                color="primary"
+                density="compact"
+                hide-details
+                :max="4"
+                :min="1"
+                :step="1"
+                show-ticks="always"
+                thumb-label
+              />
+            </div>
             <v-select
               v-model="sortSettings[board.value].primary"
               density="compact"
@@ -214,14 +226,14 @@
               </v-list-item>
             </v-list>
 
-            <v-row v-else dense>
-              <v-col
+            <div
+              v-else
+              class="deck-card-grid"
+              :style="{ '--deck-card-min-width': `${gridCardWidth(board.value)}px` }"
+            >
+              <div
                 v-for="entry in group.cards"
                 :key="`${entry.sourceBoard}-${identity(entry.card.card)}`"
-                cols="6"
-                sm="4"
-                md="3"
-                lg="2"
               >
                 <v-card
                   border
@@ -255,8 +267,8 @@
                     size="32"
                   >×{{ entry.card.quantity }}</v-avatar>
                 </v-card>
-              </v-col>
-            </v-row>
+              </div>
+            </div>
           </div>
         </template>
         <v-sheet v-else class="pa-4 text-center text-medium-emphasis">
@@ -312,7 +324,6 @@ import { useDeckStore } from '../stores/deck'
 import { getCardIdentity } from '../utils/cardIdentity'
 import { getCardImage } from '../utils/cardDisplay'
 import DeckActionIcon from './DeckActionIcon.vue'
-import DeckCardSearch from './DeckCardSearch.vue'
 import { useUserPreferencesStore } from '../stores/userPreferences'
 import ManaCost from './ManaCost.vue'
 
@@ -322,6 +333,7 @@ type SecondarySortKey = SortKey | 'none'
 interface BoardEntry { card: DeckCard; sourceBoard: TrackedDeckBoard }
 interface DeckPanelPreferences {
   viewModes: Record<VisibleBoard, 'list' | 'grid'>
+  gridSizes: Record<VisibleBoard, number>
   sortSettings: Record<VisibleBoard, {
     primary: SortKey
     secondary: SecondarySortKey
@@ -329,13 +341,11 @@ interface DeckPanelPreferences {
 }
 
 const deckStore = useDeckStore()
-const emit = defineEmits<{
-  'card-selected': [card: DeckCard['card'], board: VisibleBoard]
-}>()
 const userPreferences = useUserPreferencesStore()
 const preferencesStorageKey = 'doomsday-mtg-deck-panel-preferences'
 const savedPreferences = loadPreferences()
 const viewModes = reactive(savedPreferences.viewModes)
+const gridSizes = reactive(savedPreferences.gridSizes)
 const menuOpen = ref(false)
 const menuX = ref(0)
 const menuY = ref(0)
@@ -374,7 +384,7 @@ const moveBoards = computed(() =>
 )
 
 watch(
-  [viewModes, sortSettings],
+  [viewModes, gridSizes, sortSettings],
   () => savePreferences(),
   { deep: true },
 )
@@ -449,6 +459,11 @@ function defaultPreferences(): DeckPanelPreferences {
       sideboard: userPreferences.values.defaultDeckDisplay,
       maybeboard: userPreferences.values.defaultDeckDisplay,
     },
+    gridSizes: {
+      mainboard: 2,
+      sideboard: 2,
+      maybeboard: 2,
+    },
     sortSettings: {
       mainboard: {
         primary: userPreferences.values.defaultPrimaryGrouping,
@@ -490,6 +505,11 @@ function loadPreferences(): DeckPanelPreferences {
           defaults.viewModes.maybeboard,
         ),
       },
+      gridSizes: {
+        mainboard: validGridSize(saved.gridSizes?.mainboard),
+        sideboard: validGridSize(saved.gridSizes?.sideboard),
+        maybeboard: validGridSize(saved.gridSizes?.maybeboard),
+      },
       sortSettings: {
         mainboard: validBoardSort(saved.sortSettings?.mainboard, defaults.sortSettings.mainboard),
         sideboard: validBoardSort(saved.sortSettings?.sideboard, defaults.sortSettings.sideboard),
@@ -505,6 +525,11 @@ function validViewMode(
   fallback: 'list' | 'grid',
 ): 'list' | 'grid' {
   return value === 'list' || value === 'grid' ? value : fallback
+}
+function validGridSize(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value)
+    ? Math.min(4, Math.max(1, value))
+    : 2
 }
 function validBoardSort(
   value: {
@@ -529,6 +554,7 @@ function savePreferences() {
       preferencesStorageKey,
       JSON.stringify({
         viewModes,
+        gridSizes,
         sortSettings,
       }),
     )
@@ -536,6 +562,9 @@ function savePreferences() {
     // Browser privacy settings may disable storage. The in-memory choices
     // still work for the current page.
   }
+}
+function gridCardWidth(board: VisibleBoard): number {
+  return [110, 145, 180, 220][gridSizes[board] - 1] ?? 145
 }
 function boardCount(board: VisibleBoard) {
   return entries(board).reduce((total, entry) => total + entry.card.quantity, 0)
@@ -624,40 +653,49 @@ function move(board: VisibleBoard) {
 
 .board-header {
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
-}
-
-.board-search {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
-  max-width: 100%;
-  position: relative;
-  width: 480px;
-  z-index: 5;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 620px);
 }
 
 .board-title {
   align-self: center;
-  min-height: 40px;
+  min-height: 32px;
 }
 
 .board-controls {
   align-items: center;
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 1;
   justify-self: end;
   max-width: 100%;
   width: 100%;
 }
 
-@media (max-width: 700px) {
+.card-size-control {
+  align-items: center;
+  display: flex;
+  flex: 0 0 126px;
+  gap: 6px;
+}
+
+.card-size-control :deep(.v-slider) {
+  margin: 0;
+}
+
+.deck-card-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--deck-card-min-width)), 1fr)
+  );
+}
+
+@media (max-width: 900px) {
   .board-header {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .board-search,
   .board-controls {
     grid-column: 1;
     grid-row: auto;
@@ -667,14 +705,14 @@ function move(board: VisibleBoard) {
 
 .board-header--accordion {
   cursor: pointer;
-  min-height: 48px;
-  padding: 10px 16px;
+  min-height: 44px;
+  padding: 6px 12px;
   transition: background-color 120ms ease;
 }
 
 .board-header:not(.board-header--accordion) {
-  min-height: 48px;
-  padding: 10px 16px;
+  min-height: 44px;
+  padding: 6px 12px;
 }
 
 .board-header--accordion:hover,
