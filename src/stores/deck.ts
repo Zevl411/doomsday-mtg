@@ -237,6 +237,29 @@ export const useDeckStore = defineStore('deck', {
       return true
     },
 
+    deleteDecks(deckIds: string[]): number {
+      const idsToDelete = new Set(deckIds)
+      if (idsToDelete.size === 0) return 0
+
+      const previousCount = this.library.decks.length
+      this.library.decks = this.library.decks.filter(
+        (deck) => !idsToDelete.has(deck.id),
+      )
+      const deletedCount = previousCount - this.library.decks.length
+      if (deletedCount === 0) return 0
+
+      if (
+        this.library.activeDeckId &&
+        idsToDelete.has(this.library.activeDeckId)
+      ) {
+        this.library.activeDeckId = this.library.decks[0]?.id ?? null
+      }
+
+      this.rejectionMessage = ''
+      this.persistLibrary()
+      return deletedCount
+    },
+
     setCommander(card: ScryfallCard) {
       this.deck.commander = card
       if (

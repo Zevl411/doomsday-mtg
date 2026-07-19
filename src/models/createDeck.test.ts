@@ -16,6 +16,7 @@ describe('deck factory', () => {
 
     expect(first.id).not.toBe(second.id)
     expect(first.name).toBe('Untitled Deck')
+    expect(first.visibility).toBe('public')
     expect(second.name).toBe('Named Deck')
     expect(first.createdAt).toBeTruthy()
     expect(first.updatedAt).toBeTruthy()

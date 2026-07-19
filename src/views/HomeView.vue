@@ -75,49 +75,15 @@
         sm="6"
         lg="3"
       >
-        <v-card border class="d-flex flex-column h-100" color="surface">
-          <button
-            v-if="commanderImage(deck)"
-            :aria-label="`Continue editing ${deck.name}`"
-            class="deck-summary-art"
-            type="button"
-            @click="openDeck(deck.id)"
-          >
-            <v-img
-              :alt="`${deck.commander?.name} card art`"
-              aspect-ratio="1.7"
-              cover
-              :src="commanderImage(deck)"
-            />
-          </button>
-          <v-sheet
-            v-else
-            class="d-flex align-center justify-center text-medium-emphasis"
-            color="surface-light"
-            height="140"
-          >
-            No Commander selected
-          </v-sheet>
-          <v-card-item>
-            <v-card-title>{{ deck.name }}</v-card-title>
-            <v-card-subtitle>
-              {{ deck.commander?.name ?? 'No Commander' }}
-            </v-card-subtitle>
-          </v-card-item>
-          <v-card-text class="flex-grow-1">
-            <v-chip size="small" variant="tonal">
-              {{ totalCards(deck) }} cards
-            </v-chip>
-            <div class="mt-2 text-caption text-medium-emphasis">
-              Edited {{ formatDateTime(deck.updatedAt) }}
-            </div>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn color="primary" variant="flat" @click="openDeck(deck.id)">
-              Continue editing
-            </v-btn>
-          </v-card-actions>
-        </v-card>
+        <DeckLibraryCard
+          :can-compare="Boolean(deck.commander)"
+          :deck="deck"
+          @compare="compareDeck"
+          @delete="openDeleteDialog"
+          @duplicate="deckStore.duplicateDeck"
+          @open="openDeck"
+          @rename="openRenameDialog"
+        />
       </v-col>
     </v-row>
 
@@ -245,6 +211,44 @@
     v-model="showCreateDialog"
     @created="openCreatedDeck"
   />
+
+  <v-dialog v-model="showNameDialog" max-width="480">
+    <v-card color="surface" rounded="lg">
+      <v-card-title class="px-5 pt-5">Rename deck</v-card-title>
+      <v-card-text class="px-5">
+        <v-text-field
+          v-model="deckName"
+          autofocus
+          :error-messages="nameError"
+          label="Deck name"
+          @keyup.enter="submitName"
+        />
+      </v-card-text>
+      <v-card-actions class="px-5 pb-5">
+        <v-spacer />
+        <v-btn variant="text" @click="showNameDialog = false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" @click="submitName">
+          Save
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="showDeleteDialog" max-width="480">
+    <v-card color="surface" rounded="lg">
+      <v-card-title class="px-5 pt-5">Delete this deck?</v-card-title>
+      <v-card-text class="px-5">
+        This permanently removes “{{ deletingDeck?.name }}”.
+      </v-card-text>
+      <v-card-actions class="px-5 pb-5">
+        <v-spacer />
+        <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" @click="confirmDelete">
+          Delete
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
@@ -253,19 +257,23 @@ import { useRouter } from 'vue-router'
 import AnimatedOracleLogo from '../components/AnimatedOracleLogo.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import DeckCreationDialog from '../components/DeckCreationDialog.vue'
-import type { Deck } from '../models/deck'
+import DeckLibraryCard from '../components/DeckLibraryCard.vue'
 import type {
   CommanderMetagameStats,
   Tournament,
 } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'
 import { useDeckStore } from '../stores/deck'
-import { getCardArt } from '../utils/cardDisplay'
-import { getTotalDeckCardCount } from '../utils/deckValidation'
 
 const deckStore = useDeckStore()
 const router = useRouter()
 const showCreateDialog = ref(false)
+const showNameDialog = ref(false)
+const showDeleteDialog = ref(false)
+const editingDeckId = ref<string | null>(null)
+const deletingDeckId = ref<string | null>(null)
+const deckName = ref('')
+const nameError = ref('')
 const commanderStats = ref<CommanderMetagameStats[]>([])
 const recentTournaments = ref<Tournament[]>([])
 const tournamentLoading = ref(true)
@@ -293,6 +301,9 @@ const recentDecks = computed(() =>
         Date.parse(right.updatedAt) - Date.parse(left.updatedAt),
     )
     .slice(0, 4),
+)
+const deletingDeck = computed(() =>
+  deckStore.decks.find((deck) => deck.id === deletingDeckId.value),
 )
 
 onMounted(async () => {
@@ -326,19 +337,43 @@ function openCreatedDeck() {
   void router.push({ name: 'deck-builder' })
 }
 
-function commanderImage(deck: Deck) {
-  return deck.commander ? getCardArt(deck.commander) : undefined
+function compareDeck(deckId: string) {
+  void router.push({
+    name: 'deck-comparison',
+    params: { deckId },
+  })
 }
 
-function totalCards(deck: Deck) {
-  return getTotalDeckCardCount(deck)
+function openRenameDialog(deckId: string) {
+  const deck = deckStore.decks.find((item) => item.id === deckId)
+  if (!deck) return
+  editingDeckId.value = deckId
+  deckName.value = deck.name
+  nameError.value = ''
+  showNameDialog.value = true
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
+function submitName() {
+  const trimmedName = deckName.value.trim()
+  if (!editingDeckId.value || !trimmedName) {
+    nameError.value = 'Enter a deck name.'
+    return
+  }
+  deckStore.renameDeck(editingDeckId.value, trimmedName)
+  showNameDialog.value = false
+}
+
+function openDeleteDialog(deckId: string) {
+  deletingDeckId.value = deckId
+  showDeleteDialog.value = true
+}
+
+function confirmDelete() {
+  if (deletingDeckId.value) {
+    deckStore.deleteDeck(deletingDeckId.value)
+  }
+  showDeleteDialog.value = false
+  deletingDeckId.value = null
 }
 
 function formatDate(value: string | null) {
@@ -349,21 +384,3 @@ function percent(value: number) {
   return `${(value * 100).toFixed(1)}%`
 }
 </script>
-
-<style scoped>
-.deck-summary-art {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-  text-align: inherit;
-  width: 100%;
-}
-
-.deck-summary-art:focus-visible {
-  outline: 2px solid rgb(var(--v-theme-primary));
-  outline-offset: -2px;
-}
-</style>

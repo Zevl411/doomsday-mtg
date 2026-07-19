@@ -16,16 +16,16 @@
             width="56"
           />
         </RouterLink>
-        <v-app-bar-title>
-          <span class="text-h6 text-sm-h5 font-weight-bold text-primary">
+        <div class="app-brand-title mr-4">
+          <span class="text-h5 text-sm-h4 font-weight-bold text-primary">
             {{ appConfig.name }}
           </span>
-          <span class="d-none d-sm-block text-caption text-medium-emphasis">
-            {{ appConfig.tagline }}
-          </span>
-        </v-app-bar-title>
-        <v-spacer />
-        <nav class="d-flex ga-1" aria-label="Primary navigation">
+        </div>
+        <span aria-hidden="true" class="nav-section-divider" />
+        <nav
+          class="primary-nav d-flex align-center ga-1"
+          aria-label="Primary navigation"
+        >
           <v-btn
             active-color="primary"
             size="small"
@@ -34,22 +34,6 @@
           >
             Home
           </v-btn>
-          <v-menu>
-            <template #activator="{ props }">
-              <v-btn append-icon="mdi-menu-down" size="small" v-bind="props">
-                Decks
-              </v-btn>
-            </template>
-            <v-list>
-              <v-list-item :to="{ name: 'deck-library' }" title="All Decks" />
-              <v-list-item :to="{ name: 'public-decks' }" title="Public Decks" />
-              <v-list-item
-                prepend-icon="mdi-plus"
-                title="New Deck"
-                @click="createNewDeck"
-              />
-            </v-list>
-          </v-menu>
           <v-btn
             active-color="primary"
             size="small"
@@ -66,46 +50,77 @@
           >
             Tournaments
           </v-btn>
+        </nav>
+        <v-spacer />
+        <nav
+          class="primary-nav deck-navigation d-flex align-center ga-1 mr-2"
+          aria-label="Deck navigation"
+        >
           <v-btn
             active-color="primary"
             size="small"
-            :to="{ name: 'regions' }"
+            :to="{ name: 'public-decks' }"
             variant="text"
           >
-            Regions
+            Explore Decks
           </v-btn>
-          <v-menu v-if="auth.isSignedIn">
-            <template #activator="{ props }">
-              <v-btn size="small" v-bind="props" variant="text">
-                {{ auth.user?.email ?? 'Account' }}
-              </v-btn>
-            </template>
-            <v-list>
-              <v-list-item
-                v-if="isAdmin"
-                :to="{ name: 'admin-ingestion' }"
-                title="Admin Panel"
-              />
-              <v-list-item
-                v-if="isAdmin"
-                :to="{ name: 'admin-data-health' }"
-                title="Data Health"
-              />
-              <v-divider />
-              <v-list-item title="Preferences" @click="openPreferences" />
-              <v-list-item title="Sign Out" @click="auth.signOut" />
-            </v-list>
-          </v-menu>
           <v-btn
-            v-else
-            color="primary"
+            active-color="primary"
             size="small"
-            :to="{ name: 'auth' }"
+            :to="{ name: 'deck-library' }"
             variant="text"
           >
-            Sign In
+            My Decks
+          </v-btn>
+          <v-btn
+            aria-label="Create a deck"
+            class="create-deck-nav-button ml-1"
+            icon
+            size="small"
+            title="Create a deck"
+            variant="text"
+            @click="showCreateDialog = true"
+          >
+            <svg
+              aria-hidden="true"
+              class="nav-action-icon"
+              viewBox="0 0 24 24"
+            >
+              <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" />
+            </svg>
           </v-btn>
         </nav>
+        <v-menu v-if="auth.isSignedIn">
+          <template #activator="{ props }">
+            <v-btn size="small" v-bind="props" variant="text">
+              {{ auth.user?.email ?? 'Account' }}
+            </v-btn>
+          </template>
+          <v-list>
+            <v-list-item
+              v-if="isAdmin"
+              :to="{ name: 'admin-ingestion' }"
+              title="Admin Panel"
+            />
+            <v-list-item
+              v-if="isAdmin"
+              :to="{ name: 'admin-data-health' }"
+              title="Data Health"
+            />
+            <v-divider />
+            <v-list-item title="Preferences" @click="openPreferences" />
+            <v-list-item title="Sign Out" @click="auth.signOut" />
+          </v-list>
+        </v-menu>
+        <v-btn
+          v-else
+          color="primary"
+          size="small"
+          :to="{ name: 'auth' }"
+          variant="text"
+        >
+          Sign In
+        </v-btn>
       </v-container>
     </v-app-bar>
 
@@ -114,6 +129,11 @@
         <slot />
       </v-container>
     </v-main>
+
+    <DeckCreationDialog
+      v-model="showCreateDialog"
+      @created="openCreatedDeck"
+    />
 
     <v-dialog v-model="showPreferences" max-width="560">
       <v-card>
@@ -203,18 +223,18 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
 import { appConfig } from '../config/app'
+import DeckCreationDialog from '../components/DeckCreationDialog.vue'
 import { dataHealthRepository } from '../repositories/dataHealthRepository'
 import { useAuthStore } from '../stores/auth'
 import { RouterLink, useRouter } from 'vue-router'
-import { useDeckStore } from '../stores/deck'
 import { useUserPreferencesStore } from '../stores/userPreferences'
 import type { UserPreferences } from '../models/userPreferences'
 
 const auth = useAuthStore()
-const deckStore = useDeckStore()
 const preferencesStore = useUserPreferencesStore()
 const router = useRouter()
 const isAdmin = ref(false)
+const showCreateDialog = ref(false)
 const showPreferences = ref(false)
 const preferenceError = ref('')
 const preferenceDraft = reactive<UserPreferences>({
@@ -253,10 +273,9 @@ watch(
 )
 // BASE_URL keeps the logo working from a GitHub Pages repository subdirectory.
 const brandLogoUrl =
-  `${import.meta.env.BASE_URL}brand/oracle-app-icon-1024.png`
+  `${import.meta.env.BASE_URL}brand/oracle-wheel-header.png`
 
-function createNewDeck() {
-  deckStore.createDeck(undefined, auth.username)
+function openCreatedDeck() {
   void router.push({ name: 'deck-builder' })
 }
 
@@ -274,6 +293,43 @@ async function savePreferences() {
 </script>
 
 <style scoped>
+.app-brand-title {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.primary-nav {
+  min-height: 36px;
+}
+
+.primary-nav > :deep(.v-btn) {
+  height: 36px;
+  min-height: 36px;
+  padding-inline: 14px;
+}
+
+.primary-nav > :deep(.create-deck-nav-button) {
+  height: 32px;
+  min-height: 32px;
+  min-width: 32px;
+  padding-inline: 0;
+  width: 32px;
+}
+
+.nav-section-divider {
+  align-self: center;
+  background: rgba(var(--v-border-color), var(--v-border-opacity));
+  height: 26px;
+  margin-inline: 8px;
+  width: 1px;
+}
+
+.nav-action-icon {
+  fill: rgb(var(--v-theme-primary));
+  height: 18px;
+  width: 18px;
+}
+
 .deck-builder-side-toggle {
   display: flex;
   width: 100%;

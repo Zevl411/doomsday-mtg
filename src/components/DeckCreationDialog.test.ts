@@ -66,6 +66,7 @@ describe('DeckCreationDialog', () => {
 
     expect(useDeckStore().activeDeck?.name).toBe('Untitled Deck')
     expect(useDeckStore().activeDeck?.description).toBe('')
+    expect(useDeckStore().activeDeck?.visibility).toBe('public')
     expect(useDeckStore().activeDeck?.commander).toBeNull()
     expect(prepareDeckImport).not.toHaveBeenCalled()
   })

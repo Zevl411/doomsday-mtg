@@ -7,6 +7,7 @@ import { memoryDeckRepository } from '../repositories/localDeckRepository'
 import { useDeckStore } from '../stores/deck'
 import HomeView from './HomeView.vue'
 import DeckCreationDialog from '../components/DeckCreationDialog.vue'
+import DeckLibraryCard from '../components/DeckLibraryCard.vue'
 
 const {
   getCommanderMetagame,
@@ -82,6 +83,7 @@ describe('HomeView', () => {
     await flushPromises()
 
     const text = wrapper.text()
+    expect(wrapper.findAllComponents(DeckLibraryCard)).toHaveLength(4)
     expect(text).not.toContain('Deck 1')
     expect(text.indexOf('Deck 5')).toBeLessThan(text.indexOf('Deck 4'))
     expect(text).toContain('Deck 2')

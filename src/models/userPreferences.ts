@@ -20,7 +20,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   defaultDeckDisplay: 'grid',
   defaultPrimaryGrouping: 'type',
   defaultSecondaryGrouping: 'name',
-  defaultDeckVisibility: 'private',
+  defaultDeckVisibility: 'public',
   defaultCommanderColorFilter: true,
   deckBuilderSearchSide: 'right',
   deckStatisticsPosition: 'above',

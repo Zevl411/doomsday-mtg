@@ -7,9 +7,34 @@
           {{ libraryDescription }}
         </p>
       </div>
-      <v-btn color="primary" size="large" @click="openCreateDialog">
-        New deck
-      </v-btn>
+      <div class="d-flex flex-wrap ga-2">
+        <v-btn
+          :color="selectionMode ? undefined : 'secondary'"
+          size="large"
+          :variant="selectionMode ? 'text' : 'tonal'"
+          @click="toggleSelectionMode"
+        >
+          {{ selectionMode ? 'Cancel selection' : 'Select decks' }}
+        </v-btn>
+        <v-btn
+          v-if="selectionMode"
+          color="error"
+          :disabled="selectedDeckIds.size === 0"
+          size="large"
+          variant="tonal"
+          @click="showBulkDeleteDialog = true"
+        >
+          Delete selected ({{ selectedDeckIds.size }})
+        </v-btn>
+        <v-btn
+          v-else
+          color="primary"
+          size="large"
+          @click="openCreateDialog"
+        >
+          New deck
+        </v-btn>
+      </div>
     </div>
 
     <v-alert
@@ -41,11 +66,14 @@
         <DeckLibraryCard
           :can-compare="Boolean(deck.commander)"
           :deck="deck"
+          :selectable="selectionMode"
+          :selected="selectedDeckIds.has(deck.id)"
           @compare="compareDeck"
           @delete="openDeleteDialog"
           @duplicate="deckStore.duplicateDeck"
           @open="openDeck"
           @rename="openRenameDialog"
+          @toggle-selection="toggleDeckSelection"
         />
       </v-col>
     </v-row>
@@ -106,6 +134,42 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="showBulkDeleteDialog" max-width="480">
+      <v-card color="surface" rounded="lg">
+        <v-card-title class="px-5 pt-5">
+          Delete {{ selectedDeckIds.size }} decks?
+        </v-card-title>
+        <v-card-text class="px-5">
+          This permanently removes the selected decks
+          {{ auth.isSignedIn ? 'from your account' : 'from this browser' }}.
+          <v-list
+            class="bulk-delete-list mt-4"
+            density="compact"
+            lines="one"
+          >
+            <v-list-item
+              v-for="deck in selectedDecks"
+              :key="deck.id"
+              :title="deck.name"
+            >
+              <template #prepend>
+                <span aria-hidden="true" class="mr-3 text-error">•</span>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+        <v-card-actions class="px-5 pb-5">
+          <v-spacer />
+          <v-btn variant="text" @click="showBulkDeleteDialog = false">
+            Cancel
+          </v-btn>
+          <v-btn color="error" variant="flat" @click="confirmBulkDelete">
+            Delete decks
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </v-container>
 </template>
 
@@ -125,6 +189,9 @@ const router = useRouter()
 const showCreateDialog = ref(false)
 const showNameDialog = ref(false)
 const showDeleteDialog = ref(false)
+const showBulkDeleteDialog = ref(false)
+const selectionMode = ref(false)
+const selectedDeckIds = ref(new Set<string>())
 const editingDeckId = ref<string | null>(null)
 const deletingDeckId = ref<string | null>(null)
 const deckName = ref('')
@@ -155,9 +222,29 @@ const deletingDeck = computed(() =>
     (deck) => deck.id === deletingDeckId.value,
   ),
 )
+const selectedDecks = computed(() =>
+  decksByRecentUpdate.value.filter(
+    (deck) => selectedDeckIds.value.has(deck.id),
+  ),
+)
 
 function openCreateDialog() {
   showCreateDialog.value = true
+}
+
+function toggleSelectionMode() {
+  selectionMode.value = !selectionMode.value
+  selectedDeckIds.value = new Set()
+}
+
+function toggleDeckSelection(deckId: string) {
+  const nextSelection = new Set(selectedDeckIds.value)
+  if (nextSelection.has(deckId)) {
+    nextSelection.delete(deckId)
+  } else {
+    nextSelection.add(deckId)
+  }
+  selectedDeckIds.value = nextSelection
 }
 
 function openCreatedDeck() {
@@ -212,4 +299,21 @@ function confirmDelete() {
   showDeleteDialog.value = false
   deletingDeckId.value = null
 }
+
+function confirmBulkDelete() {
+  deckStore.deleteDecks([...selectedDeckIds.value])
+  showBulkDeleteDialog.value = false
+  selectionMode.value = false
+  selectedDeckIds.value = new Set()
+}
 </script>
+
+<style scoped>
+.bulk-delete-list {
+  background: rgb(var(--v-theme-surface-light));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+</style>

@@ -123,6 +123,17 @@ describe('deck library store', () => {
     expect(store.hasActiveDeck).toBe(false)
   })
 
+  it('deletes multiple selected decks in one operation', () => {
+    const store = useDeckStore()
+    const first = store.createDeck('First')
+    const second = store.createDeck('Second')
+    const third = store.createDeck('Third')
+
+    expect(store.deleteDecks([first.id, third.id])).toBe(2)
+    expect(store.library.decks.map((deck) => deck.id)).toEqual([second.id])
+    expect(store.deck.id).toBe(second.id)
+  })
+
   it('editor actions affect only the active deck', () => {
     const store = useDeckStore()
     const first = store.createDeck('First')

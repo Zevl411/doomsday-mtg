@@ -35,14 +35,8 @@ body {
 }
 
 .app-brand-logo {
-  /*
-   * The source image has generous canvas space around its centered artwork.
-   * Scaling it inside the clipped button makes the visible emblem fill the
-   * button without modifying the shared brand asset.
-   */
   flex: 0 0 56px;
   border-radius: 12px;
-  transform: scale(3);
 }
 
 .home-hero-logo {
