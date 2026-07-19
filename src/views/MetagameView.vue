@@ -1,6 +1,7 @@
 <template>
   <v-container class="pa-0" fluid>
-    <div class="mb-6">
+    <div class="d-flex flex-wrap align-start justify-space-between ga-3 mb-6">
+      <div>
       <h1 class="text-h4 font-weight-bold">Commander metagame</h1>
       <p class="text-medium-emphasis">
         Normalized tournament results from TopDeck and EDHTop16. Percentages
@@ -12,6 +13,10 @@
         and
         <a href="https://edhtop16.com" target="_blank" rel="noopener noreferrer">EDHTop16</a>.
       </p>
+      </div>
+      <v-btn :to="{ name: 'card-associations' }" variant="outlined">
+        Card associations
+      </v-btn>
     </div>
 
     <v-card border class="mb-6 pa-4" color="surface" rounded="lg">

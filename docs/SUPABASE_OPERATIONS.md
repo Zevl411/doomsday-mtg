@@ -164,3 +164,81 @@ and unresolved-card calls, confirm no unexpected production-scale sequential
 scan, confirm a non-admin receives SQLSTATE 42501, and inspect returned columns
 for absence of private Deck data and provider payloads. This flow does not
 write data or call external APIs.
+
+## Card association deployment and verification
+
+Apply `202607180019_add_card_association_engine.sql` after canonical card and
+normalized tournament Deck migrations. It creates the reusable baseline table,
+filtered association RPC, administrator refresh RPC, unnamed cluster RPC, and
+partial covering indexes.
+
+Verify objects and access:
+
+```sql
+select table_name
+from information_schema.tables
+where table_schema = 'public'
+  and table_name = 'commander_card_associations';
+
+select routine_name
+from information_schema.routines
+where routine_schema = 'public'
+  and routine_name in (
+    'get_commander_card_associations',
+    'refresh_commander_card_associations',
+    'get_commander_card_association_clusters'
+  );
+
+select has_function_privilege(
+  'anon',
+  'public.get_commander_card_associations(text,uuid,date,date,text,integer,integer,integer,integer,numeric,numeric,integer)',
+  'execute'
+);
+```
+
+The privilege query must be true. Browser roles may read observed statistics,
+but cannot write the baseline table or call its refresh function.
+Administrators and the service role may refresh one Commander baseline:
+
+```sql
+select public.refresh_commander_card_associations(
+  p_commander_key := 'kinnan, bonder prodigy',
+  p_minimum_sample_size := 20,
+  p_minimum_occurrence_count := 3
+);
+```
+
+Smoke-test a known Oracle ID:
+
+```sql
+select *
+from public.get_commander_card_associations(
+  p_commander_key := 'kinnan, bonder prodigy',
+  p_source_oracle_id := '00000000-0000-0000-0000-000000000000',
+  p_region_key := null,
+  p_minimum_sample_size := 20,
+  p_minimum_occurrence_count := 3,
+  p_limit := 20
+);
+```
+
+Replace the UUID with an Oracle ID present in `canonical_cards`. Confirm
+`support = deck_count / sample_size`, confidence uses Decks containing the
+source card, and lift divides confidence by the associated card's baseline
+inclusion in the identical sample. Results must exclude partial and unavailable
+Decks.
+
+Run the database contract test against an applied development database:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/tests/card_associations.sql
+```
+
+Before production release, run `EXPLAIN (ANALYZE, BUFFERS)` for a high-volume
+Commander with and without date and region filters. The plan should use
+`tournament_decks_complete_association_idx` and
+`tournament_cards_mainboard_association_idx`; interactive analysis should not
+cross-join every card pair. Refresh persisted baselines separately from browser
+traffic. Never present support, confidence, lift, or connected groups as proof
+of causation or as recommendations.

@@ -55,6 +55,8 @@ Current focus: card-association analysis and recommendation groundwork.
 - Inspect card-inclusion trends over configurable time buckets
 - View inclusion counts, sample sizes, and event counts directly on charts
 - Filter by date, placement, event size, and region
+- Explore Commander-scoped card support, confidence, and lift
+- Protect association results with configurable sample thresholds
 - Ingest tournament data from TopDeck and EDHTop16
 
 ### Authentication
@@ -193,10 +195,13 @@ repository path. Use `/` when deploying to a custom domain.
 - [x] Independent board display and card-size preferences
 - [x] Animated, reduced-motion-aware Oracle branding
 
-### v0.4 — Card Association Engine
+### ✅ v0.4 — Card Association Engine
 
-- [ ] Pairwise card statistics
-- [ ] Package detection
+- [x] Commander-scoped pairwise support, confidence, and lift
+- [x] Complete normalized Deck and Oracle-identity boundaries
+- [x] Date, region, event-size, and placement filters
+- [x] Configurable minimum-sample protection
+- [x] Unnamed connected-group detection groundwork
 - [ ] Archetype clustering
 - [ ] Regional package trends
 

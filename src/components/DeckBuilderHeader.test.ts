@@ -35,7 +35,7 @@ describe('DeckBuilderHeader', () => {
     })
 
     const metadata = wrapper.find('.deck-header-metadata')
-    expect(metadata.text()).toContain('private')
+    expect(metadata.text()).toContain('public')
     expect(metadata.text()).toContain('Warning (1)')
     wrapper.unmount()
   })

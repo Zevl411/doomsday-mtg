@@ -66,6 +66,11 @@ const router = createRouter({
       component: () => import('../views/CommanderCardsView.vue'),
     },
     {
+      path: '/associations',
+      name: 'card-associations',
+      component: () => import('../views/CardAssociationsView.vue'),
+    },
+    {
       path: '/tournaments',
       name: 'tournaments',
       component: () => import('../views/TournamentsView.vue'),

@@ -326,3 +326,63 @@ between inclusion, aggregate, similarity, and placement samples.
 Paired Commander keys use the shared unordered `a // b` normalization rule.
 Tests verify reversed pairs produce the same key, do not collide with either
 single Commander, and are used consistently by personal Deck comparison.
+
+## Card association engine
+
+The v0.4 association boundary answers one descriptive question: among complete
+normalized tournament Decks for a Commander, how often does card B appear when
+card A appears? It does not read personal Decks and does not produce additions,
+cuts, packages, or recommendations.
+
+```text
+complete tournament_decks for one Commander
+    ↓ date / region / event-size / placement filters
+distinct Oracle-backed mainboard identities per Deck
+    ↓ one selected source card
+joint and marginal Deck counts
+    ↓
+support, confidence, lift, sample size, first/last observation
+    ↓ runtime-validated repository response
+statistical threshold and descriptive-label service
+    ↓
+CardAssociationsView
+```
+
+Only `parsing_status = 'complete'` enters the denominator. Partial,
+unavailable, invalid, and pending Decks are excluded. Cards without a canonical
+Oracle identity are excluded rather than merged by provider spelling. A card
+appears once per Deck for probability calculations even if malformed provider
+data contains duplicate rows or quantities.
+
+The statistics have these meanings:
+
+- **Support** is joint Deck count divided by all eligible Decks.
+- **Confidence** is joint Deck count divided by Decks containing the selected
+  source card.
+- **Lift** is confidence divided by the associated card's baseline inclusion
+  rate in the same eligible sample. A lift above 1 is a positive observed
+  association, not evidence that either card causes performance.
+- **Sample size** is the number of complete Commander Decks eligible under all
+  active filters.
+
+The public filtered RPC materializes the eligible Deck and card sets once, then
+joins candidate cards only to Decks containing the selected source card. This
+avoids rebuilding every possible pair for an interactive request. A separate
+administrator/service-role refresh function can persist all-time Commander
+baselines in `commander_card_associations`. Those rows reference
+`canonical_cards`; card names are never duplicated in the association table.
+Partial covering indexes keep both paths on complete Decks and normalized
+mainboards.
+
+Minimum sample, occurrence, confidence, and lift thresholds protect tiny or
+weak samples. PostgreSQL applies the requested thresholds before returning
+rows, and `cardAssociationService` repeats the significance boundary before
+calculating normalized scores and descriptive strength labels. This defense in
+depth prevents a permissive caller or stale baseline from presenting a tiny
+sample as meaningful.
+
+Cluster groundwork returns unnamed, overlapping groups of highly connected
+Oracle identities from persisted baselines. It intentionally does not assign
+package names, archetypes, or recommendation meaning. Future recommendation
+work can consume the validated statistics and cluster IDs without changing
+the database identity or filtering contracts.
