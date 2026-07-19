@@ -55,6 +55,34 @@ describe('DeckBuilderHeader', () => {
     wrapper.unmount()
   })
 
+  it('edits and saves the deck title inline', async () => {
+    const wrapper = mount(DeckBuilderHeader, {
+      attachTo: document.body,
+      global: {
+        plugins: [vuetify],
+        stubs: { RouterLink: true },
+      },
+    })
+
+    await wrapper.find('[aria-label="Edit deck title"]').trigger('click')
+    const input = wrapper.find('input[aria-label="Deck title"]')
+    expect(input.exists()).toBe(true)
+    expect(input.element).toBe(document.activeElement)
+    expect(
+      wrapper.find('[aria-label="Edit deck title"]').classes(),
+    ).toContain('editable-deck-title--editing')
+
+    await input.setValue('Updated Deck')
+    await input.trigger('keydown', { key: 'Enter' })
+
+    expect(useDeckStore().deck.name).toBe('Updated Deck')
+    expect(wrapper.find('input[aria-label="Deck title"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Edit deck title"]').text()).toBe(
+      'Updated Deck',
+    )
+    wrapper.unmount()
+  })
+
   it('confirms deletion from settings and returns to the deck library', async () => {
     const wrapper = mount(DeckBuilderHeader, {
       global: {

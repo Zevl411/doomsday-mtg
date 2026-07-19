@@ -4,11 +4,11 @@
       <div
         class="home-hero-brand d-flex align-center justify-center pa-4 pa-md-8"
       >
-        <v-img
-          alt="Oracle fortune wheel logo"
+        <AnimatedOracleLogo
+          aria-label="DoomsdayMTG Oracle fortune wheel logo"
           class="home-hero-logo"
-          max-height="520"
-          :src="fullLogoUrl"
+          :interval-seconds="30"
+          size="min(100%, 520px)"
         />
       </div>
 
@@ -250,6 +250,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AnimatedOracleLogo from '../components/AnimatedOracleLogo.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import DeckCreationDialog from '../components/DeckCreationDialog.vue'
 import type { Deck } from '../models/deck'
@@ -269,8 +270,6 @@ const commanderStats = ref<CommanderMetagameStats[]>([])
 const recentTournaments = ref<Tournament[]>([])
 const tournamentLoading = ref(true)
 const tournamentError = ref('')
-const fullLogoUrl = `${import.meta.env.BASE_URL}brand/oracle-full.png`
-
 const heroFeatures = [
   {
     title: 'Build and validate decks',

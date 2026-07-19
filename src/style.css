@@ -46,7 +46,7 @@ body {
 }
 
 .home-hero-logo {
-  width: 100%;
+  margin-inline: auto;
   transform: scale(1.7);
   transform-origin: center;
 }

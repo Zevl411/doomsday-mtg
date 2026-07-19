@@ -13,7 +13,33 @@
     <v-card-text class="deck-header-content pa-3">
       <div class="deck-header-summary">
         <div class="deck-header-title-row d-flex flex-wrap align-center ga-2">
-          <h1 class="text-h4 font-weight-bold">{{ deck.name }}</h1>
+          <div class="deck-title-editor">
+            <input
+              v-if="editingTitle"
+              ref="titleInput"
+              v-model="titleDraft"
+              aria-label="Deck title"
+              class="inline-deck-title text-h4 font-weight-bold"
+              @blur="saveInlineTitle"
+              @keydown.enter.prevent="saveInlineTitle"
+              @keydown.esc.prevent="cancelInlineTitle"
+            >
+            <h1
+              aria-label="Edit deck title"
+              :aria-hidden="editingTitle || undefined"
+              :class="{
+                'editable-deck-title--editing': editingTitle,
+              }"
+              class="editable-deck-title text-h4 font-weight-bold"
+              role="button"
+              :tabindex="editingTitle ? -1 : 0"
+              @click="beginTitleEdit"
+              @keydown.enter.prevent="beginTitleEdit"
+              @keydown.space.prevent="beginTitleEdit"
+            >
+              {{ deck.name }}
+            </h1>
+          </div>
           <span class="text-h5 text-medium-emphasis">|</span>
           <ColorIdentitySymbols :colors="deckColorIdentity" size="medium" />
         </div>
@@ -183,7 +209,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { DeckVisibility } from '../models/deck'
 import { useAuthStore } from '../stores/auth'
@@ -213,6 +239,9 @@ const settingsDescription = ref('')
 const settingsVisibility = ref<DeckVisibility>('private')
 const copyName = ref('')
 const copyVisibility = ref<DeckVisibility>('unlisted')
+const editingTitle = ref(false)
+const titleDraft = ref('')
+const titleInput = ref<HTMLInputElement | null>(null)
 const visibilityOptions = [
   { title: 'Private — only you can access it', value: 'private' },
   { title: 'Unlisted — anyone with the link can access it', value: 'unlisted' },
@@ -235,6 +264,24 @@ function openSettings() {
   settingsDescription.value = deck.value.description ?? ''
   settingsVisibility.value = deck.value.visibility ?? 'private'
   showSettings.value = true
+}
+function beginTitleEdit() {
+  titleDraft.value = deck.value.name
+  editingTitle.value = true
+  void nextTick(() => {
+    titleInput.value?.focus()
+    titleInput.value?.select()
+  })
+}
+function saveInlineTitle() {
+  if (!editingTitle.value) return
+  const title = titleDraft.value.trim()
+  if (title) deckStore.renameDeck(deck.value.id, title)
+  editingTitle.value = false
+}
+function cancelInlineTitle() {
+  titleDraft.value = deck.value.name
+  editingTitle.value = false
 }
 function saveSettings() {
   if (deckStore.updateDeckSettings(deck.value.id, {
@@ -282,6 +329,49 @@ function copyDeck() {
 
 .deck-header-summary {
   min-width: 0;
+}
+
+.deck-title-editor {
+  min-width: 8ch;
+  position: relative;
+}
+
+.editable-deck-title {
+  border-radius: 6px;
+  cursor: text;
+  line-height: 1.25;
+  outline: 1px solid transparent;
+  padding: 2px 4px;
+  transition:
+    background-color 120ms ease,
+    outline-color 120ms ease;
+}
+
+.editable-deck-title:hover,
+.editable-deck-title:focus-visible {
+  background: rgba(var(--v-theme-on-surface), 0.055);
+  outline-color: rgba(var(--v-theme-primary), 0.45);
+}
+
+.editable-deck-title--editing {
+  visibility: hidden;
+}
+
+.inline-deck-title {
+  background: color-mix(
+    in srgb,
+    rgb(var(--v-theme-background)) 40%,
+    rgb(var(--v-theme-surface)) 60%
+  );
+  border: 1px solid rgba(var(--v-theme-primary), 0.7);
+  border-radius: 6px;
+  color: inherit;
+  inset: 0;
+  line-height: 1.25;
+  outline: none;
+  padding: 2px 6px;
+  position: absolute;
+  width: 100%;
 }
 
 .deck-header-tools {
