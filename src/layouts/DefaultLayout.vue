@@ -162,7 +162,7 @@
           <v-switch
             v-model="preferenceDraft.defaultCommanderColorFilter"
             color="primary"
-            label="Limit card search to Commander colors by default"
+            label="Limit Deckbuilder card search to Commander colors"
           />
           <div class="mb-2 mt-2 text-subtitle-2">
             Deck Builder Search
@@ -174,6 +174,7 @@
             divided
             mandatory
             variant="outlined"
+            @update:model-value="applyDeckBuilderSearchSide"
           >
             <v-btn value="left">
               <v-icon class="mr-2" icon="mdi-dock-left" />
@@ -208,7 +209,10 @@ import { dataHealthRepository } from '../repositories/dataHealthRepository'
 import { useAuthStore } from '../stores/auth'
 import { RouterLink, useRouter } from 'vue-router'
 import { useUserPreferencesStore } from '../stores/userPreferences'
-import type { UserPreferences } from '../models/userPreferences'
+import type {
+  DeckBuilderSearchSide,
+  UserPreferences,
+} from '../models/userPreferences'
 
 const auth = useAuthStore()
 const preferencesStore = useUserPreferencesStore()
@@ -269,6 +273,30 @@ async function savePreferences() {
   const saved = await preferencesStore.save({ ...preferenceDraft })
   preferenceError.value = saved ? '' : 'Unable to save preferences.'
   if (saved) showPreferences.value = false
+}
+
+/*
+ * Serialize rapid toggle changes so an earlier request cannot overwrite a
+ * newer choice after the user has already moved the layout again.
+ */
+let searchSideSaveQueue = Promise.resolve()
+
+function applyDeckBuilderSearchSide(value: unknown) {
+  if (value !== 'left' && value !== 'right') return
+  const side: DeckBuilderSearchSide = value
+  searchSideSaveQueue = searchSideSaveQueue.then(async () => {
+    const saved = await preferencesStore.saveDeckBuilderSearchSide(side)
+    if (saved) {
+      preferenceError.value = ''
+      return
+    }
+    preferenceError.value = 'Unable to save search placement.'
+    // Only undo the draft if the user has not already made a newer choice.
+    if (preferenceDraft.deckBuilderSearchSide === side) {
+      preferenceDraft.deckBuilderSearchSide =
+        preferencesStore.values.deckBuilderSearchSide
+    }
+  })
 }
 </script>
 

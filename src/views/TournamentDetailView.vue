@@ -1,6 +1,10 @@
 <template>
   <v-container class="pa-0" fluid>
-    <v-progress-linear v-if="loading" color="primary" indeterminate />
+    <AppLoadingSkeleton
+      v-if="loading"
+      label="Loading tournament"
+      variant="detail"
+    />
     <v-alert v-else-if="errorMessage" type="error" variant="tonal">
       {{ errorMessage }}
     </v-alert>
@@ -93,18 +97,12 @@
           </v-expansion-panel-title>
 
           <v-expansion-panel-text>
-            <div
+            <AppLoadingSkeleton
               v-if="decklistLoading[entry.id]"
-              class="d-flex align-center ga-3 py-6"
-            >
-              <v-progress-circular
-                color="primary"
-                indeterminate
-                size="28"
-                width="3"
-              />
-              <span class="text-medium-emphasis">Loading decklist…</span>
-            </div>
+              :count="6"
+              label="Loading decklist"
+              variant="list"
+            />
 
             <v-alert
               v-else-if="decklistErrors[entry.id]"
@@ -471,6 +469,7 @@
 import { nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '../stores/admin'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import DeckActionIcon from '../components/DeckActionIcon.vue'
 import ManaCost from '../components/ManaCost.vue'

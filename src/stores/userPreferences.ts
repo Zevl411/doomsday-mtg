@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import {
   DEFAULT_USER_PREFERENCES,
+  type DeckBuilderSearchSide,
   type UserPreferences,
 } from '../models/userPreferences'
 import {
@@ -23,6 +24,23 @@ export const useUserPreferencesStore = defineStore('userPreferences', {
     async save(values: UserPreferences) {
       this.values = { ...values }
       return saveUserPreferences(this.values, this.userId)
+    },
+    /**
+     * Search placement is a live layout preference, unlike the remaining
+     * dialog draft. Persist only this field and restore the previous state if
+     * remote or browser persistence fails.
+     */
+    async saveDeckBuilderSearchSide(side: DeckBuilderSearchSide) {
+      if (side === this.values.deckBuilderSearchSide) return true
+
+      const previousValues = { ...this.values }
+      this.values = {
+        ...this.values,
+        deckBuilderSearchSide: side,
+      }
+      const saved = await saveUserPreferences(this.values, this.userId)
+      if (!saved) this.values = previousValues
+      return saved
     },
   },
 })

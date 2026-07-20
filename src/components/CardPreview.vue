@@ -36,16 +36,19 @@
               <h3 class="text-subtitle-1 font-weight-bold">
                 {{ cardFace.name }}
               </h3>
-              <span v-if="cardFace.mana_cost" class="text-body-2">
-                {{ cardFace.mana_cost }}
-              </span>
+              <ManaCost
+                v-if="cardFace.mana_cost"
+                :cost="cardFace.mana_cost"
+              />
             </div>
             <p class="text-body-2 text-medium-emphasis">
               {{ cardFace.type_line }}
             </p>
-            <p v-if="cardFace.oracle_text" class="mt-3 text-body-2">
-              {{ cardFace.oracle_text }}
-            </p>
+            <OracleText
+              v-if="cardFace.oracle_text"
+              class="mt-3 text-body-2"
+              :text="cardFace.oracle_text"
+            />
           </v-sheet>
         </template>
 
@@ -54,19 +57,14 @@
             <p class="text-body-2 text-medium-emphasis">
               {{ card.type_line }}
             </p>
-            <span v-if="card.mana_cost" class="text-body-2">
-              {{ card.mana_cost }}
-            </span>
+            <ManaCost v-if="card.mana_cost" :cost="card.mana_cost" />
           </div>
-          <p v-if="card.oracle_text" class="mt-3 text-body-2">
-            {{ card.oracle_text }}
-          </p>
+          <OracleText
+            v-if="card.oracle_text"
+            class="mt-3 text-body-2"
+            :text="card.oracle_text"
+          />
         </template>
-
-        <div class="mt-4">
-          <p class="mb-2 text-caption text-medium-emphasis">Color identity</p>
-          <ColorIdentitySymbols :colors="card.color_identity" size="large" />
-        </div>
       </v-card-text>
     </template>
 
@@ -78,8 +76,9 @@
 
 <script setup lang="ts">
 import type { ScryfallCard } from '../types/card'
-import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
 import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
+import ManaCost from './ManaCost.vue'
+import OracleText from './OracleText.vue'
 import { getCardImage } from '../utils/cardDisplay'
 
 defineProps<{

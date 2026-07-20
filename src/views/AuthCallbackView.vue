@@ -1,6 +1,11 @@
 <template>
   <div v-if="!callbackFailed" class="text-center py-12">
-    <v-progress-circular color="primary" indeterminate />
+    <AppLoadingSkeleton
+      class="mx-auto"
+      :count="2"
+      label="Finishing sign in"
+      variant="compact"
+    />
     <p class="mt-4">Finishing sign in…</p>
   </div>
   <v-alert v-else class="mx-auto my-12" max-width="560" type="error" variant="tonal">
@@ -14,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()

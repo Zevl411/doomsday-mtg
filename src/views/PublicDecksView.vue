@@ -4,7 +4,12 @@
     <p class="text-medium-emphasis mb-6">
       Decks shared publicly by their creators.
     </p>
-    <v-progress-linear v-if="loading" indeterminate />
+    <AppLoadingSkeleton
+      v-if="loading"
+      :count="6"
+      label="Loading public Decks"
+      variant="cards"
+    />
     <v-alert v-else-if="error" type="error" variant="tonal">
       {{ error }}
     </v-alert>
@@ -35,6 +40,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import DeckLibraryCard from '../components/DeckLibraryCard.vue'
 import type { Deck } from '../models/deck'
 import { sharedDeckRepository } from '../repositories/sharedDeckRepository'

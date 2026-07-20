@@ -52,6 +52,35 @@
   content: "\e904";
 }
 
+.ms-0::before { content: "\e605"; }
+.ms-1::before { content: "\e606"; }
+.ms-2::before { content: "\e607"; }
+.ms-3::before { content: "\e608"; }
+.ms-4::before { content: "\e609"; }
+.ms-5::before { content: "\e60a"; }
+.ms-6::before { content: "\e60b"; }
+.ms-7::before { content: "\e60c"; }
+.ms-8::before { content: "\e60d"; }
+.ms-9::before { content: "\e60e"; }
+.ms-10::before { content: "\e60f"; }
+.ms-11::before { content: "\e610"; }
+.ms-12::before { content: "\e611"; }
+.ms-13::before { content: "\e612"; }
+.ms-14::before { content: "\e613"; }
+.ms-15::before { content: "\e614"; }
+.ms-16::before { content: "\e62a"; }
+.ms-17::before { content: "\e62b"; }
+.ms-18::before { content: "\e62c"; }
+.ms-19::before { content: "\e62d"; }
+.ms-20::before { content: "\e62e"; }
+.ms-x::before { content: "\e615"; }
+.ms-y::before { content: "\e616"; }
+.ms-z::before { content: "\e617"; }
+.ms-s::before { content: "\e619"; }
+.ms-e::before { content: "\e907"; }
+.ms-tap::before { content: "\e61a"; }
+.ms-untap::before { content: "\e61b"; }
+
 .ms-cost {
   /* Flex centers the glyph box; the font's baseline alone sits visibly high. */
   display: inline-flex;

@@ -52,7 +52,12 @@
         </v-col>
       </v-row>
     </v-card>
-    <v-progress-linear v-if="loading" indeterminate />
+    <AppLoadingSkeleton
+      v-if="loading"
+      :count="8"
+      label="Loading tournaments"
+      variant="table"
+    />
     <v-alert v-else-if="errorMessage" type="error">{{ errorMessage }}</v-alert>
     <v-card v-else-if="!visibleTournaments.length" class="pa-8 text-center">
       {{
@@ -86,6 +91,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import type { Tournament } from '../models/tournament'
 import {
   tournamentFilterRepository,

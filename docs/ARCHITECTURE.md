@@ -9,6 +9,21 @@ This document explains how the current MVP is divided, how data moves through
 the application, and where future work should live. Keep it updated when a
 change moves ownership or introduces a new architectural boundary.
 
+## Visual system
+
+The Oracle theme owns brand colors, while `src/plugins/vuetify.ts` owns shared
+component density, radius, and elevation defaults. `src/style.css` supplies the
+small set of cross-component typography, table, dialog, and spacing refinements
+that Vuetify defaults cannot express. Feature components should preserve these
+defaults unless card artwork or a specific workflow needs a documented
+exception. This keeps visual changes separate from route composition, domain
+logic, and interaction behavior.
+
+Indeterminate loading states use `AppLoadingSkeleton` variants that approximate
+the incoming card, list, table, detail, or chart layout. Determinate ingestion
+progress remains a progress bar because it communicates measured completion,
+and card-association loading intentionally retains its compact progress bar.
+
 ## Runtime overview
 
 ```text

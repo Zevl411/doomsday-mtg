@@ -95,7 +95,7 @@
             v-if="cardImage(suggestion)"
             :alt="`${suggestion.suggestedCardName} card`"
             aspect-ratio="0.714"
-            class="recommendation-card__image"
+            class="full-card-image recommendation-card__image"
             cover
             :src="cardImage(suggestion)"
           />
@@ -229,7 +229,11 @@
                 Tournament appearance
               </span>
             </div>
-            <v-progress-linear v-if="historyLoading" indeterminate />
+            <AppLoadingSkeleton
+              v-if="historyLoading"
+              label="Loading tournament history"
+              variant="chart"
+            />
             <v-alert
               v-else-if="historyError"
               density="compact"
@@ -344,10 +348,12 @@
             </div>
           </div>
         </div>
-        <v-progress-linear
+        <AppLoadingSkeleton
           v-if="evidenceLoading"
           class="mb-4"
-          indeterminate
+          :count="4"
+          label="Loading association evidence"
+          variant="cards"
         />
         <v-alert
           v-else-if="evidenceError"
@@ -379,14 +385,14 @@
               v-if="evidenceCard(evidence)"
               aspect-ratio="0.716"
               :card="evidenceCard(evidence)!"
-              class="recommendation-evidence-card__image"
+              class="full-card-image recommendation-evidence-card__image"
               cover
             />
             <v-img
               v-else
               :alt="`${evidence.sourceCardName} card`"
               aspect-ratio="0.716"
-              class="recommendation-evidence-card__image"
+              class="full-card-image recommendation-evidence-card__image"
               cover
               :src="namedCardImage(evidence.sourceCardName)"
             />
@@ -415,6 +421,7 @@ import {
   type ComponentPublicInstance,
 } from 'vue'
 import { getCardsByExactNames } from '../api/scryfall'
+import AppLoadingSkeleton from './AppLoadingSkeleton.vue'
 import DeckActionIcon from './DeckActionIcon.vue'
 import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
 import type {

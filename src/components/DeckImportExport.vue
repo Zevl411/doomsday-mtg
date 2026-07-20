@@ -44,10 +44,12 @@
           variant="outlined"
         />
 
-        <div v-if="isImporting" class="d-flex align-center ga-3">
-          <v-progress-circular color="primary" indeterminate size="24" />
-          <span>Resolving cards through Scryfall…</span>
-        </div>
+        <AppLoadingSkeleton
+          v-if="isImporting"
+          :count="3"
+          label="Resolving cards through Scryfall"
+          variant="list"
+        />
 
         <v-alert
           v-if="importError"
@@ -216,6 +218,7 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
+import AppLoadingSkeleton from './AppLoadingSkeleton.vue'
 import { prepareDeckImport } from '../services/deckImport'
 import { useDeckStore } from '../stores/deck'
 

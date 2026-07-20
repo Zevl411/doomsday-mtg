@@ -28,7 +28,12 @@
       </v-row>
     </v-card>
 
-    <v-progress-linear v-if="loading" indeterminate />
+    <AppLoadingSkeleton
+      v-if="loading"
+      :count="8"
+      label="Loading regional metagame"
+      variant="table"
+    />
     <v-alert v-else-if="errorMessage" type="error" variant="tonal">
       {{ errorMessage }}
     </v-alert>
@@ -72,6 +77,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import type { RegionalMetagameStats } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'
 

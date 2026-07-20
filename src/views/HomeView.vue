@@ -120,11 +120,12 @@
       </v-col>
     </v-row>
 
-    <v-progress-linear
+    <AppLoadingSkeleton
       v-if="tournamentLoading"
       class="mb-6"
-      color="primary"
-      indeterminate
+      :count="5"
+      label="Loading recent tournaments"
+      variant="table"
     />
     <v-alert
       v-else-if="tournamentError"
@@ -253,6 +254,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AnimatedOracleLogo from '../components/AnimatedOracleLogo.vue'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import DeckCreationDialog from '../components/DeckCreationDialog.vue'
 import DeckLibraryCard from '../components/DeckLibraryCard.vue'

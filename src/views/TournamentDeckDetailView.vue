@@ -1,6 +1,10 @@
 <template>
   <v-container class="tournament-deck-view pa-0" fluid>
-    <v-progress-linear v-if="loading" indeterminate />
+    <AppLoadingSkeleton
+      v-if="loading"
+      label="Loading tournament Deck"
+      variant="detail"
+    />
     <v-alert v-else-if="errorMessage" type="error" variant="tonal">
       {{ errorMessage }}
     </v-alert>
@@ -264,6 +268,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import TournamentCardImage from '../components/TournamentCardImage.vue'
 import TournamentDecklistExport from '../components/TournamentDecklistExport.vue'

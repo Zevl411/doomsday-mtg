@@ -39,6 +39,7 @@ describe('DoubleFacedCardImage', () => {
     })
     const image = wrapper.get('.v-img')
 
+    expect(image.classes()).toContain('full-card-image')
     expect(wrapper.html()).toContain('front.jpg')
     await image.trigger('mouseenter')
     expect(wrapper.html()).toContain('back.jpg')

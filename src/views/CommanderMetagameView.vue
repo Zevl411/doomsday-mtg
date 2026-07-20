@@ -1,6 +1,6 @@
 <template>
   <v-container class="pa-0" fluid>
-    <v-progress-linear v-if="loading" indeterminate />
+    <AppLoadingSkeleton v-if="loading" variant="detail" />
     <v-alert v-else-if="errorMessage" type="error">{{ errorMessage }}</v-alert>
     <template v-else-if="detail?.stats">
       <div class="d-flex align-center flex-wrap ga-3">
@@ -49,7 +49,13 @@
           <v-card border>
             <v-card-title>Tournament Decks</v-card-title>
             <v-divider />
-          <v-progress-linear v-if="filterLoading" class="mb-3" indeterminate />
+          <AppLoadingSkeleton
+            v-if="filterLoading"
+            class="ma-3"
+            :count="6"
+            label="Loading tournament Decks"
+            variant="table"
+          />
           <v-alert
             v-else-if="filterError"
             class="mb-3"
@@ -150,7 +156,13 @@
               </v-btn>
             </v-card-title>
             <v-divider />
-            <v-progress-linear v-if="inclusionLoading" indeterminate />
+            <AppLoadingSkeleton
+              v-if="inclusionLoading"
+              class="ma-3"
+              :count="6"
+              label="Loading card inclusions"
+              variant="cards"
+            />
             <v-alert
               v-else-if="inclusionError"
               class="ma-3"
@@ -176,7 +188,8 @@
                   v-if="card.imageUrl"
                   :alt="`${card.cardName} card image`"
                   aspect-ratio="0.716"
-                  contain
+                  class="full-card-image"
+                  cover
                   :src="card.imageUrl"
                 />
                 <v-sheet
@@ -239,7 +252,13 @@
             </v-btn>
           </v-card-title>
           <v-divider />
-          <v-progress-linear v-if="inclusionLoading" indeterminate />
+          <AppLoadingSkeleton
+            v-if="inclusionLoading"
+            class="ma-4"
+            :count="8"
+            label="Loading card inclusions"
+            variant="cards"
+          />
           <v-alert
             v-else-if="inclusionError"
             class="ma-4"
@@ -264,7 +283,8 @@
                 v-if="card.imageUrl"
                 :alt="`${card.cardName} card image`"
                 aspect-ratio="0.716"
-                contain
+                class="full-card-image"
+                cover
                 :src="card.imageUrl"
               />
               <v-sheet
@@ -335,6 +355,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getCardsByExactNames } from '../api/scryfall'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import CardSearch from '../components/CardSearch.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import DeckActionIcon from '../components/DeckActionIcon.vue'

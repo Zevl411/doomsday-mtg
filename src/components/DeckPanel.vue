@@ -256,6 +256,7 @@
                   <v-img
                     :alt="entry.card.card.name"
                     aspect-ratio="0.716"
+                    class="full-card-image"
                     cover
                     :src="getCardImage(entry.card.card)"
                   />

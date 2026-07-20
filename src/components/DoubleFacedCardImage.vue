@@ -3,6 +3,7 @@
     :aria-label="ariaLabel"
     :alt="`${card.name} card art`"
     :aspect-ratio="aspectRatio"
+    class="full-card-image"
     :cover="cover"
     :src="displayedImage"
     :tabindex="backImage ? 0 : undefined"

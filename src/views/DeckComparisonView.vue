@@ -52,11 +52,12 @@
           </v-row>
         </v-card>
 
-        <v-progress-linear
+        <AppLoadingSkeleton
           v-if="loading"
-          aria-label="Loading Deck comparison"
           class="mb-5"
-          indeterminate
+          :count="6"
+          label="Loading Deck comparison"
+          variant="cards"
         />
         <v-alert v-else-if="errorMessage" type="error" variant="tonal">
           {{ errorMessage }}
@@ -207,8 +208,8 @@
                         <v-img
                           :alt="`${card.cardName} card`"
                           aspect-ratio="0.714"
-                          class="comparison-card-image"
-                          contain
+                          class="comparison-card-image full-card-image"
+                          cover
                           :src="comparisonCardImageUrl(card)"
                           width="72"
                         />
@@ -283,6 +284,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import type {
   DeckComparisonCard,
   DeckComparisonCategory,

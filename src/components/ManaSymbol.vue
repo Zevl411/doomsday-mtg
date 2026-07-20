@@ -2,7 +2,7 @@
   <i
     :aria-hidden="decorative || undefined"
     :aria-label="decorative ? undefined : label"
-    :class="['ms', `ms-${normalizedSymbol.toLowerCase()}`, 'ms-cost', sizeClass]"
+    :class="['ms', symbolClass, 'ms-cost', sizeClass]"
     :role="decorative ? undefined : 'img'"
     :title="decorative ? undefined : label"
   />
@@ -31,12 +31,25 @@ const hybridSymbols = new Set([
   '2W', '2U', '2B', '2R', '2G',
   'WP', 'UP', 'BP', 'RP', 'GP',
 ])
+const genericSymbols = new Set([
+  ...Array.from({ length: 21 }, (_, value) => String(value)),
+  'X', 'Y', 'Z', 'S', 'E', 'T', 'Q',
+])
 
-// Scryfall color identities use WUBRG. Unknown values degrade to colorless
-// rather than producing a broken font class.
+// Scryfall uses slashes in hybrid symbols and single letters for action
+// symbols. Unknown values degrade to colorless rather than a broken font class.
 const normalizedSymbol = computed(() => {
   const symbol = props.symbol.toUpperCase().replace('/', '')
-  return baseSymbols.has(symbol) || hybridSymbols.has(symbol) ? symbol : 'C'
+  return baseSymbols.has(symbol)
+    || hybridSymbols.has(symbol)
+    || genericSymbols.has(symbol)
+    ? symbol
+    : 'C'
+})
+const symbolClass = computed(() => {
+  if (normalizedSymbol.value === 'T') return 'ms-tap'
+  if (normalizedSymbol.value === 'Q') return 'ms-untap'
+  return `ms-${normalizedSymbol.value.toLowerCase()}`
 })
 
 const symbolNames: Record<ManaColor, string> = {
@@ -49,6 +62,10 @@ const symbolNames: Record<ManaColor, string> = {
 }
 
 const label = computed(() => {
+  if (normalizedSymbol.value === 'T') return 'Tap symbol'
+  if (normalizedSymbol.value === 'Q') return 'Untap symbol'
+  if (normalizedSymbol.value === 'E') return 'Energy symbol'
+  if (normalizedSymbol.value === 'S') return 'Snow mana'
   const name = symbolNames[normalizedSymbol.value as ManaColor]
   return name ? `${name} mana` : `${props.symbol.toUpperCase()} mana`
 })

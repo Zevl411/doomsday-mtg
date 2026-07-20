@@ -64,7 +64,12 @@
       </v-row>
     </v-card>
 
-    <v-progress-linear v-if="loading" color="primary" indeterminate />
+    <AppLoadingSkeleton
+      v-if="loading"
+      :count="8"
+      label="Loading Commander metagame"
+      variant="cards"
+    />
     <v-alert v-else-if="errorMessage" type="error" variant="tonal">
       {{ errorMessage }}
     </v-alert>
@@ -161,6 +166,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import type { CommanderMetagameStats } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'

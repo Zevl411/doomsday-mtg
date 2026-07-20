@@ -14,6 +14,7 @@
     <v-img
       :alt="`${card.name} card image`"
       aspect-ratio="0.716"
+      class="full-card-image"
       cover
       :src="displayedImageUrl"
     >

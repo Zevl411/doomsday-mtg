@@ -10,7 +10,8 @@ describe('ManaCost', () => {
 
     expect(wrapper.find('.ms-gp').exists()).toBe(true)
     expect(wrapper.find('.ms-rg').exists()).toBe(true)
-    expect(wrapper.find('.mana-cost__generic').text()).toBe('2')
+    expect(wrapper.find('.ms-2').exists()).toBe(true)
+    expect(wrapper.find('.mana-cost__generic').exists()).toBe(false)
     expect(wrapper.attributes('aria-label')).toBe('Mana cost {2}{G/P}{R/G}')
   })
 })

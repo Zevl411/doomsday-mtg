@@ -28,9 +28,7 @@ import ManaSymbol from './ManaSymbol.vue'
 
 const props = defineProps<{ cost: string }>()
 function isFontSymbol(symbol: string) {
-  return /^(?:[WUBRGC]|[WUBRG]\/P|[WUBRG]\/[WUBRG]|2\/[WUBRG])$/.test(
-    symbol,
-  )
+  return /^(?:[WUBRGCXYZSEQ]|T|[0-9]|1[0-9]|20|[WUBRG]\/P|[WUBRG]\/[WUBRG]|2\/[WUBRG])$/.test(symbol)
 }
 const symbols = computed(() => {
   const values: string[] = []

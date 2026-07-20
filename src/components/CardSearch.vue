@@ -54,10 +54,12 @@
     class="search-results"
     aria-live="polite"
   >
-    <div v-if="isLoading" class="d-flex align-center ga-3 py-4">
-      <v-progress-circular color="primary" indeterminate size="24" width="3" />
-      <span class="text-body-2 text-medium-emphasis">Searching…</span>
-    </div>
+    <AppLoadingSkeleton
+      v-if="isLoading"
+      :count="3"
+      label="Searching cards"
+      variant="list"
+    />
 
     <v-alert
       v-else-if="errorMessage"
@@ -100,7 +102,7 @@
         <template v-if="getCardImage(card, 'small')" #prepend>
           <v-img
             :alt="`${card.name} card art`"
-            class="card-result-image mr-4 rounded"
+            class="card-result-image full-card-image mr-4 rounded"
             cover
             height="100"
             :src="getCardImage(card, 'small')"
@@ -134,6 +136,7 @@ import {
   watch,
 } from 'vue'
 import { searchCards } from '../api/scryfall'
+import AppLoadingSkeleton from './AppLoadingSkeleton.vue'
 import { searchCanonicalCards } from '../repositories/canonicalCardRepository'
 import type { ScryfallCard } from '../types/card'
 import ManaCost from './ManaCost.vue'

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { oracleComponentDefaults } from '../plugins/vuetify'
 import { oracleDarkTheme } from './oracleTheme'
 
 describe('Oracle theme', () => {
@@ -18,5 +19,26 @@ describe('Oracle theme', () => {
     expect(oracleDarkTheme.variables?.['theme-on-kbd']).toBe('#F4E6C5')
     expect(oracleDarkTheme.variables?.['theme-code']).toBe('#21182B')
     expect(oracleDarkTheme.variables?.['theme-on-code']).toBe('#F1D39A')
+  })
+
+  it('uses restrained, dense defaults for desktop application controls', () => {
+    expect(oracleComponentDefaults.VBtn).toMatchObject({
+      density: 'compact',
+      elevation: 0,
+      rounded: 'sm',
+    })
+    expect(oracleComponentDefaults.VCard).toMatchObject({
+      border: true,
+      elevation: 0,
+      rounded: 'sm',
+    })
+    expect(oracleComponentDefaults.VTextField.density).toBe('compact')
+    expect(oracleComponentDefaults.VSelect.density).toBe('compact')
+    expect(oracleComponentDefaults.VTable.density).toBe('compact')
+    expect(oracleComponentDefaults.VChip).toMatchObject({
+      density: 'comfortable',
+      rounded: 'md',
+    })
+    expect(oracleDarkTheme.variables?.['border-opacity']).toBe(0.36)
   })
 })

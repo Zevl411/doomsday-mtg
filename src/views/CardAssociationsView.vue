@@ -154,7 +154,8 @@
             v-if="associationImages.get(association.associatedOracleId)"
             :alt="`${association.associatedCardName} card image`"
             aspect-ratio="0.716"
-            contain
+            class="full-card-image"
+            cover
             :src="associationImages.get(association.associatedOracleId)"
           />
           <v-sheet

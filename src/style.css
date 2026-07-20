@@ -6,14 +6,137 @@
   text-rendering: optimizeLegibility;
 }
 
+/*
+ * Visual-system rules keep feature components dense and technical without
+ * changing their layouts. Local styles may still opt out for card artwork or
+ * intentionally prominent page-level content.
+ */
 * {
   box-sizing: border-box;
 }
 
 body {
+  font-size: 0.9375rem;
+  line-height: 1.45;
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+}
+
+.v-application .rounded-lg,
+.v-application .rounded-xl {
+  border-radius: 6px !important;
+}
+
+.v-card {
+  box-shadow: none !important;
+}
+
+.v-card-title:not([class*="pa-"]):not([class*="px-"]):not([class*="py-"]):not([class*="pt-"]):not([class*="pr-"]):not([class*="pb-"]):not([class*="pl-"]) {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  padding: 12px 14px;
+}
+
+.v-card-subtitle {
+  font-size: 0.8125rem;
+  padding-inline: 14px;
+}
+
+.v-card-text:not([class*="pa-"]):not([class*="px-"]):not([class*="py-"]):not([class*="pt-"]):not([class*="pr-"]):not([class*="pb-"]):not([class*="pl-"]) {
+  padding: 14px;
+}
+
+.v-card-actions:not([class*="pa-"]):not([class*="px-"]):not([class*="py-"]):not([class*="pt-"]):not([class*="pr-"]):not([class*="pb-"]):not([class*="pl-"]) {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.v-btn {
+  box-shadow: none !important;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.v-btn--icon {
+  border-radius: 5px !important;
+}
+
+.v-field {
+  border-radius: 5px;
+  font-size: 0.875rem;
+}
+
+.v-field__input {
+  min-height: 36px;
+  padding-block: 6px;
+}
+
+.v-label {
+  font-size: 0.8125rem;
+}
+
+.v-chip {
+  font-size: 0.78125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  min-height: 26px;
+  padding-inline: 9px;
+}
+
+.v-list-item {
+  min-height: 36px;
+}
+
+.v-table > .v-table__wrapper > table > thead > tr > th {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  height: 36px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.v-table > .v-table__wrapper > table > tbody > tr > td {
+  border-bottom-color: rgba(var(--v-border-color), 0.38);
+  height: 40px;
+}
+
+.v-table {
+  font-variant-numeric: tabular-nums;
+}
+
+.v-expansion-panel {
+  box-shadow: none !important;
+}
+
+.v-expansion-panel-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 10px 14px;
+}
+
+.v-expansion-panel-text__wrapper {
+  padding: 10px 14px 14px;
+}
+
+.v-dialog > .v-overlay__content > .v-card {
+  border-radius: 8px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28) !important;
+}
+
+.text-h3 {
+  font-size: clamp(1.75rem, 3vw, 2.5rem) !important;
+  line-height: 1.12;
+}
+
+.text-h4 {
+  font-size: clamp(1.4rem, 2vw, 1.75rem) !important;
+  line-height: 1.2;
 }
 
 /* Dialog close controls must remain visible against dark header surfaces. */
@@ -41,7 +164,7 @@ body {
 
 .app-brand-logo {
   flex: 0 0 56px;
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 .home-hero-logo {
@@ -96,6 +219,21 @@ body {
 
 .card-result-image {
   flex: 0 0 72px;
+}
+
+/*
+ * Scryfall full-card scans include rounded physical corners. A small clipped
+ * overscan prevents light corner pixels from showing against dark panels
+ * without materially cropping rules text or changing the card frame ratio.
+ */
+.full-card-image {
+  background: rgb(var(--v-theme-surface));
+  overflow: hidden;
+}
+
+.full-card-image .v-img__img {
+  transform: scale(1.018);
+  transform-origin: center;
 }
 
 .commander-image {

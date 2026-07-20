@@ -39,7 +39,7 @@ export const oracleDarkTheme: ThemeDefinition = {
   },
   variables: {
     'border-color': '#5A4436',
-    'border-opacity': 0.48,
+    'border-opacity': 0.36,
     'high-emphasis-opacity': 0.92,
     'medium-emphasis-opacity': 0.72,
     'disabled-opacity': 0.42,

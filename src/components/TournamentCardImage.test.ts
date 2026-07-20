@@ -21,6 +21,7 @@ describe('TournamentCardImage', () => {
       global: { plugins: [vuetify] },
     })
 
+    expect(wrapper.get('.v-img').classes()).toContain('full-card-image')
     expect(wrapper.get('img').attributes('src')).toBe('front.jpg')
     await wrapper.get('.v-card').trigger('mouseenter')
     expect(wrapper.get('img').attributes('src')).toBe('back.jpg')

@@ -1,6 +1,11 @@
 <template>
   <v-container class="pa-0" fluid>
-    <v-progress-linear v-if="checkingAccess" color="primary" indeterminate />
+    <AppLoadingSkeleton
+      v-if="checkingAccess"
+      :count="3"
+      label="Checking data-health access"
+      variant="compact"
+    />
     <v-alert v-else-if="!isAdmin" type="error" variant="tonal">
       You do not have permission to access Data Health.
     </v-alert>
@@ -35,7 +40,13 @@
       <v-alert v-if="errorMessage" class="mb-5" type="error" variant="tonal">
         {{ errorMessage }}
       </v-alert>
-      <v-progress-linear v-if="loading && !report" class="mb-5" indeterminate />
+      <AppLoadingSkeleton
+        v-if="loading && !report"
+        class="mb-5"
+        :count="8"
+        label="Loading data-health report"
+        variant="table"
+      />
 
       <template v-if="report">
         <v-row class="mb-3">
@@ -376,6 +387,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import type {
   DataHealthFilters,
   DataHealthReport,

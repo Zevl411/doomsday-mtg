@@ -39,10 +39,10 @@ describe('CardPreview', () => {
     const card: ScryfallCard = {
       id: 'card-printing',
       name: 'Test Card',
-      mana_cost: '{2}',
+      mana_cost: '{2}{U}',
       type_line: 'Artifact',
-      oracle_text: 'Useful rules text.',
-      color_identity: [],
+      oracle_text: '{T}: Add {U}.\nDraw a card.',
+      color_identity: ['U'],
       image_uris: {
         small: 'https://example.com/small.jpg',
         normal: 'https://example.com/normal.jpg',
@@ -52,8 +52,18 @@ describe('CardPreview', () => {
     const wrapper = mountPreview(card)
 
     expect(wrapper.text()).toContain('Test Card')
-    expect(wrapper.text()).toContain('Useful rules text.')
+    expect(wrapper.text()).toContain('Add')
+    const oracleLines = wrapper.findAll('.oracle-text__line')
+    expect(oracleLines).toHaveLength(2)
+    expect(oracleLines[0]?.text()).toContain(': Add .')
+    expect(oracleLines[1]?.text()).toBe('Draw a card.')
     expect(wrapper.html()).toContain('https://example.com/large.jpg')
+    expect(wrapper.find('.mana-cost').exists()).toBe(true)
+    expect(wrapper.find('.ms-u').exists()).toBe(true)
+    expect(wrapper.find('.ms-tap').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('{2}{U}')
+    expect(wrapper.text()).not.toContain('{T}')
+    expect(wrapper.text()).not.toContain('Color identity')
     wrapper.unmount()
   })
 
@@ -68,7 +78,7 @@ describe('CardPreview', () => {
           name: 'Front',
           mana_cost: '{U}',
           type_line: 'Instant',
-          oracle_text: 'Front rules.',
+          oracle_text: 'Front rules.\nFront reminder.',
         },
         {
           name: 'Back',
@@ -81,6 +91,8 @@ describe('CardPreview', () => {
 
     expect(wrapper.text()).toContain('Front rules.')
     expect(wrapper.text()).toContain('Back rules.')
+    expect(wrapper.find('.ms-u').exists()).toBe(true)
+    expect(wrapper.findAll('.oracle-text')).toHaveLength(2)
     wrapper.unmount()
   })
 

@@ -1,5 +1,9 @@
 <template>
-  <v-progress-linear v-if="loading" indeterminate />
+  <AppLoadingSkeleton
+    v-if="loading"
+    label="Loading shared Deck"
+    variant="detail"
+  />
   <v-alert v-else-if="error" type="error" variant="tonal">{{ error }}</v-alert>
   <div v-else-if="deck">
     <div class="d-flex flex-wrap align-start justify-space-between ga-4 mb-6">
@@ -32,6 +36,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import type { Deck } from '../models/deck'
 import { sharedDeckRepository } from '../repositories/sharedDeckRepository'
 import { useDeckStore } from '../stores/deck'

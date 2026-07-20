@@ -1,6 +1,11 @@
 <template>
   <v-container class="pa-0" fluid>
-    <v-progress-linear v-if="checkingAccess" color="primary" indeterminate />
+    <AppLoadingSkeleton
+      v-if="checkingAccess"
+      :count="3"
+      label="Checking administration access"
+      variant="compact"
+    />
 
     <v-alert v-else-if="!isAdmin" type="error" variant="tonal">
       You do not have permission to access the admin panel.
@@ -684,6 +689,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
 import {
   ingestionRepository,
   type IngestionDashboardMetrics,
