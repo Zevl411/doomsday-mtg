@@ -44,6 +44,7 @@
           alt=""
           class="deck-summary-art-layer deck-summary-art-layer--primary"
           cover
+          position="center 40%"
           :src="commanderImage"
         />
         <v-img
@@ -51,6 +52,7 @@
           alt=""
           class="deck-summary-art-layer deck-summary-art-layer--partner"
           cover
+          position="center 40%"
           :src="partnerImage"
         />
       </div>
@@ -156,13 +158,7 @@
           "
           @click="emit('compare', deck.id)"
         >
-          <svg
-            aria-hidden="true"
-            class="deck-action-icon"
-            viewBox="0 0 24 24"
-          >
-            <path d="M4 19V9h4v10H4Zm6 0V5h4v14h-4Zm6 0v-7h4v7h-4Z" />
-          </svg>
+          <DeckActionIcon compact name="compare" />
         </v-btn>
         <v-btn
           aria-label="Rename deck"
@@ -170,15 +166,7 @@
           title="Rename deck"
           @click="emit('rename', deck.id)"
         >
-          <svg
-            aria-hidden="true"
-            class="deck-action-icon"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="m3 17.25 10.6-10.6 3.75 3.75L6.75 21H3v-3.75ZM18.7 9.05 14.95 5.3l1.85-1.85a1.5 1.5 0 0 1 2.1 0l1.65 1.65a1.5 1.5 0 0 1 0 2.1L18.7 9.05Z"
-            />
-          </svg>
+          <DeckActionIcon compact name="rename" />
         </v-btn>
         <v-btn
           aria-label="Duplicate deck"
@@ -186,15 +174,7 @@
           title="Duplicate deck"
           @click="emit('duplicate', deck.id)"
         >
-          <svg
-            aria-hidden="true"
-            class="deck-action-icon"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"
-            />
-          </svg>
+          <DeckActionIcon compact name="duplicate" />
         </v-btn>
       </v-btn-group>
     </v-card-actions>
@@ -380,7 +360,8 @@ function toggleSelection() {
 }
 
 .deck-summary-artwork {
-  aspect-ratio: 1.7;
+  /* A slightly taller frame shows more of Scryfall's crop without letterboxing. */
+  aspect-ratio: 1.55;
   overflow: hidden;
   position: relative;
   width: 100%;

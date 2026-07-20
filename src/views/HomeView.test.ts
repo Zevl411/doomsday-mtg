@@ -123,6 +123,11 @@ describe('HomeView', () => {
     expect(wrapper.text()).toContain('Kinnan')
     expect(wrapper.text()).toContain('25.0% of the field')
     expect(wrapper.text()).toContain('Championship')
+    const commanderTitle = wrapper
+      .findAll('.v-list-item-title')
+      .find((item) => item.text().includes('Kinnan'))
+    expect(commanderTitle).toBeDefined()
+    expect(commanderTitle!.find('.color-identity-symbols').exists()).toBe(true)
     expect(wrapper.text()).toContain('64 players')
   })
 })

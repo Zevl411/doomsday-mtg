@@ -12,8 +12,6 @@ export type TournamentSortOrder =
   | 'size-asc'
 
 export interface TournamentFilterPreferences {
-  countryCode?: string
-  stateRegion?: string
   sizeRange: TournamentSizeRange
   timePeriod: TournamentTimePeriod
   sortOrder: TournamentSortOrder
@@ -55,8 +53,6 @@ export const tournamentFilterRepository = {
       }
 
       return {
-        countryCode: optionalString(value.countryCode),
-        stateRegion: optionalString(value.stateRegion),
         sizeRange: value.sizeRange as TournamentSizeRange,
         timePeriod: value.timePeriod as TournamentTimePeriod,
         sortOrder: value.sortOrder as TournamentSortOrder,
@@ -79,8 +75,4 @@ export const tournamentFilterRepository = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
-}
-
-function optionalString(value: unknown): string | undefined {
-  return typeof value === 'string' && value ? value : undefined
 }

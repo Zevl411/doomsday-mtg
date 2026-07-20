@@ -6,10 +6,6 @@ export interface DeckComparisonFilters {
   endDate?: string
   minimumTournamentSize?: number
   maximumStanding?: number
-  countryCode?: string
-  stateRegion?: string
-  regionKey?: string
-  isOnline?: boolean
   minimumCompleteDecks?: number
 }
 

@@ -71,7 +71,7 @@ describe('card association repository response validation', () => {
     }])[0]?.memberOracleIds).toHaveLength(3)
   })
 
-  it('passes paired Commander and regional/date filters to the RPC', async () => {
+  it('passes paired Commander and event filters to the RPC', async () => {
     mocks.rpc.mockResolvedValue({ data: [validRow], error: null })
     await cardAssociationRepository.getAssociations(
       'thrasios // tymna',
@@ -79,7 +79,6 @@ describe('card association repository response validation', () => {
       {
         startDate: '2025-01-01',
         endDate: '2025-12-31',
-        regionKey: 'country:US',
         minimumTournamentSize: 32,
         maximumStanding: 16,
         minimumSampleSize: 30,
@@ -92,7 +91,7 @@ describe('card association repository response validation', () => {
         p_source_oracle_id: oracleA,
         p_start_date: '2025-01-01',
         p_end_date: '2025-12-31',
-        p_region_key: 'country:US',
+        p_region_key: null,
         p_minimum_tournament_size: 32,
         p_maximum_standing: 16,
         p_minimum_sample_size: 30,

@@ -41,16 +41,11 @@ export interface CommanderIdentitySummary {
   imageUrls: string[]
 }
 
-export interface TournamentLocationOptions {
-  countries: string[]
-  states: string[]
-  regions: string[]
-  hasOnline: boolean
-}
-
 const metagameCache = new Map<string, CommanderMetagameStats[]>()
 const entryDecklistCache = new Map<string, TournamentEntryDecklist>()
 const commanderColorCache = new Map<string, string[]>()
+const commanderImageCache = new Map<string, string>()
+const commanderPrintingCache = new Map<string, string>()
 const inclusionImageCache = new Map<string, {
   imageUrl?: string
   backImageUrl?: string
@@ -73,10 +68,10 @@ export const tournamentRepository = {
       minimum_players: normalized.minimumPlayers,
       minimum_entries: normalized.minimumEntries,
       top_finish_threshold: normalized.topFinishThreshold,
-      country_filter: normalized.countryCode ?? null,
-      state_filter: normalized.stateRegion ?? null,
-      region_filter: normalized.regionKey ?? null,
-      online_filter: normalized.isOnline ?? null,
+      country_filter: null,
+      state_filter: null,
+      region_filter: null,
+      online_filter: null,
     })
     if (error) throw friendlyError('load Commander metagame', error)
 
@@ -114,18 +109,6 @@ export const tournamentRepository = {
     if (filters.minimumPlayers) {
       query = query.gte('tournaments.player_count', filters.minimumPlayers)
     }
-    if (filters.countryCode) {
-      query = query.eq('tournaments.country_code', filters.countryCode)
-    }
-    if (filters.stateRegion) {
-      query = query.eq('tournaments.state_region', filters.stateRegion)
-    }
-    if (filters.regionKey) {
-      query = query.eq('tournaments.region_key', filters.regionKey)
-    }
-    if (filters.isOnline !== undefined) {
-      query = query.eq('tournaments.is_online', filters.isOnline)
-    }
     const { data, error } = await query
     if (error) throw friendlyError('load Commander details', error)
 
@@ -152,12 +135,6 @@ export const tournamentRepository = {
     if (filters.maximumPlayers !== undefined) {
       query = query.lte('player_count', filters.maximumPlayers)
     }
-    if (filters.countryCode) query = query.eq('country_code', filters.countryCode)
-    if (filters.stateRegion) query = query.eq('state_region', filters.stateRegion)
-    if (filters.regionKey) query = query.eq('region_key', filters.regionKey)
-    if (filters.isOnline !== undefined) {
-      query = query.eq('is_online', filters.isOnline)
-    }
     query = query
       .order(
         filters.tournamentSort === 'player-count'
@@ -169,27 +146,6 @@ export const tournamentRepository = {
     const { data, error } = await query
     if (error) throw friendlyError('load tournaments', error)
     return ((data ?? []) as TournamentRow[]).map(mapTournamentRow)
-  },
-
-  async getLocationOptions(): Promise<TournamentLocationOptions> {
-    requireSupabase()
-    const { data, error } = await supabase!
-      .from('tournaments')
-      .select('country_code, state_region, region_key, is_online')
-      .limit(5000)
-    if (error) throw friendlyError('load location filters', error)
-    const rows = (data ?? []) as Array<{
-      country_code?: string
-      state_region?: string
-      region_key?: string
-      is_online?: boolean
-    }>
-    return {
-      countries: unique(rows.map((row) => row.country_code)),
-      states: unique(rows.map((row) => row.state_region)),
-      regions: unique(rows.map((row) => row.region_key)),
-      hasOnline: rows.some((row) => row.is_online === true),
-    }
   },
 
   async getRegionalMetagame(
@@ -226,10 +182,10 @@ export const tournamentRepository = {
         start_date: filters.startDate || null,
         end_date: filters.endDate || null,
         minimum_tournament_size: Math.max(0, filters.minimumPlayers ?? 0),
-        country_filter: filters.countryCode || null,
-        state_filter: filters.stateRegion || null,
-        region_filter: filters.regionKey || null,
-        online_filter: filters.isOnline ?? null,
+        country_filter: null,
+        state_filter: null,
+        region_filter: null,
+        online_filter: null,
         maximum_standing: filters.maximumStanding ?? null,
         minimum_complete_decks: Math.max(1, filters.minimumCompleteDecks ?? 1),
       },
@@ -257,10 +213,10 @@ export const tournamentRepository = {
         start_date: filters.startDate || null,
         end_date: filters.endDate || null,
         minimum_tournament_size: Math.max(0, filters.minimumPlayers ?? 0),
-        country_filter: filters.countryCode || null,
-        state_filter: filters.stateRegion || null,
-        region_filter: filters.regionKey || null,
-        online_filter: filters.isOnline ?? null,
+        country_filter: null,
+        state_filter: null,
+        region_filter: null,
+        online_filter: null,
         maximum_standing: filters.maximumStanding ?? null,
       },
     )
@@ -407,6 +363,8 @@ export const tournamentRepository = {
     metagameCache.clear()
     entryDecklistCache.clear()
     commanderColorCache.clear()
+    commanderImageCache.clear()
+    commanderPrintingCache.clear()
     inclusionImageCache.clear()
   },
 }
@@ -539,27 +497,35 @@ export function parseCardInclusionHistoryRows(
 interface CommanderColorTarget {
   commanderName: string
   colorIdentity: string[]
+  imageUrls?: string[]
 }
 
 /**
- * Tournament ingestion stores provider facts. Missing display colors are
+ * Tournament ingestion stores provider facts. Missing display details are
  * resolved lazily from Scryfall and cached for the current browser session.
  */
 async function enrichCommanderColorIdentities(
   items: CommanderColorTarget[],
 ): Promise<void> {
-  const missingNames = items
-    .filter((item) =>
-      item.colorIdentity.length === 0 &&
-      isRegisteredCommanderName(item.commanderName)
-    )
+  const lookupNames = items
+    .filter((item) => isRegisteredCommanderName(item.commanderName))
     .flatMap((item) => getCommanderLookupNames(item.commanderName))
-    .filter((name) => !commanderColorCache.has(name.toLowerCase()))
+  await enrichCommanderCachesFromCanonicalAliases(lookupNames)
+  const missingNames = lookupNames.filter((name) => {
+    const key = name.toLowerCase()
+    return !commanderColorCache.has(key) || !commanderImageCache.has(key)
+  })
 
   if (missingNames.length > 0) {
     try {
       const cards = await getCardsByExactNames(missingNames)
       const resolved = mapColorIdentityByCardName(cards)
+      for (const card of cards) {
+        const imageUrl =
+          card.image_uris?.art_crop ??
+          card.card_faces?.[0]?.image_uris?.art_crop
+        if (imageUrl) commanderImageCache.set(card.name.toLowerCase(), imageUrl)
+      }
       for (const name of missingNames) {
         commanderColorCache.set(
           name.toLowerCase(),
@@ -573,12 +539,99 @@ async function enrichCommanderColorIdentities(
   }
 
   for (const item of items) {
-    if (item.colorIdentity.length > 0) continue
-    item.colorIdentity = getCommanderColorIdentity(
-      item.commanderName,
-      commanderColorCache,
+    if (item.colorIdentity.length === 0) {
+      item.colorIdentity = getCommanderColorIdentity(
+        item.commanderName,
+        commanderColorCache,
+      )
+    }
+    const names = getCommanderLookupNames(item.commanderName)
+    const printingIds = names.map((name) =>
+      commanderPrintingCache.get(name.toLowerCase())
     )
+    const isDoubleFacedCard =
+      names.length === 2 &&
+      Boolean(printingIds[0]) &&
+      printingIds[0] === printingIds[1]
+
+    if (isDoubleFacedCard) {
+      const printingId = printingIds[0]!
+      item.imageUrls = [
+        commanderArtUrl(printingId, 'front'),
+        commanderArtUrl(printingId, 'back'),
+      ]
+    } else {
+      item.imageUrls = names
+        .map((name) => commanderImageCache.get(name.toLowerCase()))
+        .filter((url): url is string => Boolean(url))
+    }
   }
+}
+
+/**
+ * Tournament providers sometimes retain an older or alternate card name that
+ * Scryfall no longer accepts (for example, "Will the Wise"). The canonical
+ * alias table already knows those identities, so consult it before making any
+ * display-only Scryfall request.
+ */
+async function enrichCommanderCachesFromCanonicalAliases(
+  names: string[],
+): Promise<void> {
+  if (!supabase) return
+  const unresolvedKeys = [...new Set(names.map((name) =>
+    name.trim().toLowerCase()
+  ))].filter((key) =>
+    !commanderColorCache.has(key) || !commanderImageCache.has(key)
+  )
+  if (!unresolvedKeys.length) return
+
+  try {
+    const { data, error } = await supabase
+      .from('canonical_card_aliases')
+      .select(`
+        normalized_card_key,
+        canonical_cards!inner(scryfall_id, color_identity)
+      `)
+      .in('normalized_card_key', unresolvedKeys)
+    if (error) return
+
+    for (const row of data ?? []) {
+      if (!isRecord(row) || typeof row.normalized_card_key !== 'string') {
+        continue
+      }
+      const relation = Array.isArray(row.canonical_cards)
+        ? row.canonical_cards[0]
+        : row.canonical_cards
+      if (!isRecord(relation)) continue
+      const colors = relation.color_identity
+      if (isStringArrayOrNull(colors)) {
+        commanderColorCache.set(row.normalized_card_key, colors ?? [])
+      }
+      if (typeof relation.scryfall_id === 'string') {
+        commanderPrintingCache.set(
+          row.normalized_card_key,
+          relation.scryfall_id,
+        )
+        commanderImageCache.set(
+          row.normalized_card_key,
+          commanderArtUrl(relation.scryfall_id),
+        )
+      }
+    }
+  } catch {
+    // Older deployments may not have canonical aliases yet. Scryfall remains
+    // the fallback and the metagame page can still render without an image.
+  }
+}
+
+function commanderArtUrl(
+  scryfallId: string,
+  face?: 'front' | 'back',
+): string {
+  const faceQuery = face ? `&face=${face}` : ''
+  return `https://api.scryfall.com/cards/${
+    encodeURIComponent(scryfallId)
+  }?format=image&version=art_crop${faceQuery}`
 }
 
 function mapNormalizedDecklist(
@@ -702,10 +755,6 @@ function normalizeFilters(filters: MetagameFilters) {
     minimumPlayers: Math.max(0, filters.minimumPlayers ?? 0),
     minimumEntries: Math.max(1, filters.minimumEntries ?? 1),
     topFinishThreshold: Math.max(1, filters.topFinishThreshold ?? 16),
-    countryCode: filters.countryCode || undefined,
-    stateRegion: filters.stateRegion || undefined,
-    regionKey: filters.regionKey || undefined,
-    isOnline: filters.isOnline,
   }
 }
 
@@ -970,11 +1019,6 @@ function mapNormalizedTournamentDeck(row: TournamentDeckRow): NormalizedTourname
     entry: mapEntryRow(row.tournament_entries),
     tournament: mapTournamentRow(row.tournament_entries.tournaments),
   }
-}
-
-function unique(values: Array<string | undefined>) {
-  return [...new Set(values.filter((value): value is string => Boolean(value)))]
-    .sort((left, right) => left.localeCompare(right))
 }
 
 function isNullableString(value: unknown): value is string | null {

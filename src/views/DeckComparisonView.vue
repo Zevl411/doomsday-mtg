@@ -50,27 +50,6 @@
               <v-btn color="primary" block @click="loadComparison">Apply filters</v-btn>
             </v-col>
           </v-row>
-          <v-row>
-            <v-col cols="12" sm="3">
-              <v-select v-model="filters.countryCode" clearable :items="locations.countries" label="Country" />
-            </v-col>
-            <v-col cols="12" sm="3">
-              <v-select v-model="filters.stateRegion" clearable :items="locations.states" label="State / province" />
-            </v-col>
-            <v-col cols="12" sm="3">
-              <v-select v-model="filters.regionKey" clearable :items="locations.regions" label="Region" />
-            </v-col>
-            <v-col cols="12" sm="3">
-              <v-select
-                v-model="filters.isOnline"
-                clearable
-                :items="eventFormatItems"
-                item-title="title"
-                item-value="value"
-                label="Event format"
-              />
-            </v-col>
-          </v-row>
         </v-card>
 
         <v-progress-linear
@@ -314,10 +293,6 @@ import {
   deckComparisonRepository,
 } from '../repositories/deckComparisonRepository'
 import {
-  tournamentRepository,
-  type TournamentLocationOptions,
-} from '../repositories/tournamentRepository'
-import {
   buildDeckComparisonSummary,
   getComparisonCommander,
   getUserMainboardCards,
@@ -345,16 +320,9 @@ const loading = ref(false)
 const errorMessage = ref('')
 const summary = ref<ReturnType<typeof buildDeckComparisonSummary> | null>(null)
 const similarities = ref<TournamentDeckSimilarity[]>([])
-const locations = ref<TournamentLocationOptions>({
-  countries: [], states: [], regions: [], hasOnline: false,
-})
 const cardFilter = ref<CardFilter>('all')
 // Inclusion is the most useful first scan for an aggregate comparison.
 const sortBy = ref<CardSort>('inclusion')
-const eventFormatItems = [
-  { title: 'Online', value: true },
-  { title: 'In person', value: false },
-]
 const cardFilterItems: Array<{ title: string; value: CardFilter }> = [
   { title: 'All', value: 'all' },
   { title: 'Shared', value: 'shared' },
@@ -487,11 +455,6 @@ function formatDate(value?: string) {
 
 onMounted(async () => {
   if (deck.value) deckStore.openDeck(deck.value.id)
-  try {
-    locations.value = await tournamentRepository.getLocationOptions()
-  } catch {
-    // Comparison remains usable when optional location metadata is unavailable.
-  }
   await loadComparison()
 })
 </script>

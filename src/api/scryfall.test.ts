@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ScryfallCard } from '../types/card'
 import {
   getCardsByExactNames,
+  getCardsByOracleIds,
   searchCards,
 } from './scryfall'
 
@@ -37,6 +38,25 @@ describe('Scryfall client', () => {
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit
     expect(JSON.parse(String(request.body))).toEqual({
       identifiers: [{ name: 'Sol Ring' }],
+    })
+  })
+
+  it('loads card images by deduplicated Oracle identity', async () => {
+    const oracleId = '00000000-0000-4000-8000-000000000001'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ data: [{ ...solRing, oracle_id: oracleId }] }),
+    } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    const cards = await getCardsByOracleIds([oracleId, oracleId])
+
+    expect(cards).toHaveLength(1)
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit
+    expect(JSON.parse(String(request.body))).toEqual({
+      identifiers: [{ oracle_id: oracleId }],
     })
   })
 

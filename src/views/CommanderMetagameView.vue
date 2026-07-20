@@ -3,22 +3,22 @@
     <v-progress-linear v-if="loading" indeterminate />
     <v-alert v-else-if="errorMessage" type="error">{{ errorMessage }}</v-alert>
     <template v-else-if="detail?.stats">
-      <h1 class="text-h4 font-weight-bold">{{ detail.stats.commanderName }}</h1>
-      <ColorIdentitySymbols :colors="detail.stats.colorIdentity" />
+      <div class="d-flex align-center flex-wrap ga-3">
+        <h1 class="text-h4 font-weight-bold">
+          {{ detail.stats.commanderName }}
+        </h1>
+        <ColorIdentitySymbols :colors="detail.stats.colorIdentity" />
+        <v-spacer />
+        <v-btn variant="outlined" @click="associationDialog = true">
+          Card associations
+        </v-btn>
+      </div>
       <div class="d-flex flex-wrap ga-2 my-5">
         <v-chip>{{ detail.stats.entries }} entries</v-chip>
         <v-chip>{{ percent(detail.stats.metaShare) }} meta share</v-chip>
         <v-chip>{{ percent(detail.stats.matchWinRate) }} match win rate</v-chip>
         <v-chip>{{ percent(detail.stats.topCutRate) }} top-16 rate</v-chip>
       </div>
-      <v-btn
-        class="mb-5"
-        color="primary"
-        :to="{ name: 'commander-cards', params: { commanderKey: route.params.commanderKey } }"
-        variant="outlined"
-      >
-        Card inclusion
-      </v-btn>
       <v-card border class="mb-5 pa-4">
         <div class="text-subtitle-1 font-weight-bold mb-2">
           Filter Commander Decks by cards
@@ -230,10 +230,13 @@
             />
             <v-btn
               aria-label="Close card inclusions"
-              icon="mdi-close"
+              color="primary"
+              icon
               variant="text"
               @click="inclusionDialog = false"
-            />
+            >
+              <DeckActionIcon compact name="close" />
+            </v-btn>
           </v-card-title>
           <v-divider />
           <v-progress-linear v-if="inclusionLoading" indeterminate />
@@ -292,6 +295,32 @@
           </v-card-text>
         </v-card>
       </v-dialog>
+
+      <v-dialog v-model="associationDialog" max-width="1400">
+        <v-card>
+          <v-card-title class="d-flex align-center">
+            <span>Card associations</span>
+            <v-spacer />
+            <v-btn
+              aria-label="Close card associations"
+              color="primary"
+              icon
+              variant="text"
+              @click="associationDialog = false"
+            >
+              <DeckActionIcon compact name="close" />
+            </v-btn>
+          </v-card-title>
+          <v-divider />
+          <v-card-text>
+            <CardAssociationsView
+              :allowed-color-identity="detail.stats.colorIdentity"
+              embedded
+              :initial-commander-key="detail.stats.commanderKey"
+            />
+          </v-card-text>
+        </v-card>
+      </v-dialog>
       <p class="mt-4 text-caption text-medium-emphasis">
         Data provided by
         <a href="https://topdeck.gg" target="_blank" rel="noopener noreferrer">TopDeck.gg</a>
@@ -308,6 +337,8 @@ import { useRoute } from 'vue-router'
 import { getCardsByExactNames } from '../api/scryfall'
 import CardSearch from '../components/CardSearch.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
+import DeckActionIcon from '../components/DeckActionIcon.vue'
+import CardAssociationsView from './CardAssociationsView.vue'
 import type { CommanderDeckEvent } from '../models/commanderDeckEvent'
 import type { CommanderCardInclusion } from '../models/tournament'
 import { commanderDeckEventRepository } from '../repositories/commanderDeckEventRepository'
@@ -331,6 +362,7 @@ const topCardInclusions = computed(() => cardInclusions.value.slice(0, 20))
 const inclusionLoading = ref(true)
 const inclusionError = ref('')
 const inclusionDialog = ref(false)
+const associationDialog = ref(false)
 type InclusionTimeframe =
   | 'week'
   | 'month'
@@ -379,6 +411,7 @@ onMounted(async () => {
     if (!detail.value.stats) errorMessage.value = 'Commander data not found.'
     await loadCardInclusions()
     await restoreCardFiltersFromRoute()
+    inclusionDialog.value = route.query.inclusions === 'all'
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Unable to load Commander data.'
   } finally {

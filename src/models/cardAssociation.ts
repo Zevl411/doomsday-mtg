@@ -1,7 +1,6 @@
 export interface CardAssociationFilters {
   startDate?: string
   endDate?: string
-  regionKey?: string
   minimumTournamentSize?: number
   maximumStanding?: number
   minimumSampleSize?: number

@@ -29,6 +29,7 @@ afterEach(() => {
 function mountSearch(
   props: {
     commanderOnly?: boolean
+    modelValue?: string
     retainSelectedName?: boolean
     resultFilter?: (card: ScryfallCard) => boolean
     selectedCard?: ScryfallCard | null
@@ -222,9 +223,8 @@ describe('CardSearch', () => {
 
     const chip = wrapper.find('.selected-card-chip')
     const chipLabel = wrapper.find('.selected-card-chip__label')
-    expect(chipLabel.text()).toBe('Test')
-    expect(chipLabel.element.textContent).toBe('Test')
-    expect(chip.text()).not.toContain('Test Card')
+    expect(chipLabel.text()).toBe('Test Card')
+    expect(chip.element.textContent).toContain('Test Card')
     expect(wrapper.find('input').attributes('placeholder')).toBeUndefined()
     expect(wrapper.text()).not.toContain('Search for a Magic card')
     const closeButton = chip.find('.selected-card-chip__close')
@@ -233,6 +233,31 @@ describe('CardSearch', () => {
     await closeButton.trigger('click')
 
     expect(wrapper.emitted('cleared')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('uses compact chip names only for Commander searches', () => {
+    const wrapper = mountSearch({
+      commanderOnly: true,
+      selectedCard: {
+        ...card,
+        name: 'Tymna the Weaver',
+      },
+    })
+
+    expect(wrapper.find('.selected-card-chip__label').text()).toBe('Tymna')
+    wrapper.unmount()
+  })
+
+  it('clears lingering query text when a selected chip is present', async () => {
+    const wrapper = mountSearch({
+      modelValue: 'Test Card',
+      selectedCard: card,
+    })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('input').element.value).toBe('')
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([''])
     wrapper.unmount()
   })
 

@@ -184,26 +184,6 @@
               Right
             </v-btn>
           </v-btn-toggle>
-          <div class="mb-2 text-subtitle-2">
-            Deck Statistics
-          </div>
-          <v-btn-toggle
-            v-model="preferenceDraft.deckStatisticsPosition"
-            class="deck-builder-side-toggle mb-4"
-            color="primary"
-            divided
-            mandatory
-            variant="outlined"
-          >
-            <v-btn value="above">
-              <v-icon class="mr-2" icon="mdi-dock-top" />
-              Above Boards
-            </v-btn>
-            <v-btn value="below">
-              <v-icon class="mr-2" icon="mdi-dock-bottom" />
-              Below Boards
-            </v-btn>
-          </v-btn-toggle>
           <v-alert v-if="preferenceError" type="error" variant="tonal">
             {{ preferenceError }}
           </v-alert>

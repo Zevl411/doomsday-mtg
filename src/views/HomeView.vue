@@ -147,14 +147,12 @@
                 params: { commanderKey: commander.commanderKey },
               }"
             >
-              <template #prepend>
+              <v-list-item-title class="d-flex align-center ga-2">
+                <span>{{ commander.commanderName }}</span>
                 <ColorIdentitySymbols
                   :colors="commander.colorIdentity"
                   size="small"
                 />
-              </template>
-              <v-list-item-title>
-                {{ commander.commanderName }}
               </v-list-item-title>
               <v-list-item-subtitle>
                 {{ commander.entries }} entries ·

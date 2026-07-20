@@ -16,6 +16,11 @@ body {
   margin: 0;
 }
 
+/* Dialog close controls must remain visible against dark header surfaces. */
+.v-dialog button[aria-label^="Close"] {
+  color: rgb(var(--v-theme-primary)) !important;
+}
+
 .widget-header-bar {
   background: rgb(var(--v-theme-accent));
   border-bottom: 1px solid rgba(var(--v-theme-secondary), 0.48);

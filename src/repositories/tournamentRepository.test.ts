@@ -5,14 +5,22 @@ import {
   tournamentRepository,
 } from './tournamentRepository'
 
-const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
+const { rpc, from } = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  from: vi.fn(),
+}))
 
 vi.mock('../lib/supabase', () => ({
-  supabase: { rpc },
+  supabase: { rpc, from },
 }))
 
 beforeEach(() => {
   rpc.mockReset()
+  from.mockReset().mockReturnValue({
+    select: () => ({
+      in: () => Promise.resolve({ data: [], error: null }),
+    }),
+  })
   tournamentRepository.clearCache()
 })
 
@@ -69,7 +77,7 @@ describe('tournamentRepository', () => {
     }])).toThrow('card inclusion history response was invalid')
   })
 
-  it('passes time bucket, card identity, and filters to inclusion history', async () => {
+  it('passes time bucket, card identity, and event filters to inclusion history', async () => {
     rpc.mockResolvedValue({ data: [], error: null })
 
     await tournamentRepository.getCardInclusionOverTime(
@@ -81,10 +89,6 @@ describe('tournamentRepository', () => {
         endDate: '2026-01-31',
         minimumPlayers: 16,
         maximumStanding: 16,
-        countryCode: 'US',
-        stateRegion: 'FL',
-        regionKey: 'country:US/state:FL',
-        isOnline: false,
       },
     )
 
@@ -98,10 +102,10 @@ describe('tournamentRepository', () => {
         start_date: '2026-01-01',
         end_date: '2026-01-31',
         minimum_tournament_size: 16,
-        country_filter: 'US',
-        state_filter: 'FL',
-        region_filter: 'country:US/state:FL',
-        online_filter: false,
+        country_filter: null,
+        state_filter: null,
+        region_filter: null,
+        online_filter: null,
         maximum_standing: 16,
       },
     )
@@ -156,6 +160,104 @@ describe('tournamentRepository', () => {
     await tournamentRepository.getCommanderMetagame()
     await tournamentRepository.getCommanderMetagame()
     expect(rpc).toHaveBeenCalledOnce()
+  })
+
+  it('resolves retired Commander names through canonical aliases', async () => {
+    rpc.mockResolvedValue({
+      data: [{
+        commander_key: 'will-the-wise',
+        commander_name: 'Will the Wise',
+        color_identity: [],
+        entries: 2,
+        tournaments: 1,
+        wins: 1,
+        losses: 1,
+        draws: 0,
+        match_win_rate: 0.5,
+        top16_finishes: 1,
+        top_cut_rate: 0.5,
+        first_place_finishes: 0,
+        meta_share: 0.1,
+      }],
+      error: null,
+    })
+    from.mockReturnValue({
+      select: () => ({
+        in: () => Promise.resolve({
+          data: [{
+            normalized_card_key: 'will the wise',
+            canonical_cards: {
+              scryfall_id: 'wernog-printing',
+              color_identity: ['W', 'B'],
+            },
+          }],
+          error: null,
+        }),
+      }),
+    })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await tournamentRepository.getCommanderMetagame()
+
+    expect(result[0]).toMatchObject({
+      colorIdentity: ['W', 'B'],
+      imageUrls: [
+        'https://api.scryfall.com/cards/wernog-printing?format=image&version=art_crop',
+      ],
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('renders the front and back art for two aliases of one DFC', async () => {
+    rpc.mockResolvedValue({
+      data: [{
+        commander_key: 'valki-tibalt',
+        commander_name: 'Valki, God of Lies // Tibalt, Cosmic Impostor',
+        color_identity: ['B', 'R'],
+        entries: 2,
+        tournaments: 1,
+        wins: 1,
+        losses: 1,
+        draws: 0,
+        match_win_rate: 0.5,
+        top16_finishes: 1,
+        top_cut_rate: 0.5,
+        first_place_finishes: 0,
+        meta_share: 0.1,
+      }],
+      error: null,
+    })
+    from.mockReturnValue({
+      select: () => ({
+        in: () => Promise.resolve({
+          data: [
+            {
+              normalized_card_key: 'valki, god of lies',
+              canonical_cards: {
+                scryfall_id: 'valki-printing',
+                color_identity: ['B', 'R'],
+              },
+            },
+            {
+              normalized_card_key: 'tibalt, cosmic impostor',
+              canonical_cards: {
+                scryfall_id: 'valki-printing',
+                color_identity: ['B', 'R'],
+              },
+            },
+          ],
+          error: null,
+        }),
+      }),
+    })
+
+    const result = await tournamentRepository.getCommanderMetagame()
+
+    expect(result[0]?.imageUrls).toEqual([
+      'https://api.scryfall.com/cards/valki-printing?format=image&version=art_crop&face=front',
+      'https://api.scryfall.com/cards/valki-printing?format=image&version=art_crop&face=back',
+    ])
   })
 
   it('omits unresolved Commander placeholders from metagame lists', async () => {

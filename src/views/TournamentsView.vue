@@ -6,27 +6,7 @@
     </p>
     <v-card class="mb-5 pa-3" border>
       <v-row align="center" density="comfortable">
-        <v-col cols="12" sm="6" lg="2">
-          <v-select
-            v-model="countryCode"
-            clearable
-            density="compact"
-            hide-details
-            :items="locationOptions.countries"
-            label="Event country"
-          />
-        </v-col>
-        <v-col cols="12" sm="6" lg="2">
-          <v-select
-            v-model="stateRegion"
-            clearable
-            density="compact"
-            hide-details
-            :items="locationOptions.states"
-            label="State/province"
-          />
-        </v-col>
-        <v-col cols="12" sm="6" lg="2">
+        <v-col cols="12" sm="6" lg="3">
           <v-select
             v-model="sizeRange"
             density="compact"
@@ -35,7 +15,7 @@
             label="Tournament size"
           />
         </v-col>
-        <v-col cols="12" sm="6" lg="2">
+        <v-col cols="12" sm="6" lg="3">
           <v-select
             v-model="timePeriod"
             density="compact"
@@ -44,7 +24,7 @@
             label="Time period"
           />
         </v-col>
-        <v-col cols="12" sm="6" lg="2">
+        <v-col cols="12" sm="6" lg="3">
           <v-select
             v-model="sortOrder"
             density="compact"
@@ -57,7 +37,7 @@
           class="d-flex align-center ga-2"
           cols="12"
           sm="6"
-          lg="2"
+          lg="3"
         >
           <v-btn color="primary" size="small" @click="load">Apply</v-btn>
           <v-switch
@@ -113,10 +93,7 @@ import {
   type TournamentSortOrder,
   type TournamentTimePeriod,
 } from '../repositories/tournamentFilterRepository'
-import {
-  tournamentRepository,
-  type TournamentLocationOptions,
-} from '../repositories/tournamentRepository'
+import { tournamentRepository } from '../repositories/tournamentRepository'
 import {
   displayTournamentLocation,
   sourceAttribution,
@@ -126,8 +103,6 @@ const tournaments = ref<Tournament[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 const savedFilters = tournamentFilterRepository.load()
-const countryCode = ref<string | undefined>(savedFilters?.countryCode)
-const stateRegion = ref<string | undefined>(savedFilters?.stateRegion)
 const sizeRange = ref<TournamentSizeRange>(
   savedFilters?.sizeRange ?? 'standard',
 )
@@ -141,9 +116,6 @@ const sortOrder = ref<TournamentSortOrder>(
 const registeredCommandersOnly = ref(
   savedFilters?.registeredCommandersOnly ?? true,
 )
-const locationOptions = ref<TournamentLocationOptions>({
-  countries: [], states: [], regions: [], hasOnline: false,
-})
 const visibleTournaments = computed(() =>
   registeredCommandersOnly.value
     ? tournaments.value.filter(
@@ -176,8 +148,6 @@ const sortOptions = [
 
 watch(
   [
-    countryCode,
-    stateRegion,
     sizeRange,
     timePeriod,
     sortOrder,
@@ -185,8 +155,6 @@ watch(
   ],
   () => {
     tournamentFilterRepository.save({
-      countryCode: countryCode.value,
-      stateRegion: stateRegion.value,
       sizeRange: sizeRange.value,
       timePeriod: timePeriod.value,
       sortOrder: sortOrder.value,
@@ -199,8 +167,6 @@ async function load() {
   loading.value = true
   try {
     tournaments.value = await tournamentRepository.getRecentTournaments({
-      countryCode: countryCode.value,
-      stateRegion: stateRegion.value,
       ...getSizeFilters(),
       startDate: getStartDate(),
       tournamentSort: sortOrder.value.startsWith('size')
@@ -215,14 +181,7 @@ async function load() {
   }
 }
 
-onMounted(async () => {
-  try {
-    locationOptions.value = await tournamentRepository.getLocationOptions()
-  } catch {
-    // Filters remain hidden when the migration has no location data yet.
-  }
-  await load()
-})
+onMounted(load)
 
 function formatDate(date: string | null) {
   return date ? new Date(date).toLocaleDateString() : 'Unknown date'

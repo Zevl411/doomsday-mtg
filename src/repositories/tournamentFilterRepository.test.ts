@@ -6,8 +6,6 @@ beforeEach(() => localStorage.clear())
 describe('tournamentFilterRepository', () => {
   it('round trips valid filter preferences', () => {
     const preferences = {
-      countryCode: 'US',
-      stateRegion: 'PA',
       sizeRange: 'standard' as const,
       timePeriod: '3-months' as const,
       sortOrder: 'size-desc' as const,

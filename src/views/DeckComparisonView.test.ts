@@ -6,7 +6,6 @@ import DeckComparisonView from './DeckComparisonView.vue'
 
 const mocks = vi.hoisted(() => ({
   compare: vi.fn(),
-  getLocationOptions: vi.fn(),
   openDeck: vi.fn(),
   decks: [] as ReturnType<typeof createEmptyDeck>[],
 }))
@@ -23,21 +22,10 @@ vi.mock('../stores/deck', () => ({
 vi.mock('../repositories/deckComparisonRepository', () => ({
   deckComparisonRepository: { compare: mocks.compare },
 }))
-vi.mock('../repositories/tournamentRepository', () => ({
-  tournamentRepository: { getLocationOptions: mocks.getLocationOptions },
-}))
-
 beforeEach(() => {
   mocks.compare.mockReset()
-  mocks.getLocationOptions.mockReset()
   mocks.openDeck.mockReset()
   mocks.decks.splice(0)
-  mocks.getLocationOptions.mockResolvedValue({
-    countries: [],
-    states: [],
-    regions: [],
-    hasOnline: false,
-  })
 })
 
 function personalDeck() {

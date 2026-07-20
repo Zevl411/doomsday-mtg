@@ -4,7 +4,6 @@ import type { ScryfallCard } from '../types/card'
 export interface AssociationSuggestionFilters {
   startDate?: string
   endDate?: string
-  regionKey?: string
   minimumTournamentSize?: number
   maximumStanding?: number
   minimumSampleSize?: number

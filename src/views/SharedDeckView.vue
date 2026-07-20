@@ -8,8 +8,9 @@
         <p>Created by {{ deck.creatorUsername ?? 'Unknown' }}</p>
         <p class="mt-2 text-medium-emphasis">{{ deck.description }}</p>
       </div>
-      <v-btn color="primary" prepend-icon="mdi-content-copy" @click="copyDeck">
-        Copy deck
+      <v-btn color="primary" @click="copyDeck">
+        <DeckActionIcon name="duplicate" />
+        Duplicate
       </v-btn>
     </div>
     <v-card border>
@@ -35,6 +36,7 @@ import type { Deck } from '../models/deck'
 import { sharedDeckRepository } from '../repositories/sharedDeckRepository'
 import { useDeckStore } from '../stores/deck'
 import { useAuthStore } from '../stores/auth'
+import DeckActionIcon from '../components/DeckActionIcon.vue'
 const route = useRoute()
 const router = useRouter()
 const store = useDeckStore()

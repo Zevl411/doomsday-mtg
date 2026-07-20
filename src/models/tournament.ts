@@ -72,6 +72,7 @@ export interface CommanderMetagameStats {
   commanderKey: string
   commanderName: string
   colorIdentity: string[]
+  imageUrls?: string[]
   entries: number
   tournaments: number
   wins: number
@@ -91,10 +92,6 @@ export interface MetagameFilters {
   maximumPlayers?: number
   minimumEntries?: number
   topFinishThreshold?: number
-  countryCode?: string
-  stateRegion?: string
-  regionKey?: string
-  isOnline?: boolean
   tournamentSort?: 'date' | 'player-count'
   sortAscending?: boolean
 }

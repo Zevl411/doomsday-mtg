@@ -17,12 +17,14 @@ defineProps<{
     | 'compare'
     | 'copy'
     | 'duplicate'
+    | 'rename'
     | 'import'
     | 'export'
     | 'decrease'
     | 'increase'
     | 'move'
     | 'delete'
+    | 'close'
 }>()
 
 const paths = {
@@ -34,6 +36,8 @@ const paths = {
     'M8 8h11v11H8V8Zm2 2v7h7v-7h-7ZM5 5h10v2H7v8H5V5Z',
   duplicate:
     'M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z',
+  rename:
+    'm3 17.25 10.6-10.6 3.75 3.75L6.75 21H3v-3.75ZM18.7 9.05 14.95 5.3l1.85-1.85a1.5 1.5 0 0 1 2.1 0l1.65 1.65a1.5 1.5 0 0 1 0 2.1L18.7 9.05Z',
   import:
     'M11 3h2v10l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4L11 13V3ZM4 18h16v3H4v-3Z',
   export:
@@ -43,6 +47,8 @@ const paths = {
   move: 'M7 7h9l-3-3 1.4-1.4L19.8 8l-5.4 5.4L13 12l3-3H7V7Zm10 10H8l3 3-1.4 1.4L4.2 16l5.4-5.4L11 12l-3 3h9v2Z',
   delete:
     'M9 3h6l1 2h4v2h-1l-1 14H6L5 7H4V5h4l1-2Zm-2 4 1 12h8l1-12H7Zm3 2h2v8h-2V9Zm4 0h2v8h-2V9Z',
+  close:
+    'M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4 6.4 5Z',
 }
 </script>
 

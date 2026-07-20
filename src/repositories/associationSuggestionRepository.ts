@@ -32,7 +32,7 @@ export const associationSuggestionRepository = {
         p_source_oracle_ids: uniqueSourceIds,
         p_start_date: filters.startDate ?? null,
         p_end_date: filters.endDate ?? null,
-        p_region_key: filters.regionKey ?? null,
+        p_region_key: null,
         p_minimum_tournament_size:
           nonNegativeInteger(filters.minimumTournamentSize, 0),
         p_maximum_standing:

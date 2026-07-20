@@ -136,16 +136,7 @@
                   variant="outlined"
                 />
               </v-col>
-              <v-col cols="12" sm="4" md="2">
-                <v-text-field
-                  v-model="filters.regionKey"
-                  density="compact"
-                  hide-details
-                  label="Region key"
-                  variant="outlined"
-                />
-              </v-col>
-              <v-col cols="6" md="2">
+              <v-col cols="6" md="3">
                 <v-text-field
                   v-model="filters.startDate"
                   density="compact"
@@ -155,7 +146,7 @@
                   variant="outlined"
                 />
               </v-col>
-              <v-col cols="6" md="2">
+              <v-col cols="6" md="3">
                 <v-text-field
                   v-model="filters.endDate"
                   density="compact"
@@ -200,8 +191,9 @@
                 <td>
                   <v-btn
                     :to="{
-                      name: 'commander-cards',
+                      name: 'commander-metagame',
                       params: { commanderKey: commander.commanderKey },
+                      query: { inclusions: 'all' },
                     }"
                     variant="text"
                   >

@@ -626,7 +626,7 @@
             </v-btn>
             <v-btn
               aria-label="Close ingestion report"
-              color="secondary"
+              color="primary"
               icon
               title="Close report"
               variant="text"

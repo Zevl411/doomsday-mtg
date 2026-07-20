@@ -113,7 +113,6 @@ export interface DataHealthFilters {
   sampleStatus?: DeckComparisonSampleStatus
   pairedOnly?: boolean
   provider?: 'topdeck' | 'edhtop16'
-  regionKey?: string
   startDate?: string
   endDate?: string
   readinessLimit?: number

@@ -29,7 +29,7 @@
         variant="outlined"
       >
         <span class="selected-card-chip__label">{{
-          getCompactCardName(card.name)
+          selectedCardLabel(card)
         }}</span>
         <button
           :aria-label="`Clear ${card.name}`"
@@ -294,6 +294,16 @@ watch(
   },
 )
 
+watch(
+  () => displayedSelectedCards.value.map((card) => card.id).join(','),
+  () => {
+    if (!hasSelectedCards.value || !query.value) return
+    suppressNextSearch = true
+    query.value = ''
+  },
+  { immediate: true },
+)
+
 // onUnmounted() runs cleanup when Vue removes this component from the page.
 onMounted(() => {
   document.addEventListener('pointerdown', closeResultsWhenClickingOutside)
@@ -307,6 +317,12 @@ onUnmounted(() => {
 
 function isCardSelected(card: ScryfallCard): boolean {
   return selectedCardIdSet.value.has(card.id)
+}
+
+function selectedCardLabel(card: ScryfallCard): string {
+  return props.commanderOnly
+    ? getCompactCardName(card.name)
+    : card.name.trim()
 }
 
 function selectCard(card: ScryfallCard) {

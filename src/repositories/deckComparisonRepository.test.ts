@@ -55,14 +55,14 @@ describe('deck comparison repository validation', () => {
     await expect(deckComparisonRepository.compare(
       'kinnan',
       ['oracle:a', 'oracle:a'],
-      { regionKey: 'country:US', maximumStanding: 16 },
+      { maximumStanding: 16 },
     )).resolves.toEqual({ inclusion: [], similarities: [] })
     expect(mocks.rpc).toHaveBeenCalledWith(
       'get_similar_tournament_decks',
       expect.objectContaining({
         p_commander_key: 'kinnan',
         p_card_keys: ['oracle:a'],
-        p_region_key: 'country:US',
+        p_region_key: null,
         p_maximum_standing: 16,
         p_similarity_limit: 20,
       }),

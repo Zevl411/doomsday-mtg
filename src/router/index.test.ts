@@ -14,6 +14,8 @@ describe('router', () => {
 
   it('resolves the deck-library route', () => {
     expect(router.resolve('/decks').name).toBe('deck-library')
+    expect(router.resolve('/decks/public').name).toBe('public-decks')
+    expect(router.resolve('/decks/shared/deck-1').name).toBe('shared-deck')
     expect(router.resolve('/decks/deck-1/compare').name)
       .toBe('deck-comparison')
   })
@@ -32,8 +34,13 @@ describe('router', () => {
     expect(metagame.name).toBe('metagame')
     expect(metagame.href).toContain('#/metagame')
     expect(router.resolve('/commanders/kinnan').name).toBe('commander-metagame')
+    expect(router.resolve('/commanders/kinnan/cards').name).toBe('not-found')
+    expect(router.resolve('/associations').name).toBe('card-associations')
     expect(router.resolve('/tournaments').name).toBe('tournaments')
     expect(router.resolve('/tournaments/event-id').name).toBe('tournament-detail')
+    expect(router.resolve('/tournament-decks/deck-id').name)
+      .toBe('tournament-deck-detail')
+    expect(router.resolve('/regions').name).toBe('regions')
     expect(router.resolve('/admin/ingestion').name).toBe('admin-ingestion')
     const dataHealth = router.resolve('/admin/data-health')
     expect(dataHealth.name).toBe('admin-data-health')

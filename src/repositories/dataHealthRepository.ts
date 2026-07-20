@@ -40,7 +40,7 @@ export const dataHealthRepository = {
           p_sample_status: filters.sampleStatus ?? null,
           p_paired_only: filters.pairedOnly ?? false,
           p_provider: filters.provider ?? null,
-          p_region_key: filters.regionKey ?? null,
+          p_region_key: null,
           p_start_date: filters.startDate ?? null,
           p_end_date: filters.endDate ?? null,
           p_limit: boundedLimit(filters.readinessLimit, 100),
@@ -82,10 +82,7 @@ export const dataHealthRepository = {
 
   async runSmokeTest(
     commander: CommanderReadiness,
-    filters: Pick<
-      DataHealthFilters,
-      'startDate' | 'endDate' | 'regionKey'
-    > = {},
+    filters: Pick<DataHealthFilters, 'startDate' | 'endDate'> = {},
   ): Promise<DataHealthSmokeTest> {
     requireSupabase()
     const common = {
@@ -96,7 +93,7 @@ export const dataHealthRepository = {
       p_maximum_standing: null,
       p_country_code: null,
       p_state_region: null,
-      p_region_key: filters.regionKey ?? null,
+      p_region_key: null,
       p_is_online: null,
       p_minimum_complete_decks: 1,
     }
@@ -109,7 +106,7 @@ export const dataHealthRepository = {
           minimum_players: 0,
           country_filter: null,
           state_filter: null,
-          region_filter: filters.regionKey ?? null,
+          region_filter: null,
           online_filter: null,
           maximum_standing: null,
           minimum_complete_decks: 1,

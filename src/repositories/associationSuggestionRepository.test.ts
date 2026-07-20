@@ -65,7 +65,6 @@ describe('association suggestion repository validation', () => {
       {
         startDate: '2025-01-01',
         endDate: '2025-12-31',
-        regionKey: 'country:US',
         minimumTournamentSize: 32,
         maximumStanding: 16,
         minimumSampleSize: 30,
@@ -83,7 +82,7 @@ describe('association suggestion repository validation', () => {
         p_source_oracle_ids: [sourceId],
         p_start_date: '2025-01-01',
         p_end_date: '2025-12-31',
-        p_region_key: 'country:US',
+        p_region_key: null,
         p_minimum_tournament_size: 32,
         p_maximum_standing: 16,
         p_minimum_sample_size: 30,

@@ -114,6 +114,48 @@ export async function getCardsByExactNames(
   return cards
 }
 
+/** Resolves Oracle identities in collection-sized batches for display data. */
+export async function getCardsByOracleIds(
+  oracleIds: string[],
+  signal?: AbortSignal,
+): Promise<ScryfallCard[]> {
+  const uniqueIds = [...new Set(
+    oracleIds.map((id) => id.trim().toLowerCase()).filter(Boolean),
+  )]
+  const cards: ScryfallCard[] = []
+
+  for (
+    let index = 0;
+    index < uniqueIds.length;
+    index += COLLECTION_BATCH_SIZE
+  ) {
+    await waitForLookupTurn(signal)
+    const response = await fetchFromScryfall(
+      `${BASE_URL}/cards/collection`,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identifiers: uniqueIds
+            .slice(index, index + COLLECTION_BATCH_SIZE)
+            .map((oracleId) => ({ oracle_id: oracleId })),
+        }),
+        signal,
+      },
+      signal,
+    )
+    if (!response.ok) {
+      throw createScryfallResponseError('Oracle collection lookup', response)
+    }
+    cards.push(...await readCardList(response, 'Oracle collection lookup'))
+  }
+
+  return cards
+}
+
 function getCollectionLookupName(name: string): string {
   // Scryfall collection identifiers reliably accept the front face even when
   // a source export supplied the complete modal double-faced name.

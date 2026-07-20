@@ -65,11 +65,6 @@ const router = createRouter({
       component: () => import('../views/CommanderMetagameView.vue'),
     },
     {
-      path: '/commanders/:commanderKey/cards',
-      name: 'commander-cards',
-      component: () => import('../views/CommanderCardsView.vue'),
-    },
-    {
       path: '/associations',
       name: 'card-associations',
       component: () => import('../views/CardAssociationsView.vue'),

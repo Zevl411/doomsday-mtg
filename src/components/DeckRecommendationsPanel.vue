@@ -161,10 +161,13 @@
         </div>
         <v-btn
           aria-label="Close recommendation details"
-          icon="mdi-close"
+          color="primary"
+          icon
           variant="text"
           @click="closeDetails"
-        />
+        >
+          <DeckActionIcon compact name="close" />
+        </v-btn>
       </v-card-title>
       <v-divider />
       <v-card-text>
@@ -412,6 +415,7 @@ import {
   type ComponentPublicInstance,
 } from 'vue'
 import { getCardsByExactNames } from '../api/scryfall'
+import DeckActionIcon from './DeckActionIcon.vue'
 import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
 import type {
   AssociationBasedSuggestion,
