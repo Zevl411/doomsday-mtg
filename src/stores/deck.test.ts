@@ -134,6 +134,21 @@ describe('deck library store', () => {
     expect(store.deck.id).toBe(second.id)
   })
 
+  it('changes visibility for multiple selected decks in one operation', () => {
+    const store = useDeckStore()
+    const first = store.createDeck('First')
+    const second = store.createDeck('Second')
+    const third = store.createDeck('Third')
+
+    expect(store.updateDeckVisibilities(
+      [first.id, third.id],
+      'unlisted',
+    )).toBe(2)
+    expect(first.visibility).toBe('unlisted')
+    expect(second.visibility).toBe('public')
+    expect(third.visibility).toBe('unlisted')
+  })
+
   it('editor actions affect only the active deck', () => {
     const store = useDeckStore()
     const first = store.createDeck('First')

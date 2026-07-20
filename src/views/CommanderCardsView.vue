@@ -4,7 +4,7 @@
       <div>
         <h1 class="text-h4 font-weight-bold">Commander card inclusion</h1>
         <p class="text-medium-emphasis">
-          Presence across complete normalized tournament Decks. Frequency is
+          Presence across complete tournament Decks. Frequency is
           descriptive and does not imply card quality.
         </p>
       </div>
@@ -82,7 +82,7 @@
     <v-progress-linear v-if="loading" indeterminate />
     <v-alert v-else-if="errorMessage" type="error" variant="tonal">{{ errorMessage }}</v-alert>
     <v-card v-else-if="!cards.length" border class="pa-8 text-center">
-      No complete normalized Decks match these filters. Import card-level
+      No complete tournament Decks match these filters. Import card-level
       decklists or widen the sample.
     </v-card>
     <template v-else>

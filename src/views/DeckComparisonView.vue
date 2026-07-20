@@ -15,7 +15,10 @@
             {{ commanderName || 'No Commander selected' }}
           </p>
         </div>
-        <v-btn :to="{ name: 'deck-builder' }" variant="text">
+        <v-btn
+          :to="{ name: 'deck-builder', params: { deckId: deck.id } }"
+          variant="text"
+        >
           Back to Deck
         </v-btn>
       </div>
@@ -91,15 +94,15 @@
             Tournament inclusion does not prove card quality.
           </v-alert>
 
-          <!-- A missing normalized sample is unavailable data, not a 0% result. -->
+          <!-- A missing comparison sample is unavailable data, not a 0% result. -->
           <v-card
             v-if="!hasEligibleSample"
             border
             class="pa-6 text-center"
           >
-            <v-card-title>No normalized comparison data</v-card-title>
+            <v-card-title>No comparison data</v-card-title>
             <v-card-text>
-              No normalized tournament card data matches this Commander and
+              No complete tournament card data matches this Commander and
               filter set. Tournament metadata alone cannot calculate card
               overlap.
             </v-card-text>

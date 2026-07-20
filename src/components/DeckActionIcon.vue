@@ -16,6 +16,7 @@ defineProps<{
     | 'settings'
     | 'compare'
     | 'copy'
+    | 'duplicate'
     | 'import'
     | 'export'
     | 'decrease'
@@ -31,6 +32,8 @@ const paths = {
     'M4 19h16v2H2V3h2v16Zm3-2H5v-5h2v5Zm4 0H9V7h2v10Zm4 0h-2V9h2v8Zm4 0h-2V4h2v13Z',
   copy:
     'M8 8h11v11H8V8Zm2 2v7h7v-7h-7ZM5 5h10v2H7v8H5V5Z',
+  duplicate:
+    'M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z',
   import:
     'M11 3h2v10l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4L11 13V3ZM4 18h16v3H4v-3Z',
   export:

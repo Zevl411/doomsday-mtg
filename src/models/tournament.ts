@@ -60,6 +60,7 @@ export interface TournamentDeckCard {
   manaValue: number | null
   imageUrl: string
   backImageUrl?: string
+  colorIdentity?: string[]
 }
 
 export interface TournamentEntryDecklist {
@@ -178,7 +179,9 @@ export interface CardInclusionHistoryPoint {
   deckCount: number
   totalEligibleDecks: number
   eventCount: number
+  cardEventCount: number
   inclusionRate: number
+  eventInclusionRate: number
 }
 
 export interface CardInclusionFilters extends MetagameFilters {

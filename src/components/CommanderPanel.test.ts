@@ -65,7 +65,8 @@ describe('CommanderPanel', () => {
     const wrapper = mountPanel()
 
     expect(wrapper.find('[data-test="commander-search"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Sisay, Weatherlight Captain')
+    expect(wrapper.find('.commander-name').exists()).toBe(false)
+    expect(wrapper.find('.commander-type').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Clear commander')
     wrapper.unmount()
   })

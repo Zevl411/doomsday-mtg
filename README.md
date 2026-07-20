@@ -20,10 +20,11 @@ and card-level statistics.
 
 The project has completed its core deck-building functionality and now includes
 private, unlisted, and public deck sharing; customizable deck-builder layouts;
-tournament ingestion from TopDeck and EDHTop16; normalized tournament
+tournament ingestion from TopDeck and EDHTop16; processed tournament
 decklists; regional tracking; and Commander card analytics.
 
-Current focus: card-association analysis and recommendation groundwork.
+Current focus: association-based card suggestions backed by observable
+tournament evidence.
 
 ## Features
 
@@ -47,16 +48,18 @@ Current focus: card-association analysis and recommendation groundwork.
 
 ### Tournament Analytics
 
-- Browse normalized cEDH tournaments
+- Browse cEDH tournaments
 - Explore the Commander metagame
 - Review regional tournament summaries
-- View normalized tournament decklists
+- View tournament decklists
 - Analyze Commander card-inclusion statistics
 - Inspect card-inclusion trends over configurable time buckets
 - View inclusion counts, sample sizes, and event counts directly on charts
 - Filter by date, placement, event size, and region
 - Explore Commander-scoped card support, confidence, and lift
 - Protect association results with configurable sample thresholds
+- Surface absent cards associated with multiple cards in a personal Deck
+- Inspect exact supporting Deck counts, confidence, support, and lift
 - Ingest tournament data from TopDeck and EDHTop16
 
 ### Authentication
@@ -158,7 +161,7 @@ repository path. Use `/` when deploying to a custom domain.
 - [x] Tournament ingestion
 - [x] Commander metagame
 - [x] Regional analytics
-- [x] Tournament deck normalization
+- [x] Tournament deck processing
 - [x] Canonical card identities
 - [x] Card-inclusion analytics
 - [x] Time-bucketed card-inclusion trends
@@ -198,21 +201,25 @@ repository path. Use `/` when deploying to a custom domain.
 ### ✅ v0.4 — Card Association Engine
 
 - [x] Commander-scoped pairwise support, confidence, and lift
-- [x] Complete normalized Deck and Oracle-identity boundaries
+- [x] Complete tournament Deck and Oracle-identity boundaries
 - [x] Date, region, event-size, and placement filters
 - [x] Configurable minimum-sample protection
 - [x] Unnamed connected-group detection groundwork
 - [ ] Archetype clustering
 - [ ] Regional package trends
 
-### v0.5 — Intelligent Recommendations
+### 🚧 v0.5 — Association-Based Card Suggestions
 
-- [ ] Commander-aware recommendations
-- [ ] Package recommendations
-- [ ] Suggested additions
-- [ ] Suggested cuts
-- [ ] Replacement analysis
-- [ ] Confidence scoring
+- [x] Commander-scoped suggestions from personal mainboard associations
+- [x] Multiple supporting-card evidence
+- [x] Exact joint and source Deck counts
+- [x] Existing association sample and threshold filters
+- [x] Runtime-validated batched suggestion responses
+- [x] Explicit non-causal, non-strategic explanations
+- [x] Embedded Deck-builder recommendation evidence and board actions
+- [x] Commander event filtering by up to five Oracle-identified cards
+- [ ] Named package presentation
+- [x] User-controlled suggestion review workflows
 
 ## Inspiration
 

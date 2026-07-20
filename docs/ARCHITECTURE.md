@@ -383,6 +383,71 @@ sample as meaningful.
 
 Cluster groundwork returns unnamed, overlapping groups of highly connected
 Oracle identities from persisted baselines. It intentionally does not assign
-package names, archetypes, or recommendation meaning. Future recommendation
-work can consume the validated statistics and cluster IDs without changing
-the database identity or filtering contracts.
+package names, archetypes, or suggestion meaning. Future association-based
+card-suggestion work can consume the validated statistics and cluster IDs
+without changing the database identity or filtering contracts.
+
+## Association-Based Card Suggestions
+
+v0.5 Phase 1 adds a consumer of the v0.4 statistics; it does not add a competing
+statistics model. A personal Deck supplies its normalized Commander key and
+deduplicated Oracle-backed mainboard identities. No personal Deck ID, user ID,
+private row, description, or complete Deck JSON crosses the Supabase boundary.
+
+```text
+personal Deck in Pinia
+    ↓ Commander key + unique mainboard Oracle IDs only
+one batched suggestion-evidence RPC
+    ↓ existing complete-Deck sample and v0.4 formulas
+runtime-validated evidence rows
+    ↓ pure grouping / threshold / relative ordering service
+absent suggested cards with exact supporting evidence
+    ↓ optional Scryfall display resolution
+DeckRecommendationsPanel in the Deck builder
+    ↓ suggested-card details and explicit board choice
+Commander event list filtered by selected Oracle identities
+```
+
+`get_association_based_card_suggestions` materializes the filtered eligible
+Decks and normalized mainboard cards once. It then calculates the same support,
+confidence, and lift definitions used by `get_commander_card_associations` for
+every requested source Oracle ID. This avoids repeating the complete Commander
+sample scan once per personal Deck card. Candidate rows must pass the existing
+sample, occurrence, confidence, and lift thresholds, plus a configurable count
+of distinct supporting source cards.
+
+The repository validates UUIDs, rates, counts, and count relationships before
+returning evidence. `associationSuggestionService` then:
+
+- removes cards already present in the personal Deck;
+- deduplicates evidence from the same source Oracle identity;
+- requires the configured number of distinct supporting cards;
+- groups evidence by suggested Oracle identity;
+- creates a normalized ordering score from measurable confidence, lift, joint
+  count, and supporting-card evidence within the current response.
+
+That ordering score is not card quality, expected performance, or a Deck score.
+The UI describes why a card appears only through measured observations, such
+as “Among 57 eligible tournament Decks containing Card X, 42 also contained
+this card.” It does not infer strategy, Deck needs, rules-text interactions,
+additions, removals, or performance effects. Scryfall resolution adds optional
+display data only; failed image resolution never removes statistical evidence.
+
+The Deck builder embeds the strongest qualifying results in
+`DeckRecommendationsPanel`; there is no separate suggestion route. Deck
+Statistics is currently rendered below the board workspace so recommendations
+can occupy its previous summary position. The persisted Statistics-placement
+preference remains in the data model for future layouts, but is intentionally
+not connected to this temporary placement.
+
+Selecting a recommendation opens its exact source-card evidence. Adding it
+requires an explicit board choice and uses the existing Deck mutation path.
+The Commander detail route can also filter event Decks by up to five selected
+cards. `get_commander_deck_events_by_cards` matches all requested canonical
+Oracle identities within one complete normalized mainboard; it never admits
+partial or unavailable Decks.
+
+Paired Commanders reuse `normalizeCommanderIdentity`, so reversed partner order
+continues to share one Commander-scoped tournament sample. Guest and
+authenticated Decks both use the same Pinia-owned route flow and their existing
+persistence repositories remain unchanged.

@@ -517,7 +517,9 @@ export function parseCardInclusionHistoryRows(
         'deck_count',
         'total_eligible_decks',
         'event_count',
+        'card_event_count',
         'inclusion_rate',
+        'event_inclusion_rate',
       ])
     ) {
       throw new Error('The card inclusion history response was invalid.')
@@ -527,7 +529,9 @@ export function parseCardInclusionHistoryRows(
       deckCount: Number(row.deck_count),
       totalEligibleDecks: Number(row.total_eligible_decks),
       eventCount: Number(row.event_count),
+      cardEventCount: Number(row.card_event_count),
       inclusionRate: Number(row.inclusion_rate),
+      eventInclusionRate: Number(row.event_inclusion_rate),
     }
   })
 }
@@ -591,6 +595,7 @@ function mapNormalizedDecklist(
     // display field empty rather than issuing another request per card.
     manaCost: '',
     manaValue: card.manaValue ?? null,
+    colorIdentity: card.colorIdentity,
     imageUrl: card.scryfallId
       ? `https://api.scryfall.com/cards/${encodeURIComponent(card.scryfallId)}?format=image&version=normal`
       : '',

@@ -260,6 +260,27 @@ export const useDeckStore = defineStore('deck', {
       return deletedCount
     },
 
+    updateDeckVisibilities(
+      deckIds: string[],
+      visibility: DeckVisibility,
+    ): number {
+      const idsToUpdate = new Set(deckIds)
+      if (idsToUpdate.size === 0) return 0
+
+      const updatedAt = new Date().toISOString()
+      let updatedCount = 0
+      for (const deck of this.library.decks) {
+        if (!idsToUpdate.has(deck.id) || deck.visibility === visibility) {
+          continue
+        }
+        deck.visibility = visibility
+        deck.updatedAt = updatedAt
+        updatedCount += 1
+      }
+      if (updatedCount > 0) this.persistLibrary()
+      return updatedCount
+    },
+
     setCommander(card: ScryfallCard) {
       this.deck.commander = card
       if (

@@ -71,7 +71,17 @@
       </v-sheet>
     </button>
 
-    <v-card-item>
+    <v-card-item class="deck-card-content-header">
+      <span
+        :aria-label="`${visibilityLabel} deck`"
+        class="deck-visibility-icon"
+        role="img"
+        :title="`${visibilityLabel} deck`"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path :d="visibilityIconPath" />
+        </svg>
+      </span>
       <v-card-title>
         <button
           class="deck-card-title-button"
@@ -193,7 +203,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Deck, DeckCard } from '../models/deck'
+import type { Deck, DeckCard, DeckVisibility } from '../models/deck'
 import { getCardArt } from '../utils/cardDisplay'
 import { getTotalDeckCardCount } from '../utils/deckValidation'
 import DeckActionIcon from './DeckActionIcon.vue'
@@ -232,6 +242,22 @@ const partnerImage = computed(() =>
     : undefined,
 )
 const totalCount = computed(() => getTotalDeckCardCount(props.deck))
+const deckVisibility = computed<DeckVisibility>(
+  () => props.deck.visibility ?? 'private',
+)
+const visibilityLabel = computed(() => {
+  const visibility = deckVisibility.value
+  return visibility.charAt(0).toUpperCase() + visibility.slice(1)
+})
+const visibilityIconPath = computed(() => {
+  if (deckVisibility.value === 'public') {
+    return 'M12 5c5.5 0 9.6 4.4 10.8 6.1a1.5 1.5 0 0 1 0 1.8C21.6 14.6 17.5 19 12 19S2.4 14.6 1.2 12.9a1.5 1.5 0 0 1 0-1.8C2.4 9.4 6.5 5 12 5Zm0 2c-4.1 0-7.5 3.1-8.7 5 1.2 1.9 4.6 5 8.7 5s7.5-3.1 8.7-5C19.5 10.1 16.1 7 12 7Zm0 2.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z'
+  }
+  if (deckVisibility.value === 'unlisted') {
+    return 'M12 2a7 7 0 0 1 7 7v7.5l1.6 2.4a1 1 0 0 1-1.4 1.4L16.7 19l-2.1 2.1a1 1 0 0 1-1.4 0L12 19.9l-1.2 1.2a1 1 0 0 1-1.4 0L7.3 19l-2.5 1.3a1 1 0 0 1-1.4-1.4L5 16.5V9a7 7 0 0 1 7-7Zm-2.5 7A1.5 1.5 0 1 0 9.5 12a1.5 1.5 0 0 0 0-3Zm5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z'
+  }
+  return 'M17 10h1a2 2 0 0 1 2 2v9H4v-9a2 2 0 0 1 2-2h1V7a5 5 0 0 1 10 0v3Zm-8 0h6V7a3 3 0 0 0-6 0v3Zm3 3a2 2 0 0 0-1 3.7V19h2v-2.3a2 2 0 0 0-1-3.7Z'
+})
 const updatedLabel = computed(() =>
   new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
@@ -268,6 +294,27 @@ function toggleSelection() {
 .deck-library-card--selected {
   border-color: rgb(var(--v-theme-primary)) !important;
   box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.28);
+}
+
+.deck-card-content-header {
+  padding-right: 52px;
+  position: relative;
+}
+
+.deck-visibility-icon {
+  align-items: center;
+  color: rgb(var(--v-theme-primary));
+  display: inline-flex;
+  justify-content: center;
+  position: absolute;
+  right: 16px;
+  top: 16px;
+}
+
+.deck-visibility-icon svg {
+  fill: currentColor;
+  height: 22px;
+  width: 22px;
 }
 
 .deck-selection-control {

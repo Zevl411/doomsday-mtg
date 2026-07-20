@@ -109,7 +109,7 @@
       <v-col>
         <div class="text-h4 font-weight-bold">Tournament snapshot</div>
         <div class="text-body-2 text-medium-emphasis">
-          Recent normalized cEDH results from TopDeck and EDHTop16.
+          Recent cEDH results from TopDeck and EDHTop16.
         </div>
       </v-col>
       <v-col class="d-flex ga-2 justify-end" cols="auto">
@@ -325,7 +325,7 @@ onMounted(async () => {
 
 function openDeck(deckId: string) {
   if (deckStore.openDeck(deckId)) {
-    void router.push({ name: 'deck-builder' })
+    void router.push({ name: 'deck-builder', params: { deckId } })
   }
 }
 
@@ -333,8 +333,8 @@ function startNewDeck() {
   showCreateDialog.value = true
 }
 
-function openCreatedDeck() {
-  void router.push({ name: 'deck-builder' })
+function openCreatedDeck(deckId: string) {
+  void router.push({ name: 'deck-builder', params: { deckId } })
 }
 
 function compareDeck(deckId: string) {

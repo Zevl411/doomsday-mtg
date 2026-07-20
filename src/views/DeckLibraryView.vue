@@ -18,6 +18,16 @@
         </v-btn>
         <v-btn
           v-if="selectionMode"
+          color="primary"
+          :disabled="selectedDeckIds.size === 0"
+          size="large"
+          variant="tonal"
+          @click="openBulkVisibilityDialog"
+        >
+          Change visibility ({{ selectedDeckIds.size }})
+        </v-btn>
+        <v-btn
+          v-if="selectionMode"
           color="error"
           :disabled="selectedDeckIds.size === 0"
           size="large"
@@ -38,6 +48,7 @@
     </div>
 
     <v-alert
+      v-if="admin.isAdmin"
       class="mb-5"
       :color="sync.syncStatus === 'error' ? 'error' : 'info'"
       variant="tonal"
@@ -170,6 +181,35 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="showBulkVisibilityDialog" max-width="480">
+      <v-card color="surface" rounded="lg">
+        <v-card-title class="px-5 pt-5">
+          Change visibility for {{ selectedDeckIds.size }} decks
+        </v-card-title>
+        <v-card-text class="px-5">
+          <v-select
+            v-model="bulkVisibility"
+            :items="visibilityOptions"
+            label="Visibility"
+            variant="outlined"
+          />
+          <p class="text-caption text-medium-emphasis">
+            This setting will replace the current visibility of every selected
+            deck.
+          </p>
+        </v-card-text>
+        <v-card-actions class="px-5 pb-5">
+          <v-spacer />
+          <v-btn variant="text" @click="showBulkVisibilityDialog = false">
+            Cancel
+          </v-btn>
+          <v-btn color="primary" variant="flat" @click="confirmBulkVisibility">
+            Apply visibility
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </v-container>
 </template>
 
@@ -181,21 +221,34 @@ import DeckCreationDialog from '../components/DeckCreationDialog.vue'
 import { useDeckStore } from '../stores/deck'
 import { useDeckSyncStore } from '../stores/deckSync'
 import { useAuthStore } from '../stores/auth'
+import { useAdminStore } from '../stores/admin'
+import type { DeckVisibility } from '../models/deck'
 
 const deckStore = useDeckStore()
 const sync = useDeckSyncStore()
 const auth = useAuthStore()
+const admin = useAdminStore()
 const router = useRouter()
 const showCreateDialog = ref(false)
 const showNameDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showBulkDeleteDialog = ref(false)
+const showBulkVisibilityDialog = ref(false)
+const bulkVisibility = ref<DeckVisibility>('public')
 const selectionMode = ref(false)
 const selectedDeckIds = ref(new Set<string>())
 const editingDeckId = ref<string | null>(null)
 const deletingDeckId = ref<string | null>(null)
 const deckName = ref('')
 const nameError = ref('')
+const visibilityOptions: Array<{
+  title: string
+  value: DeckVisibility
+}> = [
+  { title: 'Private', value: 'private' },
+  { title: 'Unlisted', value: 'unlisted' },
+  { title: 'Public', value: 'public' },
+]
 const libraryDescription = computed(() =>
   auth.isSignedIn
     ? 'Create and manage decks saved to your account.'
@@ -247,8 +300,8 @@ function toggleDeckSelection(deckId: string) {
   selectedDeckIds.value = nextSelection
 }
 
-function openCreatedDeck() {
-  void router.push({ name: 'deck-builder' })
+function openCreatedDeck(deckId: string) {
+  void router.push({ name: 'deck-builder', params: { deckId } })
 }
 
 function openRenameDialog(deckId: string) {
@@ -276,7 +329,7 @@ function submitName() {
 
 function openDeck(deckId: string) {
   if (deckStore.openDeck(deckId)) {
-    router.push({ name: 'deck-builder' })
+    router.push({ name: 'deck-builder', params: { deckId } })
   }
 }
 
@@ -303,6 +356,27 @@ function confirmDelete() {
 function confirmBulkDelete() {
   deckStore.deleteDecks([...selectedDeckIds.value])
   showBulkDeleteDialog.value = false
+  selectionMode.value = false
+  selectedDeckIds.value = new Set()
+}
+
+function openBulkVisibilityDialog() {
+  const selectedVisibility = selectedDecks.value[0]?.visibility
+  const allMatch = selectedDecks.value.every(
+    (deck) => deck.visibility === selectedVisibility,
+  )
+  bulkVisibility.value = allMatch && selectedVisibility
+    ? selectedVisibility
+    : 'public'
+  showBulkVisibilityDialog.value = true
+}
+
+function confirmBulkVisibility() {
+  deckStore.updateDeckVisibilities(
+    [...selectedDeckIds.value],
+    bulkVisibility.value,
+  )
+  showBulkVisibilityDialog.value = false
   selectionMode.value = false
   selectedDeckIds.value = new Set()
 }

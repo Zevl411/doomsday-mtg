@@ -275,8 +275,8 @@ watch(
 const brandLogoUrl =
   `${import.meta.env.BASE_URL}brand/oracle-wheel-header.png`
 
-function openCreatedDeck() {
-  void router.push({ name: 'deck-builder' })
+function openCreatedDeck(deckId: string) {
+  void router.push({ name: 'deck-builder', params: { deckId } })
 }
 
 function openPreferences() {

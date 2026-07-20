@@ -217,9 +217,9 @@ describe('DeckComparisonView', () => {
     })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('No normalized comparison data')
+    expect(wrapper.text()).toContain('No comparison data')
     expect(wrapper.text()).toContain(
-      'No normalized tournament card data',
+      'No complete tournament card data',
     )
     expect(wrapper.text()).not.toContain('Aggregate overlap')
     expect(wrapper.text()).not.toContain('0.0%')

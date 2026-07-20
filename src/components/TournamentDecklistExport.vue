@@ -1,11 +1,19 @@
 <template>
   <v-btn
+    class="tournament-export-button"
     color="secondary"
-    prepend-icon="mdi-export"
+    :density="compact ? 'compact' : 'default'"
     variant="outlined"
     @click="openDialog"
   >
-    Export Decklist
+    <svg
+      aria-hidden="true"
+      class="export-decklist-icon"
+      viewBox="0 0 24 24"
+    >
+      <path d="M11 16h2V6l3.5 3.5 1.4-1.4L12 2.2 6.1 8.1l1.4 1.4L11 6v10ZM4 18h16v3H4v-3Z" />
+    </svg>
+    Export
   </v-btn>
 
   <v-dialog v-model="showDialog" max-width="760">
@@ -50,6 +58,7 @@ import {
 const props = defineProps<{
   commanders: ExportableTournamentCard[]
   cards: ExportableTournamentCard[]
+  compact?: boolean
 }>()
 
 const showDialog = ref(false)
@@ -78,3 +87,19 @@ async function copyExport() {
   }
 }
 </script>
+
+<style scoped>
+.tournament-export-button {
+  height: 40px;
+  min-height: 40px;
+}
+</style>
+
+<style scoped>
+.export-decklist-icon {
+  fill: currentColor;
+  height: 18px;
+  margin-right: 8px;
+  width: 18px;
+}
+</style>

@@ -106,7 +106,7 @@
       </template>
     </template>
 
-    <v-divider v-if="!searchOnly" />
+    <v-divider v-if="!searchOnly && !displayOnly" />
 
     <template v-if="!searchOnly && displayedCommander">
       <div
@@ -138,14 +138,6 @@
           cover
         />
 
-        <v-card-title class="commander-name px-2 pb-1 pt-3 text-wrap">
-          {{ displayedCommander.name }}
-        </v-card-title>
-        <v-card-subtitle
-          class="commander-type px-2 pb-3 text-caption text-wrap"
-        >
-          {{ displayedCommander.type_line }}
-        </v-card-subtitle>
       </div>
       <template v-if="partnerCommander && !displayOnly">
         <v-divider class="mx-2" />
@@ -172,14 +164,6 @@
             class="commander-image mx-auto mt-3 rounded-lg"
             cover
           />
-          <v-card-title class="commander-name px-2 pb-1 pt-3 text-wrap">
-            {{ partnerCommander.name }}
-          </v-card-title>
-          <v-card-subtitle
-            class="commander-type px-2 pb-3 text-caption text-wrap"
-          >
-            {{ partnerCommander.type_line }}
-          </v-card-subtitle>
         </div>
       </template>
     </template>
@@ -393,6 +377,23 @@ function removeDisplayedCommander() {
 .commander-image {
   max-width: none;
   width: calc(100% - 24px);
+}
+
+.selected-commander-content {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+}
+
+.selected-commander-content .commander-image {
+  aspect-ratio: 0.716;
+  flex: 0 0 auto;
+  height: calc(100% - 32px) !important;
+  margin-top: 0 !important;
+  max-height: none;
+  max-width: calc(100% - 24px);
+  width: auto !important;
 }
 
 .commander-panel--compact .commander-image {

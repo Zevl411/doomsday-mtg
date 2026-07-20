@@ -2,7 +2,7 @@
   <v-container class="pa-0" fluid>
     <h1 class="mb-1 text-h4 font-weight-bold">Tournaments</h1>
     <p class="mb-6 text-medium-emphasis">
-      Normalized cEDH results with links to their original source.
+      cEDH results with links to their original source.
     </p>
     <v-card class="mb-5 pa-3" border>
       <v-row align="center" density="comfortable">

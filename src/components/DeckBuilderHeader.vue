@@ -310,7 +310,13 @@ function copyDeck() {
     name: copyName.value,
     visibility: copyVisibility.value,
   })
-  if (copy) showCopy.value = false
+  if (copy) {
+    showCopy.value = false
+    void router.push({
+      name: 'deck-builder',
+      params: { deckId: copy.id },
+    })
+  }
 }
 </script>
 

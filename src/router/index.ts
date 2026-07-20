@@ -42,13 +42,17 @@ const router = createRouter({
     },
     {
       path: '/deck-builder',
-      name: 'deck-builder',
-      component: () => import('../views/DeckBuilderView.vue'),
+      redirect: { name: 'deck-library' },
     },
     {
       path: '/decks/:deckId/compare',
       name: 'deck-comparison',
       component: () => import('../views/DeckComparisonView.vue'),
+    },
+    {
+      path: '/decks/:deckId',
+      name: 'deck-builder',
+      component: () => import('../views/DeckBuilderView.vue'),
     },
     {
       path: '/metagame',

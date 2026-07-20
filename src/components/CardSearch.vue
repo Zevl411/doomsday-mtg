@@ -11,29 +11,31 @@
     color="primary"
     :density="compact ? 'compact' : 'default'"
     :hide-details="compact"
-    :label="selectedCard ? undefined : 'Search for a Magic card'"
-    :placeholder="selectedCard ? undefined : 'Card name'"
+    :label="hasSelectedCards ? undefined : 'Search for a Magic card'"
+    :placeholder="hasSelectedCards ? undefined : 'Card name'"
     type="search"
     variant="outlined"
     :clearable="showClearButton"
     @click:clear="emit('cleared')"
     @focus="openResults"
   >
-    <template v-if="selectedCard" #prepend-inner>
+    <template v-if="hasSelectedCards" #prepend-inner>
       <v-chip
+        v-for="card in displayedSelectedCards"
+        :key="card.id"
         class="selected-card-chip"
         color="primary"
         size="small"
         variant="outlined"
       >
         <span class="selected-card-chip__label">{{
-          getCompactCardName(selectedCard.name)
+          getCompactCardName(card.name)
         }}</span>
         <button
-          :aria-label="`Clear ${selectedCard.name}`"
+          :aria-label="`Clear ${card.name}`"
           class="selected-card-chip__close"
           type="button"
-          @click.stop="clearSelectedCard"
+          @click.stop="removeSelectedCard(card)"
         >
           ×
         </button>
@@ -152,6 +154,7 @@ const props = withDefaults(
     retainSelectedName?: boolean
     resultFilter?: (card: ScryfallCard) => boolean
     selectedCard?: ScryfallCard | null
+    selectedCards?: ScryfallCard[]
   }>(),
   {
     commanderOnly: false,
@@ -165,6 +168,7 @@ const props = withDefaults(
     retainSelectedName: false,
     resultFilter: undefined,
     selectedCard: null,
+    selectedCards: () => [],
   },
 )
 
@@ -175,6 +179,7 @@ const emit = defineEmits<{
   'card-selected': [card: ScryfallCard]
   'update:modelValue': [value: string]
   cleared: []
+  'card-removed': [card: ScryfallCard]
 }>()
 
 // useId() gives each CardSearch instance its own accessible input and label ID.
@@ -190,8 +195,16 @@ const isLoading = ref(false)
 const resultsVisible = ref(false)
 // A Set provides constant-time selection checks for every rendered result.
 const selectedCardIdSet = computed(() => new Set(props.selectedCardIds))
+const displayedSelectedCards = computed(() =>
+  props.selectedCards.length
+    ? props.selectedCards
+    : props.selectedCard
+      ? [props.selectedCard]
+      : [],
+)
+const hasSelectedCards = computed(() => displayedSelectedCards.value.length > 0)
 const showClearButton = computed(
-  () => !props.commanderOnly && !props.selectedCard,
+  () => !props.commanderOnly && !hasSelectedCards.value,
 )
 let searchTimer: number | undefined
 let suppressNextSearch = false
@@ -307,9 +320,12 @@ function selectCard(card: ScryfallCard) {
   }
 }
 
-function clearSelectedCard() {
-  query.value = ''
-  emit('cleared')
+function removeSelectedCard(card: ScryfallCard) {
+  if (props.selectedCards.length) emit('card-removed', card)
+  else {
+    query.value = ''
+    emit('cleared')
+  }
 }
 
 function closeResultsWhenClickingOutside(event: PointerEvent) {
@@ -372,6 +388,12 @@ function getFallbackColorIdentity(searchFilter: string): string[] | undefined {
 
 .selected-card-chip {
   max-width: min(240px, 40vw);
+}
+
+.card-search :deep(.v-field__prepend-inner) {
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
 }
 
 .card-result-name {

@@ -19,7 +19,7 @@
           </v-btn>
           <v-btn
             color="secondary"
-            :to="{ name: 'deck-builder' }"
+            :to="{ name: 'deck-library' }"
             variant="outlined"
           >
             Open Deck Builder

@@ -52,12 +52,15 @@ onMounted(async () => {
 })
 function copyDeck() {
   if (!deck.value) return
-  store.copyExternalDeck(
+  const copy = store.copyExternalDeck(
     deck.value,
     `${deck.value.name} (copied from ${deck.value.creatorUsername ?? 'Unknown'})`,
     'unlisted',
     auth.username,
   )
-  void router.push({ name: 'deck-builder' })
+  void router.push({
+    name: 'deck-builder',
+    params: { deckId: copy.id },
+  })
 }
 </script>

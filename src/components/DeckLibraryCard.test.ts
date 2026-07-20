@@ -34,6 +34,23 @@ describe('DeckLibraryCard', () => {
     expect(wrapper.text()).toContain('4 cards including commander')
   })
 
+  it.each([
+    ['public', 'Public deck'],
+    ['unlisted', 'Unlisted deck'],
+    ['private', 'Private deck'],
+  ] as const)('shows the %s visibility icon', (visibility, label) => {
+    const deck = createEmptyDeck(`${visibility} deck`)
+    deck.visibility = visibility
+    const wrapper = mount(DeckLibraryCard, {
+      props: { deck },
+      global: { plugins: [vuetify] },
+    })
+
+    const icon = wrapper.get('.deck-visibility-icon')
+    expect(icon.attributes('aria-label')).toBe(label)
+    expect(icon.get('path').attributes('d')).toBeTruthy()
+  })
+
   it('emits management intentions without mutating the deck', async () => {
     const deck = createEmptyDeck('Actions')
     const wrapper = mount(DeckLibraryCard, {

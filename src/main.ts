@@ -10,6 +10,7 @@ import vuetify from './plugins/vuetify'
 import router from './router'
 import { useDeckStore } from './stores/deck'
 import { useAuthStore } from './stores/auth'
+import { useAdminStore } from './stores/admin'
 import { useDeckSyncStore } from './stores/deckSync'
 import { useUserPreferencesStore } from './stores/userPreferences'
 
@@ -21,11 +22,13 @@ document.title = `${appConfig.name} — ${appConfig.tagline}`
 // Guests restore one browser draft; signed-in users load their Supabase decks.
 const deckStore = useDeckStore(pinia)
 const authStore = useAuthStore(pinia)
+const adminStore = useAdminStore(pinia)
 const syncStore = useDeckSyncStore(pinia)
 const preferencesStore = useUserPreferencesStore(pinia)
 
 // Auth changes select either the guest draft or the authenticated cloud library.
 await authStore.initialize()
+await adminStore.initialize(authStore.user?.id ?? null)
 await preferencesStore.initialize(authStore.user?.id ?? null)
 await syncStore.handleUser(authStore.user?.id ?? null)
 
@@ -34,6 +37,7 @@ authStore.$subscribe((_mutation, state) => {
   const currentUserId = state.user?.id ?? null
   if (currentUserId !== previousUserId) {
     previousUserId = currentUserId
+    void adminStore.initialize(currentUserId)
     void preferencesStore.initialize(currentUserId)
     void syncStore.handleUser(currentUserId)
   }

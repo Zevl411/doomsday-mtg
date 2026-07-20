@@ -11,7 +11,7 @@
         <div>
           <h1 class="text-h4 font-weight-bold">Admin Panel</h1>
           <p class="text-medium-emphasis">
-            Monitor normalized tournament data and run provider ingestion.
+            Monitor processed tournament data and run provider ingestion.
           </p>
         </div>
         <v-btn
@@ -66,7 +66,7 @@
         variant="flat"
       >
         <v-card-item>
-          <v-card-title>Normalized Deck quality coverage</v-card-title>
+          <v-card-title>Deck data quality coverage</v-card-title>
           <v-card-subtitle>
             Completeness by provider, event region, and event month
           </v-card-subtitle>
@@ -106,7 +106,7 @@
             <v-card-item>
               <v-card-title>Tournament ingestion</v-card-title>
               <v-card-subtitle>
-                Fetch and normalize provider tournament records
+                Fetch and process provider tournament records
               </v-card-subtitle>
             </v-card-item>
             <v-card-text>
@@ -537,7 +537,7 @@
         </v-card-item>
         <v-card-text>
           <v-alert class="mb-4" type="warning" variant="tonal">
-            This removes tournament jobs, events, entries, normalized tournament
+            This removes tournament jobs, events, entries, processed tournament
             Decks, tournament Deck cards, and the canonical card cache. User
             accounts and saved user Decks are preserved.
           </v-alert>
@@ -554,7 +554,7 @@
           <v-alert v-if="resetReport" class="mt-4" type="success" variant="tonal">
             Removed {{ resetReport.tournamentsDeleted }} tournaments,
             {{ resetReport.entriesDeleted }} entries,
-            {{ resetReport.normalizedDecksDeleted }} normalized Decks,
+            {{ resetReport.normalizedDecksDeleted }} processed Decks,
             {{ resetReport.normalizedCardsDeleted }} Deck cards,
             {{ resetReport.canonicalCardsDeleted }} canonical cards,
             {{ resetReport.canonicalAliasesDeleted }} card aliases, and
@@ -568,7 +568,7 @@
           <v-card-title>Delete matching tournament data?</v-card-title>
           <v-card-text>
             This permanently removes matching TopDeck events, their entries,
-            and normalized tournament Decks. Run the preview first and review
+            and processed tournament Decks. Run the preview first and review
             every matching title.
           </v-card-text>
           <v-card-actions>
@@ -767,7 +767,7 @@ const metricCards = computed(() => [
   {
     label: 'Tournaments',
     value: metrics.value?.tournamentCount.toLocaleString() ?? '0',
-    detail: 'Normalized tournament records',
+    detail: 'Processed tournament records',
   },
   {
     label: 'Entries',
@@ -819,7 +819,7 @@ const metricCards = computed(() => [
     detail: 'Explicit provider identities',
   },
   {
-    label: 'Normalized Decks',
+    label: 'Processed Decks',
     value: metrics.value?.normalizedDeckCount.toLocaleString() ?? '0',
     detail: `${metrics.value?.completeDeckCount ?? 0} complete · ${metrics.value?.partialDeckCount ?? 0} partial`,
   },
@@ -1069,7 +1069,7 @@ async function ingest() {
           excludeCasualEvents: excludeCasualEvents.value,
         })
         normalizationMessage.value =
-          'Tournament metadata imported. Card-level Deck normalization is queued.'
+          'Tournament metadata imported. Card-level Deck processing is queued.'
       }
       tournamentRepository.clearCache()
       await loadMetrics()

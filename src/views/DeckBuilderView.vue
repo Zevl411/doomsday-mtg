@@ -1,12 +1,13 @@
 <template>
   <div
-    v-if="deckStore.hasActiveDeck"
+    v-if="routeDeckReady && deckStore.hasActiveDeck"
     class="deck-builder-page"
     :class="{
       'deck-builder-page--search-left':
         preferencesStore.values.deckBuilderSearchSide === 'left',
-      'deck-builder-page--statistics-below':
-        preferencesStore.values.deckStatisticsPosition === 'below',
+      // The preference remains persisted for a future layout pass. For now,
+      // statistics always use the below-boards slot.
+      'deck-builder-page--statistics-below': true,
     }"
   >
   <v-row align="start">
@@ -31,6 +32,7 @@
     <div
       class="workspace-commander d-flex"
       :class="{ 'workspace-commander--paired': showPartnerPanel }"
+      :style="commanderPanelStyle"
     >
       <div class="workspace-commander-slot">
         <CommanderPanel
@@ -48,11 +50,18 @@
     </div>
 
     <div class="workspace-statistics d-flex">
-      <DeckStatisticsPanel />
+      <DeckRecommendationsPanel
+        @add="addDeckCard"
+        @content-resized="recommendationContentHeight = $event"
+      />
     </div>
 
     <div class="workspace-deck">
       <DeckPanel />
+    </div>
+
+    <div class="workspace-statistics-below d-flex">
+      <DeckStatisticsPanel />
     </div>
 
     <div class="workspace-preview">
@@ -115,12 +124,14 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import CardPreview from '../components/CardPreview.vue'
 import CommanderPanel from '../components/CommanderPanel.vue'
 import DeckBuilderHeader from '../components/DeckBuilderHeader.vue'
 import DeckCardSearch from '../components/DeckCardSearch.vue'
 import DeckImportExport from '../components/DeckImportExport.vue'
 import DeckPanel from '../components/DeckPanel.vue'
+import DeckRecommendationsPanel from '../components/DeckRecommendationsPanel.vue'
 import DeckStatisticsPanel from '../components/DeckStatisticsPanel.vue'
 import { useDeckStore } from '../stores/deck'
 import { useUserPreferencesStore } from '../stores/userPreferences'
@@ -130,6 +141,9 @@ import { canHavePartner } from '../utils/commanderPairing'
 
 const deckStore = useDeckStore()
 const preferencesStore = useUserPreferencesStore()
+const route = useRoute()
+const router = useRouter()
+const routeDeckReady = ref(false)
 const showPartnerPanel = computed(() =>
   Boolean(
     deckStore.deck.commander
@@ -137,6 +151,23 @@ const showPartnerPanel = computed(() =>
   ),
 )
 const importExport = ref<InstanceType<typeof DeckImportExport> | null>(null)
+const recommendationContentHeight = ref(0)
+const commanderPanelStyle = computed(() =>
+  recommendationContentHeight.value > 0
+    ? { height: `${recommendationContentHeight.value}px` }
+    : undefined,
+)
+watch(
+  () => route.params.deckId,
+  (deckId) => {
+    routeDeckReady.value = typeof deckId === 'string'
+      && deckStore.openDeck(deckId)
+    if (!routeDeckReady.value) {
+      void router.replace({ name: 'deck-library' })
+    }
+  },
+  { immediate: true },
+)
 watch(
   () => deckStore.deck.id,
   () => {
@@ -219,11 +250,8 @@ function closeIllegalCardDialog() {
   gap: 16px;
 }
 
-.deck-builder-page--statistics-below .workspace-commander--paired {
-  flex-direction: row;
-}
-
 .workspace-commander {
+  align-self: end;
   position: relative;
   z-index: 40;
 }
@@ -246,10 +274,6 @@ function closeIllegalCardDialog() {
     grid-column: 2;
     grid-row: 1;
     min-width: 0;
-  }
-
-  .workspace-commander--paired {
-    height: 530px;
   }
 
   .workspace-commander--paired .workspace-commander-slot {
@@ -302,23 +326,24 @@ function closeIllegalCardDialog() {
   }
 
   .deck-builder-page--statistics-below .workspace-statistics {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .workspace-statistics-below {
     grid-column: 2 / 4;
     grid-row: 3;
-  }
-
-  .deck-builder-page--statistics-below .workspace-commander--paired {
-    align-self: start;
-    flex-direction: row;
-    grid-column: 2 / 4;
-    height: calc((530px - 16px) / 2);
-    max-width: calc(66.6667% + 5.333px);
+    min-width: 0;
   }
 
   .deck-builder-page--search-left.deck-builder-page--statistics-below
-    .workspace-statistics,
-  .deck-builder-page--search-left.deck-builder-page--statistics-below
-    .workspace-commander--paired {
+    .workspace-statistics-below {
     grid-column: 1 / 3;
+  }
+
+  .deck-builder-page--search-left.deck-builder-page--statistics-below
+    .workspace-statistics {
+    grid-column: 2;
   }
 }
 
@@ -334,7 +359,7 @@ function closeIllegalCardDialog() {
     order: 2;
   }
 
-  .deck-builder-page--statistics-below .workspace-statistics {
+  .workspace-statistics-below {
     order: 3;
   }
 

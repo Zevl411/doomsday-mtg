@@ -50,14 +50,18 @@ describe('tournamentRepository', () => {
       deck_count: 3,
       total_eligible_decks: 5,
       event_count: 2,
+      card_event_count: 2,
       inclusion_rate: 0.6,
+      event_inclusion_rate: 1,
     }]
     expect(parseCardInclusionHistoryRows(valid)[0]).toEqual({
       periodStart: '2026-07-06',
       deckCount: 3,
       totalEligibleDecks: 5,
       eventCount: 2,
+      cardEventCount: 2,
       inclusionRate: 0.6,
+      eventInclusionRate: 1,
     })
     expect(() => parseCardInclusionHistoryRows([{
       ...valid[0],

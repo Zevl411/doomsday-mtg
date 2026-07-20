@@ -524,7 +524,13 @@ async function resolveCandidates(
       : []
     for (const name of names) {
       const key = normalizeCardKey(name)
-      const card = cards.find((candidate) => getLookupNames(candidate).has(key))
+      const frontFaceKey = normalizeCardKey(
+        name.split('//')[0]?.trim() ?? name,
+      )
+      const card = cards.find((candidate) => {
+        const lookupNames = getLookupNames(candidate)
+        return lookupNames.has(key) || lookupNames.has(frontFaceKey)
+      })
       cache.set(key, card ?? null)
     }
 
@@ -537,7 +543,9 @@ async function resolveCandidates(
       // guidance when a batch contains several unusual flavor names.
       await new Promise((resolve) => setTimeout(resolve, 110))
       const response = await fetchWithRetry(
-        `${SCRYFALL_NAMED_URL}?exact=${encodeURIComponent(name.trim())}`,
+        `${SCRYFALL_NAMED_URL}?exact=${encodeURIComponent(
+          name.split('//')[0]?.trim() ?? name.trim(),
+        )}`,
         {
           headers: {
             Accept: 'application/json',

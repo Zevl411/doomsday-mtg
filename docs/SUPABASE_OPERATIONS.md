@@ -242,3 +242,91 @@ Commander with and without date and region filters. The plan should use
 cross-join every card pair. Refresh persisted baselines separately from browser
 traffic. Never present support, confidence, lift, or connected groups as proof
 of causation or as recommendations.
+
+## Association-based card suggestion deployment
+
+Apply `202607190001_add_association_based_suggestions.sql` after the v0.4 card
+association migration. It adds one read-only batched RPC and no new writable
+browser table:
+
+```sql
+select routine_name
+from information_schema.routines
+where routine_schema = 'public'
+  and routine_name = 'get_association_based_card_suggestions';
+
+select has_function_privilege(
+  'anon',
+  'public.get_association_based_card_suggestions(text,uuid[],date,date,text,integer,integer,integer,integer,numeric,numeric,integer,integer)',
+  'execute'
+);
+```
+
+The privilege query must be true. Smoke-test using Oracle IDs from one personal
+Deck without sending its Deck ID or JSON:
+
+```sql
+select *
+from public.get_association_based_card_suggestions(
+  p_commander_key := 'kinnan, bonder prodigy',
+  p_source_oracle_ids := array[
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000002'::uuid
+  ],
+  p_minimum_sample_size := 20,
+  p_minimum_occurrence_count := 3,
+  p_minimum_confidence := 0.05,
+  p_minimum_lift := 1,
+  p_minimum_supporting_cards := 2,
+  p_limit := 30
+);
+```
+
+Replace both UUIDs with canonical Oracle IDs in the selected Deck. Verify:
+
+- every source identity belongs to the supplied array;
+- no suggested identity belongs to that array;
+- every suggested identity has the configured number of distinct sources;
+- `joint_deck_count <= source_deck_count <= sample_size`;
+- support, confidence, and lift match the v0.4 formulas;
+- only complete normalized tournament mainboards enter the sample.
+
+Run the database contract test:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f supabase/tests/association_suggestions.sql
+```
+
+Use `EXPLAIN (ANALYZE, BUFFERS)` with a representative 100-card source array.
+The eligible and card CTEs should each be materialized once and use the v0.4
+partial covering indexes. Returned rows are bounded by suggested candidates,
+not by the raw pair count. The UI must present this output only as observed
+tournament association evidence.
+
+## Commander event card-filter deployment
+
+Apply `202607190002_add_commander_deck_card_filter.sql` after the association
+suggestion migration. The read-only
+`get_commander_deck_events_by_cards(text,uuid[],integer)` RPC accepts at most
+five Oracle identities from the UI and returns bounded event Deck rows that
+contain every requested identity.
+
+Verify the RPC with canonical Oracle IDs from a known complete Deck:
+
+```sql
+select *
+from public.get_commander_deck_events_by_cards(
+  p_commander_key := 'kinnan, bonder prodigy',
+  p_oracle_ids := array[
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000002'::uuid
+  ],
+  p_limit := 100
+);
+```
+
+Confirm every returned row uses `parsing_status = 'complete'`, the matched
+identities occur in the same normalized mainboard, and the plan uses the
+complete-Deck and mainboard association indexes. Empty identity arrays must
+return no rows.

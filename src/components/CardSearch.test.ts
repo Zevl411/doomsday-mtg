@@ -32,6 +32,7 @@ function mountSearch(
     retainSelectedName?: boolean
     resultFilter?: (card: ScryfallCard) => boolean
     selectedCard?: ScryfallCard | null
+    selectedCards?: ScryfallCard[]
   } = {},
 ) {
   return mount(CardSearch, {
@@ -232,6 +233,20 @@ describe('CardSearch', () => {
     await closeButton.trigger('click')
 
     expect(wrapper.emitted('cleared')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('renders multiple selected cards as removable input chips', async () => {
+    const secondCard = { ...card, id: 'second-printing', name: 'Other Card' }
+    const wrapper = mountSearch({ selectedCards: [card, secondCard] })
+
+    expect(wrapper.findAll('.selected-card-chip')).toHaveLength(2)
+    expect(wrapper.find('input').attributes('placeholder')).toBeUndefined()
+    await wrapper
+      .findAll('.selected-card-chip__close')[1]
+      .trigger('click')
+
+    expect(wrapper.emitted('card-removed')?.[0]).toEqual([secondCard])
     wrapper.unmount()
   })
 

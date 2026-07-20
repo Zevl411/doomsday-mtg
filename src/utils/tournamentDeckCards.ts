@@ -43,9 +43,13 @@ export function applyScryfallCardDetails(
     const resolved = details.get(card.name.trim().toLowerCase())
     return {
       ...card,
-      typeLine: resolved?.type_line ?? card.typeLine,
+      typeLine:
+        resolved?.card_faces?.[0]?.type_line ??
+        resolved?.type_line ??
+        card.typeLine,
       manaCost: resolved?.mana_cost ?? card.manaCost,
       manaValue: resolved?.cmc ?? card.manaValue,
+      colorIdentity: resolved?.color_identity ?? card.colorIdentity ?? [],
       imageUrl:
         resolved?.image_uris?.small ??
         resolved?.image_uris?.normal ??

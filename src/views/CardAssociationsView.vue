@@ -3,7 +3,7 @@
     <div class="mb-5">
       <h1 class="text-h4 font-weight-bold">Card associations</h1>
       <p class="text-medium-emphasis">
-        Explore observed co-occurrence in complete normalized tournament
+        Explore observed co-occurrence in complete tournament
         Decks. These relationships are not causal and are not recommendations.
       </p>
     </div>
@@ -18,7 +18,7 @@
             item-title="title"
             item-value="value"
             label="Commander"
-            no-data-text="No normalized Commanders found"
+            no-data-text="No Commanders found"
           />
         </v-col>
         <v-col cols="12" md="6">
@@ -123,7 +123,7 @@
             />
             <MetricHeader
               label="Sample Size"
-              tooltip="The number of complete normalized Commander Decks eligible under the current filters."
+              tooltip="The number of complete tournament Commander Decks eligible under the current filters."
             />
           </tr>
         </thead>

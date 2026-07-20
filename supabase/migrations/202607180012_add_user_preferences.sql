@@ -14,6 +14,8 @@ create table if not exists public.user_preferences (
 );
 
 alter table public.user_preferences enable row level security;
+drop policy if exists "Users manage their own preferences"
+on public.user_preferences;
 create policy "Users manage their own preferences"
 on public.user_preferences for all to authenticated
 using (user_id = (select auth.uid()))

@@ -101,7 +101,7 @@ describe('CommanderCardsView', () => {
       global: { plugins: [vuetify] },
     })
     await flushPromises()
-    expect(wrapper.text()).toContain('No complete normalized Decks')
+    expect(wrapper.text()).toContain('No complete tournament Decks')
   })
 
   it('opens selectable inclusion history when a card is clicked', async () => {

@@ -427,7 +427,7 @@ const summaryCards = computed(() => {
   return [
     { label: 'Tournaments', value: summary.tournamentCount.toLocaleString(), detail: `${summary.topdeckTournamentCount} TopDeck · ${summary.edhtop16TournamentCount} EDHTop16` },
     { label: 'Entries', value: summary.entryCount.toLocaleString(), detail: `${summary.tournamentWithoutLocationCount} events without location` },
-    { label: 'Normalized Decks', value: summary.normalizedDeckCount.toLocaleString(), detail: `${percent(getNormalizationCompletionRate(summary))} complete` },
+    { label: 'Processed Decks', value: summary.normalizedDeckCount.toLocaleString(), detail: `${percent(getNormalizationCompletionRate(summary))} complete` },
     { label: 'Complete Decks', value: summary.completeDeckCount.toLocaleString(), detail: `${summary.partialDeckCount} partial · ${summary.unavailableDeckCount} unavailable` },
     { label: 'Unresolved cards', value: summary.unresolvedCardRowCount.toLocaleString(), detail: `${percent(getUnresolvedCardRate(summary))} of card rows` },
     { label: 'Ready Commanders', value: report.value?.commanders.filter((item) => item.comparisonReady).length.toLocaleString() ?? '0', detail: 'At least 5 complete Decks in current filter' },

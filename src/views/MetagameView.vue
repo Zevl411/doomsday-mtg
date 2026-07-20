@@ -4,7 +4,7 @@
       <div>
       <h1 class="text-h4 font-weight-bold">Commander metagame</h1>
       <p class="text-medium-emphasis">
-        Normalized tournament results from TopDeck and EDHTop16. Percentages
+        Tournament results from TopDeck and EDHTop16. Percentages
         include their sample sizes and reflect the selected filters.
       </p>
       <p class="text-caption">

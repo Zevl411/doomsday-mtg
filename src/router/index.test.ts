@@ -7,7 +7,9 @@ describe('router', () => {
   })
 
   it('resolves the deck-builder route', () => {
-    expect(router.resolve('/deck-builder').name).toBe('deck-builder')
+    const route = router.resolve('/decks/deck-1')
+    expect(route.name).toBe('deck-builder')
+    expect(route.params.deckId).toBe('deck-1')
   })
 
   it('resolves the deck-library route', () => {
