@@ -44,8 +44,10 @@ const symbols = computed(() => {
 .mana-cost {
   align-items: center;
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
   gap: 3px;
+  white-space: nowrap;
 }
 
 .mana-cost__generic {

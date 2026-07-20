@@ -120,8 +120,10 @@
   background-color: #93b483;
 }
 
-/* Hybrid and Phyrexian costs use the same two-glyph composition as mana-font
- * without importing its much larger complete icon catalog. */
+/* Hybrid and Phyrexian costs use mana-font's two-glyph composition without
+ * importing its much larger complete icon catalog. The upstream negative
+ * baseline offsets assume an inline symbol; our flex-centered symbols instead
+ * anchor each glyph within its half so neither one escapes a clipped row. */
 .ms {
   --ms-mana-b: #a7999e;
   --ms-mana-c: #d0c6bb;
@@ -179,8 +181,9 @@
 .ms-cost.ms-2b::before, .ms-cost.ms-2b::after, .ms-cost.ms-2r::before,
 .ms-cost.ms-2r::after, .ms-cost.ms-2g::before, .ms-cost.ms-2g::after {
   font-size: 0.55em;
+  line-height: 1;
   position: absolute;
-  transform: none;
+  transform: translate(-50%, -50%);
 }
 
 .ms-cost.ms-wu::before, .ms-cost.ms-wb::before, .ms-cost.ms-ub::before,
@@ -188,8 +191,8 @@
 .ms-cost.ms-rw::before, .ms-cost.ms-rg::before, .ms-cost.ms-gw::before,
 .ms-cost.ms-gu::before, .ms-cost.ms-2w::before, .ms-cost.ms-2u::before,
 .ms-cost.ms-2b::before, .ms-cost.ms-2r::before, .ms-cost.ms-2g::before {
-  left: 0.28em;
-  top: -0.38em;
+  left: 29%;
+  top: 29%;
 }
 
 .ms-cost.ms-wu::after, .ms-cost.ms-wb::after, .ms-cost.ms-ub::after,
@@ -197,8 +200,8 @@
 .ms-cost.ms-rw::after, .ms-cost.ms-rg::after, .ms-cost.ms-gw::after,
 .ms-cost.ms-gu::after, .ms-cost.ms-2w::after, .ms-cost.ms-2u::after,
 .ms-cost.ms-2b::after, .ms-cost.ms-2r::after, .ms-cost.ms-2g::after {
-  left: 1em;
-  top: 0.5em;
+  left: 71%;
+  top: 71%;
 }
 
 .ms-cost.ms-wu { --ms-split-top: var(--ms-mana-w); }

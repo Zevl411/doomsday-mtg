@@ -32,8 +32,8 @@
             class="mb-5"
             color="transparent"
           >
-            <div class="d-flex justify-space-between ga-3">
-              <h3 class="text-subtitle-1 font-weight-bold">
+            <div class="card-preview-line d-flex justify-space-between ga-3">
+              <h3 class="card-preview-copy text-subtitle-1 font-weight-bold">
                 {{ cardFace.name }}
               </h3>
               <ManaCost
@@ -53,8 +53,8 @@
         </template>
 
         <template v-else>
-          <div class="d-flex justify-space-between ga-3">
-            <p class="text-body-2 text-medium-emphasis">
+          <div class="card-preview-line d-flex justify-space-between ga-3">
+            <p class="card-preview-copy text-body-2 text-medium-emphasis">
               {{ card.type_line }}
             </p>
             <ManaCost v-if="card.mana_cost" :cost="card.mana_cost" />
@@ -86,3 +86,14 @@ defineProps<{
 }>()
 
 </script>
+
+<style scoped>
+.card-preview-line {
+  align-items: flex-start;
+}
+
+.card-preview-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+</style>

@@ -106,4 +106,21 @@ describe('CardPreview', () => {
 
     expect(() => mountPreview(card)).not.toThrow()
   })
+
+  it('keeps mana symbols grouped beside a long card type', () => {
+    const wrapper = mountPreview({
+      id: 'long-type-printing',
+      name: 'Long Type Card',
+      mana_cost: '{2}{W}{U}{B}',
+      type_line:
+        'Legendary Artifact Enchantment Creature — Phyrexian Construct',
+      color_identity: ['W', 'U', 'B'],
+    })
+
+    expect(wrapper.get('.card-preview-copy').text()).toContain(
+      'Legendary Artifact Enchantment Creature',
+    )
+    expect(wrapper.get('.mana-cost').findAll('.ms')).toHaveLength(4)
+    wrapper.unmount()
+  })
 })
