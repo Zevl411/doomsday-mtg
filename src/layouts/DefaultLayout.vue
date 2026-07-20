@@ -1,7 +1,15 @@
 <template>
   <v-app>
     <v-app-bar border="b" color="surface" flat height="76">
-      <v-container class="d-flex align-center mx-auto px-4 px-sm-6">
+      <v-container
+        class="d-flex align-center mx-auto px-3 px-md-6"
+      >
+        <v-app-bar-nav-icon
+          class="d-md-none"
+          density="comfortable"
+          variant="text"
+          @click="showMobileMenu = true"
+        />
         <RouterLink
           :aria-label="`Go to ${appConfig.name} home`"
           class="app-brand-link mr-3"
@@ -21,9 +29,12 @@
             {{ appConfig.name }}
           </span>
         </div>
-        <span aria-hidden="true" class="nav-section-divider" />
+        <span
+          aria-hidden="true"
+          class="nav-section-divider d-none d-md-inline-block"
+        />
         <nav
-          class="primary-nav d-flex align-center ga-1"
+          class="primary-nav d-none d-md-flex align-center ga-1"
           aria-label="Primary navigation"
         >
           <v-btn
@@ -53,7 +64,7 @@
         </nav>
         <v-spacer />
         <nav
-          class="primary-nav deck-navigation d-flex align-center ga-1 mr-2"
+          class="primary-nav deck-navigation d-none d-md-flex align-center ga-1 mr-2"
           aria-label="Deck navigation"
         >
           <v-btn
@@ -90,6 +101,19 @@
             </svg>
           </v-btn>
         </nav>
+        <span
+          v-if="!auth.isSignedIn"
+          class="d-md-none mr-2"
+        >
+          <v-btn
+            color="primary"
+            size="small"
+            :to="{ name: 'auth' }"
+            variant="text"
+          >
+            Sign In
+          </v-btn>
+        </span>
         <v-menu v-if="auth.isSignedIn">
           <template #activator="{ props }">
             <v-btn size="small" v-bind="props" variant="text">
@@ -123,6 +147,80 @@
         </v-btn>
       </v-container>
     </v-app-bar>
+
+    <v-navigation-drawer
+      v-model="showMobileMenu"
+      class="d-md-none"
+      location="start"
+      temporary
+    >
+      <v-list
+        color="surface"
+        density="comfortable"
+        nav
+      >
+        <v-list-item
+          :to="{ name: 'home' }"
+          prepend-icon="mdi-home"
+          title="Home"
+        />
+        <v-list-item
+          :to="{ name: 'metagame' }"
+          prepend-icon="mdi-cards-playing-outline"
+          title="Metagame"
+        />
+        <v-list-item
+          :to="{ name: 'tournaments' }"
+          prepend-icon="mdi-tournament"
+          title="Tournaments"
+        />
+        <v-list-subheader>Decks</v-list-subheader>
+        <v-list-item
+          :to="{ name: 'public-decks' }"
+          prepend-icon="mdi-magnify"
+          title="Explore Decks"
+        />
+        <v-list-item
+          :to="{ name: 'deck-library' }"
+          prepend-icon="mdi-library"
+          title="My Decks"
+        />
+        <v-list-item
+          prepend-icon="mdi-plus"
+          title="Create a deck"
+          @click="openCreateDeckFromMenu"
+        />
+        <v-divider />
+        <template v-if="auth.isSignedIn">
+          <v-list-item
+            v-if="isAdmin"
+            :to="{ name: 'admin-ingestion' }"
+            title="Admin Panel"
+          />
+          <v-list-item
+            v-if="isAdmin"
+            :to="{ name: 'admin-data-health' }"
+            title="Data Health"
+          />
+          <v-list-item
+            prepend-icon="mdi-cog"
+            title="Preferences"
+            @click="openPreferences"
+          />
+          <v-list-item
+            prepend-icon="mdi-logout"
+            title="Sign Out"
+            @click="auth.signOut"
+          />
+        </template>
+        <v-list-item
+          v-else
+          :to="{ name: 'auth' }"
+          prepend-icon="mdi-login"
+          title="Sign In"
+        />
+      </v-list>
+    </v-navigation-drawer>
 
     <v-main>
       <v-container class="content-container py-6 py-md-8" fluid>
@@ -219,6 +317,7 @@ const preferencesStore = useUserPreferencesStore()
 const router = useRouter()
 const isAdmin = ref(false)
 const showCreateDialog = ref(false)
+const showMobileMenu = ref(false)
 const showPreferences = ref(false)
 const preferenceError = ref('')
 const preferenceDraft = reactive<UserPreferences>({
@@ -243,6 +342,11 @@ const visibilityOptions = [
   { title: 'Unlisted', value: 'unlisted' },
   { title: 'Public', value: 'public' },
 ]
+
+function openCreateDeckFromMenu() {
+  showMobileMenu.value = false
+  showCreateDialog.value = true
+}
 
 // Navigation is hidden for non-admins; route and database checks still enforce
 // authorization because presentation alone is never a security boundary.

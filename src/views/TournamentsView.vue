@@ -9,7 +9,7 @@
         <v-col cols="12" sm="6" lg="3">
           <v-select
             v-model="sizeRange"
-            density="compact"
+            density="comfortable"
             hide-details
             :items="sizeRangeOptions"
             label="Tournament size"
@@ -18,7 +18,7 @@
         <v-col cols="12" sm="6" lg="3">
           <v-select
             v-model="timePeriod"
-            density="compact"
+            density="comfortable"
             hide-details
             :items="timePeriodOptions"
             label="Time period"
@@ -27,7 +27,7 @@
         <v-col cols="12" sm="6" lg="3">
           <v-select
             v-model="sortOrder"
-            density="compact"
+            density="comfortable"
             hide-details
             :items="sortOptions"
             label="Sort by"
@@ -44,7 +44,7 @@
             v-model="registeredCommandersOnly"
             aria-label="Show tournaments with registered commanders only"
             color="secondary"
-            density="compact"
+            density="comfortable"
             hide-details
             inset
             label="Registered only"

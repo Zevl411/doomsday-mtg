@@ -60,7 +60,7 @@
         <v-alert
           v-if="errorMessage"
           class="mt-3"
-          density="compact"
+          density="comfortable"
           type="error"
           variant="tonal"
         >

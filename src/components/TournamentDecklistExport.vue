@@ -30,7 +30,7 @@
         <v-alert
           v-if="clipboardMessage"
           class="mt-3"
-          density="compact"
+          density="comfortable"
           :type="clipboardSucceeded ? 'success' : 'error'"
           variant="tonal"
         >

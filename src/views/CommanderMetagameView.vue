@@ -142,7 +142,7 @@
                 v-model="inclusionTimeframe"
                 aria-label="Card inclusion timeframe"
                 class="inclusion-timeframe mr-2"
-                density="compact"
+                density="comfortable"
                 hide-details
                 :items="inclusionTimeframeOptions"
                 variant="outlined"
@@ -166,7 +166,7 @@
             <v-alert
               v-else-if="inclusionError"
               class="ma-3"
-              density="compact"
+              density="comfortable"
               type="warning"
               variant="tonal"
             >
@@ -236,7 +236,7 @@
               v-model="inclusionTimeframe"
               aria-label="Dialog card inclusion timeframe"
               class="inclusion-timeframe"
-              density="compact"
+              density="comfortable"
               hide-details
               :items="inclusionTimeframeOptions"
               variant="outlined"

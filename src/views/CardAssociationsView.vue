@@ -9,12 +9,12 @@
     </div>
 
     <v-card border class="association-controls mb-3 pa-3">
-      <v-row dense>
+      <v-row density="comfortable">
         <v-col v-if="!initialCommanderKey" cols="12" md="6">
           <v-autocomplete
             v-model="commanderKey"
             clearable
-            density="compact"
+            density="comfortable"
             hide-details
             :items="commanderOptions"
             item-title="title"
@@ -39,21 +39,21 @@
       <div class="association-filter-grid mt-2">
         <v-text-field
           v-model="startDate"
-          density="compact"
+          density="comfortable"
           hide-details
           label="Start date"
           type="date"
         />
         <v-text-field
           v-model="endDate"
-          density="compact"
+          density="comfortable"
           hide-details
           label="End date"
           type="date"
         />
         <v-text-field
           v-model.number="minimumSampleSize"
-          density="compact"
+          density="comfortable"
           hide-details
           label="Min sample"
           min="1"
@@ -61,7 +61,7 @@
         />
         <v-text-field
           v-model.number="minimumSupportPercent"
-          density="compact"
+          density="comfortable"
           hide-details
           label="Min support (%)"
           min="0"
@@ -71,7 +71,7 @@
         />
         <v-text-field
           v-model.number="minimumConfidencePercent"
-          density="compact"
+          density="comfortable"
           hide-details
           label="Min confidence (%)"
           min="0"
@@ -81,7 +81,7 @@
         />
         <v-text-field
           v-model.number="minimumLift"
-          density="compact"
+          density="comfortable"
           hide-details
           label="Min lift"
           min="0"
@@ -90,7 +90,7 @@
         />
         <v-text-field
           v-model.number="minimumEventSize"
-          density="compact"
+          density="comfortable"
           hide-details
           label="Min event size"
           min="0"
@@ -99,19 +99,19 @@
         <v-text-field
           v-model.number="maximumStanding"
           clearable
-          density="compact"
+          density="comfortable"
           hide-details
           label="Max placing"
           min="1"
           type="number"
         />
         <div class="association-actions d-flex align-center ga-2">
-          <v-btn density="compact" variant="text" @click="resetFilters">
+          <v-btn density="comfortable" variant="text" @click="resetFilters">
             Reset
           </v-btn>
           <v-btn
             color="primary"
-            density="compact"
+            density="comfortable"
             :disabled="!canLoad"
             :loading="loading"
             @click="loadAssociations"

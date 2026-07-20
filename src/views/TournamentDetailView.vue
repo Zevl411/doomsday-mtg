@@ -305,7 +305,7 @@
                   <v-btn
                     :aria-label="`Duplicate ${entry.commanderName} Deck`"
                     class="decklist-toolbar-button"
-                    density="compact"
+                    density="comfortable"
                     :disabled="!normalizedDecks[entry.id]"
                     variant="outlined"
                     @click="copyDeck(entry)"
@@ -317,7 +317,7 @@
                     v-model="decklistGrouping"
                     aria-label="Group tournament decklist"
                     class="decklist-toolbar-select"
-                    density="compact"
+                    density="comfortable"
                     hide-details
                     :items="groupingOptions"
                     label="Group by"
@@ -328,7 +328,7 @@
                     v-model="decklistOrder"
                     aria-label="Order tournament decklist"
                     class="decklist-toolbar-select"
-                    density="compact"
+                    density="comfortable"
                     hide-details
                     :items="orderOptions"
                     label="Order by"
@@ -338,13 +338,13 @@
                   <v-btn-toggle
                     v-model="decklistView"
                     class="decklist-view-toggle"
-                    density="compact"
+                    density="comfortable"
                     mandatory
                     variant="outlined"
                   >
                     <v-btn
                       aria-label="Grid view"
-                      density="compact"
+                      density="comfortable"
                       value="grid"
                     >
                       <svg
@@ -357,7 +357,7 @@
                     </v-btn>
                     <v-btn
                       aria-label="List view"
-                      density="compact"
+                      density="comfortable"
                       value="list"
                     >
                       <svg
@@ -410,7 +410,7 @@
                             columnIndex === 1,
                         },
                       ]"
-                      density="compact"
+                      density="comfortable"
                     >
                       <v-list-item
                         v-for="card in column"

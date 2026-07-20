@@ -129,7 +129,7 @@
                 <v-select
                   v-model="filters.sampleStatus"
                   clearable
-                  density="compact"
+                  density="comfortable"
                   hide-details
                   :items="sampleStatusItems"
                   label="Sample status"
@@ -140,7 +140,7 @@
                 <v-select
                   v-model="filters.provider"
                   clearable
-                  density="compact"
+                  density="comfortable"
                   hide-details
                   :items="providerItems"
                   label="Provider"
@@ -150,7 +150,7 @@
               <v-col cols="6" md="3">
                 <v-text-field
                   v-model="filters.startDate"
-                  density="compact"
+                  density="comfortable"
                   hide-details
                   label="Start date"
                   type="date"
@@ -160,7 +160,7 @@
               <v-col cols="6" md="3">
                 <v-text-field
                   v-model="filters.endDate"
-                  density="compact"
+                  density="comfortable"
                   hide-details
                   label="End date"
                   type="date"
@@ -171,7 +171,7 @@
                 <v-switch
                   v-model="filters.pairedOnly"
                   color="primary"
-                  density="compact"
+                  density="comfortable"
                   hide-details
                   label="Paired only"
                 />
@@ -183,7 +183,7 @@
               </v-btn>
             </div>
           </v-card-text>
-          <v-table density="compact">
+          <v-table density="comfortable">
             <thead>
               <tr>
                 <th>Commander</th>
@@ -241,7 +241,7 @@
               Bounded identity failures; no fuzzy remapping is performed.
             </v-card-subtitle>
           </v-card-item>
-          <v-table density="compact">
+          <v-table density="comfortable">
             <thead>
               <tr>
                 <th>Name</th>

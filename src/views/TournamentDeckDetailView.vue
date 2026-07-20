@@ -205,7 +205,7 @@
             <v-select
               v-model="decklistSort"
               aria-label="Sort tournament decklist"
-              density="compact"
+              density="comfortable"
               hide-details
               :items="decklistSortOptions"
               label="Order by"
@@ -215,7 +215,7 @@
             <v-btn-toggle
               v-model="viewMode"
               color="primary"
-              density="compact"
+              density="comfortable"
               mandatory
               variant="tonal"
             >
@@ -235,7 +235,7 @@
               @mouseleave="restorePreview"
             />
           </div>
-          <v-list v-else class="card-list" density="compact">
+          <v-list v-else class="card-list" density="comfortable">
             <v-list-item
               v-for="card in displayCardsForBoard(board)"
               :key="card.oracleId ?? card.name"

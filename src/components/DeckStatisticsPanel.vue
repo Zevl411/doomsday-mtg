@@ -10,7 +10,7 @@
       Deck Statistics
     </v-card-title>
     <v-card-text class="statistics-content pa-4">
-      <v-row dense>
+      <v-row density="comfortable">
         <v-col v-for="stat in summaryStats" :key="stat.label" cols="6" sm="3">
           <v-sheet class="pa-3 text-center" color="surface-light" rounded="lg">
             <div class="text-h6 font-weight-bold">{{ stat.value }}</div>
@@ -26,7 +26,7 @@
             v-model="showTrendLine"
             class="mana-curve__toggle"
             color="primary"
-            density="compact"
+            density="comfortable"
             hide-details
             label="Show line"
           />
@@ -34,7 +34,7 @@
             v-model="excludeLands"
             class="mana-curve__toggle"
             color="primary"
-            density="compact"
+            density="comfortable"
             hide-details
             label="Exclude lands"
           />
@@ -46,7 +46,7 @@
         color="surface-light"
         rounded="lg"
       >
-        <v-row dense>
+        <v-row density="comfortable">
           <v-col cols="12" md="8">
             <div class="mana-curve__plot">
               <div
@@ -113,7 +113,7 @@
               <v-list
                 aria-label="Cards at selected mana value"
                 class="mana-curve__cards"
-                density="compact"
+                density="comfortable"
               >
                 <v-list-item
                   v-for="entry in selectedCards"

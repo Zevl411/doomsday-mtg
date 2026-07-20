@@ -20,7 +20,7 @@
     <v-card color="surface" rounded="lg">
       <v-card-title class="px-5 pt-5">Import Decklist</v-card-title>
       <v-card-text class="px-5">
-        <v-alert density="compact" type="warning" variant="tonal">
+        <v-alert density="comfortable" type="warning" variant="tonal">
           Import replaces every tracked board and replaces the Commander when
           the decklist contains a Commander section. Clean imports complete
           immediately; imports with errors ask before proceeding.
@@ -54,7 +54,7 @@
         <v-alert
           v-if="importError"
           class="mt-4"
-          density="compact"
+          density="comfortable"
           type="error"
           variant="tonal"
         >
@@ -65,7 +65,7 @@
         <template v-if="preparedImport">
           <v-alert
             class="mt-4"
-            density="compact"
+            density="comfortable"
             type="info"
             variant="tonal"
           >
@@ -94,7 +94,7 @@
           <v-alert
             v-if="preparedImport.result.ignoredSections.length"
             class="mt-3"
-            density="compact"
+            density="comfortable"
             type="warning"
             variant="tonal"
           >
@@ -112,7 +112,7 @@
           <v-alert
             v-if="preparedImport.result.commanderSource === 'required'"
             class="mt-3"
-            density="compact"
+            density="comfortable"
             type="warning"
             variant="tonal"
           >
@@ -124,7 +124,7 @@
             v-if="preparedImport.result.issues.length"
             class="mt-3"
             bg-color="transparent"
-            density="compact"
+            density="comfortable"
           >
             <v-list-item
               v-for="(issue, index) in preparedImport.result.issues"
@@ -141,7 +141,7 @@
           <v-alert
             v-if="preparedImport.result.informationalIssues.length"
             class="mt-3"
-            density="compact"
+            density="comfortable"
             type="info"
             variant="tonal"
           >
@@ -196,7 +196,7 @@
         <v-alert
           v-if="clipboardMessage"
           class="mt-3"
-          density="compact"
+          density="comfortable"
           :type="clipboardSucceeded ? 'success' : 'error'"
           variant="tonal"
         >

@@ -65,7 +65,7 @@
                 v-model="gridSizes[board.value]"
                 :aria-label="`Card size for ${board.title}`"
                 color="primary"
-                density="compact"
+                density="comfortable"
                 hide-details
                 :max="4"
                 :min="1"
@@ -76,7 +76,7 @@
             </div>
             <v-select
               v-model="sortSettings[board.value].primary"
-              density="compact"
+              density="comfortable"
               hide-details
               :items="sortOptions"
               label="Group by"
@@ -85,7 +85,7 @@
             />
             <v-select
               v-model="sortSettings[board.value].secondary"
-              density="compact"
+              density="comfortable"
               hide-details
               :items="secondarySortOptions"
               label="Order by"
@@ -94,13 +94,13 @@
             />
             <v-btn-toggle
               v-model="viewModes[board.value]"
-              density="compact"
+              density="comfortable"
               mandatory
               variant="outlined"
             >
               <v-btn
                 :aria-label="`Grid view for ${board.title}`"
-                density="compact"
+                density="comfortable"
                 value="grid"
               >
                 <svg aria-hidden="true" class="view-toggle-icon" viewBox="0 0 24 24">
@@ -109,7 +109,7 @@
               </v-btn>
               <v-btn
                 :aria-label="`List view for ${board.title}`"
-                density="compact"
+                density="comfortable"
                 value="list"
               >
                 <svg aria-hidden="true" class="view-toggle-icon" viewBox="0 0 24 24">
@@ -203,7 +203,7 @@
                         <DeckActionIcon compact name="move" />
                       </v-btn>
                     </template>
-                    <v-list density="compact">
+                    <v-list density="comfortable">
                       <v-list-item
                         v-for="target in availableMoveBoards(entry.sourceBoard)"
                         :key="target.value"
@@ -285,7 +285,7 @@
     v-model="menuOpen"
     :target="[menuX, menuY]"
   >
-    <v-list v-if="menuEntry" density="compact">
+    <v-list v-if="menuEntry" density="comfortable">
       <v-list-item title="Remove 1" @click="decrease">
         <template #prepend><DeckActionIcon name="decrease" /></template>
       </v-list-item>

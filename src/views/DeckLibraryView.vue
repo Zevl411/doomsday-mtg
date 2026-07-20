@@ -155,7 +155,7 @@
           {{ auth.isSignedIn ? 'from your account' : 'from this browser' }}.
           <v-list
             class="bulk-delete-list mt-4"
-            density="compact"
+            density="comfortable"
             lines="one"
           >
             <v-list-item

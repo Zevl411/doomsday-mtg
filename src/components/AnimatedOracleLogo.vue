@@ -6,11 +6,11 @@
     <img
       :alt="ariaLabel"
       class="animated-oracle-logo__media animated-oracle-logo__static"
-      :class="{ 'animated-oracle-logo__static--hidden': animationActive }"
+      :class="{ 'animated-oracle-logo__static--hidden': animationActive && shouldAnimate }"
       :src="staticUrl"
     />
     <picture
-      v-if="!reducedMotion && videoFailed && intervalSeconds <= 0"
+      v-if="shouldAnimate && !reducedMotion && videoFailed && intervalSeconds <= 0"
       class="animated-oracle-logo__animation"
     >
       <source :srcset="animatedWebpUrl" type="image/webp">
@@ -21,7 +21,7 @@
       />
     </picture>
     <video
-      v-else-if="!reducedMotion && !videoFailed"
+      v-else-if="shouldAnimate && !reducedMotion && !videoFailed"
       ref="video"
       aria-hidden="true"
       :autoplay="autoplay && intervalSeconds <= 0"
@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useDisplay } from 'vuetify'
 
 const props = withDefaults(defineProps<{
   size?: number | string
@@ -72,6 +73,8 @@ const staticUrl = `${assetRoot}/oracle-static.png`
 const video = ref<HTMLVideoElement | null>(null)
 const videoFailed = ref(false)
 const reducedMotion = ref(false)
+const display = useDisplay()
+const shouldAnimate = computed(() => !display.smAndDown.value)
 const visible = ref(true)
 const animationActive = ref(false)
 let observer: IntersectionObserver | null = null
@@ -102,6 +105,7 @@ function syncPlayback() {
 
 function beginScheduledAnimation() {
   if (
+    !shouldAnimate.value ||
     props.intervalSeconds <= 0
     || props.paused
     || reducedMotion.value
@@ -122,7 +126,11 @@ function finishScheduledAnimation() {
 function configureAnimationTimer(playImmediately = false) {
   if (animationTimer) clearInterval(animationTimer)
   animationTimer = null
-  animationActive.value = props.intervalSeconds <= 0 && !reducedMotion.value
+  if (!shouldAnimate.value || props.paused || reducedMotion.value) {
+    animationActive.value = false
+    return
+  }
+  animationActive.value = props.intervalSeconds <= 0
   if (props.intervalSeconds > 0 && props.autoplay) {
     animationTimer = setInterval(
       beginScheduledAnimation,
@@ -142,7 +150,7 @@ watch(
   () => syncPlayback(),
 )
 watch(
-  () => props.intervalSeconds,
+  () => [props.intervalSeconds, shouldAnimate.value, reducedMotion.value],
   () => configureAnimationTimer(),
 )
 

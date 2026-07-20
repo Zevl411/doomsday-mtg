@@ -60,7 +60,7 @@
         <v-alert
           v-if="partnerError"
           class="mt-3"
-          density="compact"
+          density="comfortable"
           type="error"
           variant="tonal"
         >
@@ -226,7 +226,7 @@
       <v-alert
         v-if="partnerError"
         class="mt-3"
-        density="compact"
+        density="comfortable"
         type="error"
         variant="tonal"
       >
@@ -238,7 +238,7 @@
       v-model="commanderMenuOpen"
       :target="[commanderMenuX, commanderMenuY]"
     >
-      <v-list density="compact">
+      <v-list density="comfortable">
         <v-list-item
           base-color="error"
           :title="

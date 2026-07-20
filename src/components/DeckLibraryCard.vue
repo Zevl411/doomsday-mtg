@@ -127,7 +127,7 @@
 
     <v-card-actions
       v-if="manageable && !selectable"
-      class="deck-card-actions pa-0"
+      class="deck-card-actions pa-0 d-none d-md-flex"
     >
       <v-btn
         aria-label="Delete deck"
@@ -143,7 +143,7 @@
       <v-spacer />
       <v-btn-group
         class="deck-secondary-actions"
-        density="compact"
+        density="comfortable"
         divided
         variant="text"
       >
@@ -178,11 +178,55 @@
         </v-btn>
       </v-btn-group>
     </v-card-actions>
+
+    <v-menu
+      v-model="showMobileActions"
+      location="bottom end"
+      :close-on-content-click="false"
+    >
+      <template #activator="{ props }">
+        <v-btn
+          v-if="manageable && !selectable"
+          v-bind="props"
+          class="deck-card-actions-mobile d-flex d-md-none"
+          icon
+          size="small"
+          variant="text"
+          @click.stop.prevent="showMobileActions = true"
+        >
+          <DeckActionIcon compact name="compare" />
+        </v-btn>
+      </template>
+      <v-list density="comfortable">
+        <v-list-item
+          :disabled="!canCompare"
+          title="View comparison"
+          @click="emitMobileAction('compare', deck.id)"
+        >
+          <template #prepend><DeckActionIcon compact name="compare" /></template>
+        </v-list-item>
+        <v-list-item title="Rename" @click="emitMobileAction('rename', deck.id)">
+          <template #prepend><DeckActionIcon compact name="rename" /></template>
+        </v-list-item>
+        <v-list-item
+          title="Duplicate"
+          @click="emitMobileAction('duplicate', deck.id)"
+        >
+          <template #prepend><DeckActionIcon compact name="duplicate" /></template>
+        </v-list-item>
+        <v-list-item
+          title="Delete"
+          @click="emitMobileAction('delete', deck.id)"
+        >
+          <template #prepend><DeckActionIcon compact name="delete" /></template>
+        </v-list-item>
+      </v-list>
+    </v-menu>
   </v-card>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { Deck, DeckCard, DeckVisibility } from '../models/deck'
 import { getCardArt } from '../utils/cardDisplay'
 import { getTotalDeckCardCount } from '../utils/deckValidation'
@@ -210,6 +254,8 @@ const emit = defineEmits<{
   delete: [deckId: string]
   toggleSelection: [deckId: string]
 }>()
+
+const showMobileActions = ref(false)
 
 const commanderImage = computed(() =>
   props.deck.commander
@@ -259,6 +305,26 @@ function openDeck() {
 
 function toggleSelection() {
   emit('toggleSelection', props.deck.id)
+}
+
+function emitMobileAction(
+  action: 'compare' | 'rename' | 'duplicate' | 'delete',
+  deckId: string,
+) {
+  showMobileActions.value = false
+  if (action === 'compare') {
+    emit('compare', deckId)
+    return
+  }
+  if (action === 'rename') {
+    emit('rename', deckId)
+    return
+  }
+  if (action === 'duplicate') {
+    emit('duplicate', deckId)
+    return
+  }
+  emit('delete', deckId)
 }
 </script>
 

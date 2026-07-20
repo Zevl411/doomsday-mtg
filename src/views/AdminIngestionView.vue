@@ -76,7 +76,7 @@
             Completeness by provider, event region, and event month
           </v-card-subtitle>
         </v-card-item>
-        <v-table density="compact">
+        <v-table density="comfortable">
           <thead>
             <tr>
               <th>Group</th>
@@ -373,7 +373,7 @@
               <v-alert
                 v-if="job.lastError"
                 class="mt-2"
-                density="compact"
+                density="comfortable"
                 type="warning"
                 variant="tonal"
               >

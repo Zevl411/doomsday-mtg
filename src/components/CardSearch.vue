@@ -63,7 +63,7 @@
 
     <v-alert
       v-else-if="errorMessage"
-      density="compact"
+      density="comfortable"
       type="error"
       variant="tonal"
     >
@@ -73,7 +73,7 @@
     <v-alert
       v-if="!isLoading && !errorMessage && fallbackMessage"
       class="mb-3"
-      density="compact"
+      density="comfortable"
       type="warning"
       variant="tonal"
     >

@@ -16,7 +16,7 @@
           v-model="timeframe"
           aria-label="Recommendation timeframe"
           class="recommendations-timeframe"
-          density="compact"
+          density="comfortable"
           hide-details
           :items="timeframeOptions"
           variant="outlined"
@@ -236,7 +236,7 @@
             />
             <v-alert
               v-else-if="historyError"
-              density="compact"
+              density="comfortable"
               type="error"
               variant="tonal"
             >
@@ -244,7 +244,7 @@
             </v-alert>
             <v-alert
               v-else-if="!historyPoints.length"
-              density="compact"
+              density="comfortable"
               type="info"
               variant="tonal"
             >
@@ -358,7 +358,7 @@
         <v-alert
           v-else-if="evidenceError"
           class="mb-4"
-          density="compact"
+          density="comfortable"
           type="error"
           variant="tonal"
         >
