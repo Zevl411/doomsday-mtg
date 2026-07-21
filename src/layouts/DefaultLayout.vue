@@ -163,7 +163,9 @@
           :to="{ name: 'home' }"
           prepend-icon="mdi-home"
           title="Home"
+          color="primary"
         />
+        <v-list-subheader>Events</v-list-subheader>
         <v-list-item
           :to="{ name: 'metagame' }"
           prepend-icon="mdi-cards-playing-outline"
@@ -191,33 +193,27 @@
           @click="openCreateDeckFromMenu"
         />
         <v-divider />
-        <template v-if="auth.isSignedIn">
-          <v-list-item
-            v-if="isAdmin"
-            :to="{ name: 'admin-ingestion' }"
-            title="Admin Panel"
-          />
-          <v-list-item
-            v-if="isAdmin"
-            :to="{ name: 'admin-data-health' }"
-            title="Data Health"
-          />
-          <v-list-item
-            prepend-icon="mdi-cog"
-            title="Preferences"
-            @click="openPreferences"
-          />
-          <v-list-item
-            prepend-icon="mdi-logout"
-            title="Sign Out"
-            @click="auth.signOut"
-          />
-        </template>
+        <v-list-subheader v-if="auth.isSignedIn && isAdmin">Admin</v-list-subheader>
         <v-list-item
-          v-else
-          :to="{ name: 'auth' }"
-          prepend-icon="mdi-login"
-          title="Sign In"
+          v-if="auth.isSignedIn && isAdmin"
+          :to="{ name: 'admin-ingestion' }"
+          title="Admin Panel"
+        />
+        <v-list-item
+          v-if="auth.isSignedIn && isAdmin"
+          :to="{ name: 'admin-data-health' }"
+          title="Data Health"
+        />
+        <v-list-subheader>Account</v-list-subheader>
+        <v-list-item
+          prepend-icon="mdi-cog"
+          title="Preferences"
+          @click="openPreferences"
+        />
+        <v-list-item
+          prepend-icon="mdi-logout"
+          title="Sign Out"
+          @click="auth.signOut"
         />
       </v-list>
     </v-navigation-drawer>
