@@ -135,7 +135,10 @@ import {
   useId,
   watch,
 } from 'vue'
-import { searchCards } from '../api/scryfall'
+import {
+  searchCards,
+  type ScryfallSearchUniqueMode,
+} from '../api/scryfall'
 import AppLoadingSkeleton from './AppLoadingSkeleton.vue'
 import { searchCanonicalCards } from '../repositories/canonicalCardRepository'
 import type { ScryfallCard } from '../types/card'
@@ -158,6 +161,7 @@ const props = withDefaults(
     resultFilter?: (card: ScryfallCard) => boolean
     selectedCard?: ScryfallCard | null
     selectedCards?: ScryfallCard[]
+    searchUnique?: ScryfallSearchUniqueMode
   }>(),
   {
     commanderOnly: false,
@@ -172,6 +176,7 @@ const props = withDefaults(
     resultFilter: undefined,
     selectedCard: null,
     selectedCards: () => [],
+    searchUnique: 'cards',
   },
 )
 
@@ -250,9 +255,14 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
         : `${newQuery} ${props.searchFilter}`.trim()
 
       try {
-        cards.value = filterResults(
-          await searchCards(scryfallQuery, controller.signal),
-        )
+        const results = props.searchUnique === 'cards'
+          ? await searchCards(scryfallQuery, controller.signal)
+          : await searchCards(
+            scryfallQuery,
+            controller.signal,
+            props.searchUnique,
+          )
+        cards.value = filterResults(results)
       } catch (error) {
         if (
           controller.signal.aborted ||

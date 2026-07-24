@@ -10,6 +10,7 @@ import type { ScryfallCard } from '../types/card'
 
 const commander: ScryfallCard = {
   id: 'commander',
+  oracle_id: 'commander-oracle',
   name: 'Sisay, Weatherlight Captain',
   type_line: 'Legendary Creature — Human Soldier',
   color_identity: ['W', 'U', 'B', 'R', 'G'],
@@ -138,7 +139,48 @@ describe('CommanderPanel', () => {
 
     const menu = wrapper.findComponent({ name: 'VMenu' })
     expect(menu.props('modelValue')).toBe(true)
+    expect(wrapper.text()).toContain('Change printing')
     expect(wrapper.text()).toContain('Remove Commander')
+    wrapper.unmount()
+  })
+
+  it('changes the selected Commander printing from its context menu', async () => {
+    const store = useDeckStore()
+    store.setCommander(commander)
+    const wrapper = mountPanel({ displayOnly: true })
+    const alternatePrinting = {
+      ...commander,
+      id: 'alternate-commander-printing',
+      set: 'showcase',
+      finishes: ['nonfoil', 'foil'],
+      foil: true,
+      image_uris: {
+        small: 'https://example.com/commander-small.jpg',
+        normal: 'https://example.com/commander.jpg',
+        large: 'https://example.com/commander-large.jpg',
+      },
+    }
+
+    await wrapper
+      .find('[aria-label="Selected Commander"]')
+      .trigger('contextmenu', { clientX: 40, clientY: 60 })
+    await wrapper
+      .findAllComponents({ name: 'VListItem' })
+      .find((item) => item.props('title') === 'Change printing')
+      ?.trigger('click')
+
+    const dialog = wrapper.findComponent({ name: 'CardPrintingDialog' })
+    expect(dialog.props('modelValue')).toBe(true)
+    expect(dialog.props('allowFoil')).toBe(true)
+    dialog.vm.$emit('selected', {
+      printing: alternatePrinting,
+      foil: true,
+    })
+    await wrapper.vm.$nextTick()
+
+    expect(store.deck.commander).toEqual(alternatePrinting)
+    expect(store.deck.commanderFoil).toBe(true)
+    expect(wrapper.find('.foil-card-overlay').exists()).toBe(true)
     wrapper.unmount()
   })
 

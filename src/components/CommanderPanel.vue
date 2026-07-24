@@ -130,13 +130,18 @@
         @mouseenter="deckStore.setPreviewCard(displayedCommander)"
         @contextmenu.prevent="openCommanderMenu"
       >
-        <DoubleFacedCardImage
+        <div
           v-if="getCardImage(displayedCommander)"
-          aspect-ratio="0.716"
-          :card="displayedCommander"
           class="commander-image mx-auto mt-3 rounded-lg"
-          cover
-        />
+        >
+          <DoubleFacedCardImage
+            aspect-ratio="0.716"
+            :card="displayedCommander"
+            class="commander-image-art"
+            cover
+          />
+          <FoilCardOverlay v-if="displayedCommanderFoil" />
+        </div>
 
       </div>
       <template v-if="partnerCommander && !displayOnly">
@@ -156,14 +161,20 @@
           @focusin="deckStore.setPreviewCard(partnerCommander)"
           @mouseleave="deckStore.restoreSelectedPreviewCard()"
           @mouseenter="deckStore.setPreviewCard(partnerCommander)"
+          @contextmenu.prevent="openCommanderMenu($event, 'partner')"
         >
-          <DoubleFacedCardImage
+          <div
             v-if="getCardImage(partnerCommander)"
-            aspect-ratio="0.716"
-            :card="partnerCommander"
             class="commander-image mx-auto mt-3 rounded-lg"
-            cover
-          />
+          >
+            <DoubleFacedCardImage
+              aspect-ratio="0.716"
+              :card="partnerCommander"
+              class="commander-image-art"
+              cover
+            />
+            <FoilCardOverlay v-if="displayedDeck.partnerCommanderFoil" />
+          </div>
         </div>
       </template>
     </template>
@@ -207,7 +218,7 @@
           aria-hidden="true"
           class="mb-2"
           color="primary"
-          icon="mdi-account-star-outline"
+          icon="$commander"
           size="36"
         />
         <h2 class="text-h6">
@@ -245,10 +256,15 @@
       :target="[commanderMenuX, commanderMenuY]"
     >
       <v-list density="comfortable">
+        <v-list-item title="Change printing" @click="changePrinting">
+          <template #prepend>
+            <DeckActionIcon name="printing" />
+          </template>
+        </v-list-item>
         <v-list-item
           base-color="error"
           :title="
-            displayTarget === 'partner'
+            menuTarget === 'partner'
               ? 'Remove Partner'
               : 'Remove Commander'
           "
@@ -260,6 +276,14 @@
         </v-list-item>
       </v-list>
     </v-menu>
+
+    <CardPrintingDialog
+      v-if="!readOnly"
+      v-model="printingDialogOpen"
+      :card="printingCommander"
+      :foil="printingCommanderFoil"
+      @selected="replacePrinting"
+    />
   </v-card>
 </template>
 
@@ -267,8 +291,10 @@
 import { computed, ref } from 'vue'
 import type { Deck } from '../models/deck'
 import CardSearch from './CardSearch.vue'
+import CardPrintingDialog from './CardPrintingDialog.vue'
 import DeckActionIcon from './DeckActionIcon.vue'
 import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
+import FoilCardOverlay from './FoilCardOverlay.vue'
 import { useDeckStore } from '../stores/deck'
 import { getCardImage } from '../utils/cardDisplay'
 import { getCardIdentity } from '../utils/cardIdentity'
@@ -310,10 +336,27 @@ const displayedCommander = computed(() =>
     ? partnerCommander.value
     : commander.value,
 )
+const displayedCommanderFoil = computed(() =>
+  displayTarget.value === 'partner'
+    ? displayedDeck.value.partnerCommanderFoil === true
+    : displayedDeck.value.commanderFoil === true,
+)
 const partnerError = ref('')
 const commanderMenuOpen = ref(false)
 const commanderMenuX = ref(0)
 const commanderMenuY = ref(0)
+const menuTarget = ref<'commander' | 'partner'>('commander')
+const printingDialogOpen = ref(false)
+const printingCommander = computed(() =>
+  menuTarget.value === 'partner'
+    ? partnerCommander.value
+    : commander.value,
+)
+const printingCommanderFoil = computed(() =>
+  menuTarget.value === 'partner'
+    ? displayedDeck.value.partnerCommanderFoil === true
+    : displayedDeck.value.commanderFoil === true,
+)
 const selectedCommanderIds = computed(() =>
   [commander.value?.id, partnerCommander.value?.id].filter(
     (id): id is string => Boolean(id),
@@ -348,8 +391,12 @@ function isSelectedPreview(card: ScryfallCard): boolean {
   )
 }
 
-function openCommanderMenu(event: MouseEvent) {
+function openCommanderMenu(
+  event: MouseEvent,
+  target: 'commander' | 'partner' = displayTarget.value,
+) {
   if (readOnly.value) return
+  menuTarget.value = target
   commanderMenuX.value = event.clientX
   commanderMenuY.value = event.clientY
   commanderMenuOpen.value = true
@@ -357,13 +404,30 @@ function openCommanderMenu(event: MouseEvent) {
 
 function removeDisplayedCommander() {
   if (readOnly.value) return
-  if (displayTarget.value === 'partner') {
+  if (menuTarget.value === 'partner') {
     deckStore.clearPartnerCommander()
   } else {
     deckStore.clearCommander()
   }
   deckStore.clearPreviewCard()
   commanderMenuOpen.value = false
+}
+
+function changePrinting() {
+  if (!printingCommander.value) return
+  commanderMenuOpen.value = false
+  printingDialogOpen.value = true
+}
+
+function replacePrinting(selection: {
+  printing: ScryfallCard
+  foil: boolean
+}) {
+  deckStore.replaceCommanderPrinting(
+    menuTarget.value,
+    selection.printing,
+    selection.foil,
+  )
 }
 </script>
 
@@ -393,7 +457,14 @@ function removeDisplayedCommander() {
 
 .commander-image {
   max-width: none;
+  overflow: hidden;
+  position: relative;
   width: calc(100% - 24px);
+}
+
+.commander-image-art {
+  height: 100%;
+  width: 100%;
 }
 
 .selected-commander-content {

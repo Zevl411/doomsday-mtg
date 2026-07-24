@@ -29,6 +29,7 @@ export const oracleDarkColors = {
   'on-surface-variant': '#C6B792',
   'on-primary': '#171321',
   'on-secondary': '#FFF4E0',
+  'on-accent': '#FFF4E0',
   'on-error': '#FFF5F2',
   'on-info': '#F7FAFF',
   'on-success': '#F4FFF5',

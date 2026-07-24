@@ -150,6 +150,7 @@
         </span>
         <v-spacer />
         <v-switch
+          v-if="allowFoil"
           v-model="selectedFoil"
           color="primary"
           density="comfortable"
@@ -186,8 +187,10 @@ const props = withDefaults(defineProps<{
   modelValue: boolean
   card: ScryfallCard | null
   foil?: boolean
+  allowFoil?: boolean
 }>(), {
   foil: false,
+  allowFoil: true,
 })
 
 const emit = defineEmits<{
@@ -321,7 +324,10 @@ function confirmSelection() {
   if (!selectedPrinting.value) return
   emit('selected', {
     printing: selectedPrinting.value,
-    foil: selectedFoil.value && supportsFoil(selectedPrinting.value),
+    foil:
+      props.allowFoil &&
+      selectedFoil.value &&
+      supportsFoil(selectedPrinting.value),
   })
   close()
 }

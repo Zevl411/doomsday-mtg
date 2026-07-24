@@ -370,7 +370,11 @@ function normalizeDeck(
     createdAt,
     updatedAt,
     commander,
+    ...(value.commanderFoil === true ? { commanderFoil: true } : {}),
     partnerCommander,
+    ...(value.partnerCommanderFoil === true
+      ? { partnerCommanderFoil: true }
+      : {}),
     cards,
     sideboard,
     maybeboard,

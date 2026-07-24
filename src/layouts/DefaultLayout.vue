@@ -348,6 +348,7 @@
               clear-on-select
               compact
               elevated-results
+              search-unique="art"
               @card-selected="useCardAppTheme"
             />
             <v-skeleton-loader
@@ -378,13 +379,6 @@
               v-model="preferenceDraft.priceCurrency"
               :items="priceCurrencyOptions"
               label="Price currency"
-            />
-            <v-checkbox
-              v-model="preferenceDraft.showGridCardPrices"
-              color="primary"
-              density="comfortable"
-              hide-details
-              label="Show card prices in Deck grid view"
             />
           </section>
           <v-divider class="mb-5" />
@@ -426,11 +420,11 @@
             @update:model-value="applyDeckBuilderSearchSide"
           >
             <v-btn value="left">
-              <v-icon class="mr-2" icon="mdi-dock-left" />
+              <v-icon class="mr-2" icon="$dockLeft" />
               Left
             </v-btn>
             <v-btn value="right">
-              <v-icon class="mr-2" icon="mdi-dock-right" />
+              <v-icon class="mr-2" icon="$dockRight" />
               Right
             </v-btn>
           </v-btn-toggle>

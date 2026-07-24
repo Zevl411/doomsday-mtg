@@ -50,8 +50,9 @@ tournament evidence.
   statistics placement through user preferences
 - Keep the Oracle default theme or derive a persistent app palette from any
   card's artwork
-- Keep card-price currency explicit and choose whether Deck grids show prices
-  through user preferences; TCGplayer pricing is currently available in USD
+- Keep card-price currency explicit in user preferences and toggle Deck-grid
+  prices directly from the Deck panel; TCGplayer pricing is currently
+  available in USD
 - Import and export plaintext decklists
 - Copy tournament decks into a personal deck library
 

@@ -127,6 +127,9 @@ describe('card artwork themes', () => {
     expect(result.colors.primary).toBe(palette.primary)
     expect(result.colors.background).toBe(palette.background)
     expect(result.colors.error).toBe('#B84B4D')
+    expect(result.colors['on-primary']).toMatch(/^#[0-9A-F]{6}$/)
+    expect(result.colors['on-secondary']).toMatch(/^#[0-9A-F]{6}$/)
+    expect(result.colors['on-accent']).toMatch(/^#[0-9A-F]{6}$/)
   })
 })
 

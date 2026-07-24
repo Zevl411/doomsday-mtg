@@ -77,6 +77,8 @@ describe('deck-library storage', () => {
 
   it('saves and loads a valid library', () => {
     const deck = createStoredDeck()
+    deck.commander = structuredClone(card)
+    deck.commanderFoil = true
     deck.cards[0]!.foil = true
     const library: StoredDeckLibrary = {
       version: DECK_LIBRARY_VERSION,

@@ -205,6 +205,34 @@ describe('deck library store', () => {
     expect(store.previewCard).toEqual(alternatePrinting)
   })
 
+  it('changes a Commander printing without changing its Oracle identity', () => {
+    const store = useDeckStore()
+    store.createDeck()
+    store.setCommander(commander)
+    store.selectPreviewCard(commander)
+    const alternatePrinting = {
+      ...commander,
+      id: 'commander-showcase-printing',
+      set: 'showcase',
+      finishes: ['nonfoil', 'foil'],
+      foil: true,
+    }
+
+    expect(store.replaceCommanderPrinting(
+      'commander',
+      alternatePrinting,
+      true,
+    )).toBe(true)
+    expect(store.deck.commander).toEqual(alternatePrinting)
+    expect(store.deck.commanderFoil).toBe(true)
+    expect(store.selectedPreviewCard).toEqual(alternatePrinting)
+    expect(store.replaceCommanderPrinting(
+      'commander',
+      artifact,
+    )).toBe(false)
+    expect(store.deck.commander).toEqual(alternatePrinting)
+  })
+
   it('sets a foil finish without changing the card or quantity', () => {
     const store = useDeckStore()
     store.createDeck()

@@ -34,6 +34,7 @@ describe('deck factory', () => {
     vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'))
     const source = createEmptyDeck('Original')
     source.commander = card
+    source.commanderFoil = true
     source.cards.push({ card, quantity: 1 })
     source.sideboard.push({ card, quantity: 2 })
 
@@ -46,6 +47,7 @@ describe('deck factory', () => {
     expect(clone.cards).not.toBe(source.cards)
     expect(clone.cards[0]).not.toBe(source.cards[0])
     expect(clone.sideboard).not.toBe(source.sideboard)
+    expect(clone.commanderFoil).toBe(true)
 
     clone.cards[0]!.quantity = 8
     expect(source.cards[0]?.quantity).toBe(1)

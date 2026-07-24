@@ -34,6 +34,7 @@ function mountSearch(
     resultFilter?: (card: ScryfallCard) => boolean
     selectedCard?: ScryfallCard | null
     selectedCards?: ScryfallCard[]
+    searchUnique?: 'cards' | 'art' | 'prints'
   } = {},
 ) {
   return mount(CardSearch, {
@@ -167,6 +168,22 @@ describe('CardSearch', () => {
     expect(searchCards).toHaveBeenCalledWith(
       'atraxa is:commander legal:commander',
       expect.any(AbortSignal),
+    )
+    wrapper.unmount()
+  })
+
+  it('can request one search result per unique artwork', async () => {
+    vi.useFakeTimers()
+    vi.mocked(searchCards).mockResolvedValue([card])
+    const wrapper = mountSearch({ searchUnique: 'art' })
+
+    await wrapper.find('input').setValue('sol ring')
+    await vi.advanceTimersByTimeAsync(250)
+
+    expect(searchCards).toHaveBeenCalledWith(
+      'sol ring',
+      expect.any(AbortSignal),
+      'art',
     )
     wrapper.unmount()
   })

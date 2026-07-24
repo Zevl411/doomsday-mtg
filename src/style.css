@@ -73,6 +73,23 @@ body,
   border-radius: 5px !important;
 }
 
+/*
+ * All framework icons are inline SVGs and inherit the semantic foreground of
+ * their control. Explicit fill keeps third-party/browser defaults from making
+ * a valid icon disappear against its themed surface.
+ */
+.v-icon {
+  color: inherit;
+}
+
+.v-icon > .v-icon__svg {
+  fill: currentColor;
+}
+
+.v-selection-control__input > .v-icon {
+  opacity: 0.92;
+}
+
 .v-field {
   border-radius: 5px;
   font-size: 0.875rem;

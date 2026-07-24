@@ -28,7 +28,7 @@
           <v-btn
             color="secondary"
             :loading="loading"
-            prepend-icon="mdi-refresh"
+            prepend-icon="$refresh"
             variant="outlined"
             @click="loadHealth"
           >
@@ -329,7 +329,7 @@
                 >
                   <template #prepend>
                     <v-icon :color="check.status === 'pass' ? 'success' : 'warning'">
-                      {{ check.status === 'pass' ? 'mdi-check-circle' : 'mdi-alert' }}
+                      {{ check.status === 'pass' ? '$success' : '$warning' }}
                     </v-icon>
                   </template>
                 </v-list-item>
@@ -375,7 +375,7 @@
               >
                 <template #prepend>
                   <v-icon :color="check.status === 'pass' ? 'success' : 'warning'">
-                    {{ check.status === 'pass' ? 'mdi-check-circle' : 'mdi-alert' }}
+                    {{ check.status === 'pass' ? '$success' : '$warning' }}
                   </v-icon>
                 </template>
               </v-list-item>

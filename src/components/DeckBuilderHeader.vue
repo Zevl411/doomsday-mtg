@@ -279,10 +279,18 @@ const validitySeverity = computed(() =>
 const deckPrice = computed(() => sumKnownDeckEntryPrices(
   [
     ...(deck.value.commander
-      ? [{ card: deck.value.commander, quantity: 1 }]
+      ? [{
+          card: deck.value.commander,
+          quantity: 1,
+          ...(deck.value.commanderFoil === true ? { foil: true } : {}),
+        }]
       : []),
     ...(deck.value.partnerCommander
-      ? [{ card: deck.value.partnerCommander, quantity: 1 }]
+      ? [{
+          card: deck.value.partnerCommander,
+          quantity: 1,
+          ...(deck.value.partnerCommanderFoil === true ? { foil: true } : {}),
+        }]
       : []),
     ...deck.value.cards,
   ],
@@ -301,7 +309,9 @@ watch(
   () => [
     deck.value.id,
     deck.value.commander?.id,
+    deck.value.commanderFoil === true,
     deck.value.partnerCommander?.id,
+    deck.value.partnerCommanderFoil === true,
     ...deck.value.cards.map((entry) =>
       `${entry.card.id}:${entry.quantity}:${entry.foil === true}`
     ),

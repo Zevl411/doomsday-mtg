@@ -19,6 +19,13 @@ defaults unless card artwork or a specific workflow needs a documented
 exception. This keeps visual changes separate from route composition, domain
 logic, and interaction behavior.
 
+Vuetify controls use its bundled Material Design SVG icon set rather than an
+external icon font. App-specific icons are registered as semantic aliases in
+`src/plugins/vuetify.ts`, and icons inherit their control's foreground color.
+Themes must provide matching `on-*` colors for filled surfaces so checkboxes,
+select indicators, dialog actions, and icon buttons remain visible in both the
+Oracle palette and card-art-derived palettes.
+
 The Oracle theme is also the permanent fallback for user-selected app themes.
 `src/theme/cardArtTheme.ts` samples Scryfall's art-only card crop in a small
 browser canvas, derives a dark palette, and validates the saved palette before
@@ -85,6 +92,8 @@ shapes. A Deck contains:
 
 - a stable application ID and created/updated timestamps;
 - one optional Commander;
+- optional foil finishes for the Commander and Partner Commander, stored on the
+  Deck because those cards are not quantity-bearing board entries;
 - `cards`, the mainboard retained under its legacy property name;
 - sideboard, maybeboard, and considering boards;
 - a user-facing deck name.
@@ -116,10 +125,11 @@ Oracle identity, legality, or Deck mutations.
 
 All Deck price surfaces use `src/utils/cardPrice.ts`: list rows and optional
 grid labels multiply the selected finish by quantity, group headings sum those
-entries, and the header sums Commander(s) plus Mainboard. Missing prices are
-excluded rather than treated as zero. Sideboard, Maybeboard, and Considering
-prices appear in their own rows and groups but do not inflate the playable
-Deck total.
+entries, and the header sums Commander(s) plus Mainboard. The grid-price toggle
+is stored with the Deck panel's other browser-local display controls rather
+than synced as an account preference. Missing prices are excluded rather than
+treated as zero. Sideboard, Maybeboard, and Considering prices appear in their
+own rows and groups but do not inflate the playable Deck total.
 
 ## Board rules
 

@@ -57,7 +57,9 @@
   :global(.deck-grid-card:hover) > .foil-card-overlay,
   :global(.deck-grid-card:focus-visible) > .foil-card-overlay,
   :global(.card-preview-image:hover) > .foil-card-overlay,
-  :global(.card-preview-image:focus-within) > .foil-card-overlay {
+  :global(.card-preview-image:focus-within) > .foil-card-overlay,
+  :global(.commander-image:hover) > .foil-card-overlay,
+  :global(.commander-image:focus-within) > .foil-card-overlay {
     animation: foil-card-shimmer 950ms ease-out both;
   }
 }

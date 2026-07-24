@@ -5,7 +5,6 @@ import DeckPanel from './DeckPanel.vue'
 import vuetify from '../plugins/vuetify'
 import { createEmptyDeck } from '../models/createDeck'
 import { useDeckStore } from '../stores/deck'
-import { useUserPreferencesStore } from '../stores/userPreferences'
 import type { ScryfallCard } from '../types/card'
 import { defineComponent } from 'vue'
 
@@ -73,13 +72,21 @@ describe('DeckPanel', () => {
     expect(wrapper.find('.deck-list-price').text()).toBe('$2.25')
   })
 
-  it('shows grid and group prices only when the preference is enabled', () => {
-    useUserPreferencesStore().values.showGridCardPrices = true
+  it('toggles grid and group prices from the board header', async () => {
     useDeckStore().deck.cards = [{ card: artifact, quantity: 2 }]
     const wrapper = mountPanel()
 
+    expect(wrapper.find('.deck-grid-price').exists()).toBe(false)
+    const toggle = wrapper.findAllComponents({ name: 'VSwitch' })
+      .find((control) => control.props('label') === 'Show prices')
+    toggle?.vm.$emit('update:modelValue', true)
+    await wrapper.vm.$nextTick()
+
     expect(wrapper.find('.deck-grid-price').text()).toBe('$4.50')
     expect(wrapper.find('h3').text()).toContain('· $4.50')
+    expect(JSON.parse(
+      localStorage.getItem('doomsday-mtg-deck-panel-preferences') ?? '{}',
+    ).showGridPrices).toBe(true)
   })
 
   it('offers independent primary and secondary sorting for every board', () => {

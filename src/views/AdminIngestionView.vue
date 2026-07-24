@@ -22,7 +22,7 @@
         <v-btn
           color="secondary"
           :loading="loadingMetrics"
-          prepend-icon="mdi-refresh"
+          prepend-icon="$refresh"
           variant="outlined"
           @click="loadMetrics"
         >

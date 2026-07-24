@@ -22,6 +22,22 @@ afterEach(() => {
 })
 
 describe('Scryfall client', () => {
+  it('can return one result for each unique artwork', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ data: [solRing] }),
+    } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(searchCards('Sol Ring', undefined, 'art'))
+      .resolves.toEqual([solRing])
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      'https://api.scryfall.com/cards/search?q=Sol%20Ring&unique=art',
+    )
+  })
+
   it('loads one exact printing for current marketplace data', async () => {
     const pricedCard = {
       ...solRing,

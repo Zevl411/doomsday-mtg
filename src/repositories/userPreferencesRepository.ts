@@ -25,7 +25,6 @@ export async function loadUserPreferences(
       deckBuilderSearchSide: data.deck_builder_search_side,
       deckStatisticsPosition: data.deck_statistics_position,
       priceCurrency: data.price_currency,
-      showGridCardPrices: data.show_grid_card_prices,
       appTheme: data.app_theme,
     })
     if (error) console.warn('Unable to load user preferences.', error)
@@ -43,7 +42,7 @@ export async function saveUserPreferences(
   userId: string | null,
 ): Promise<boolean> {
   if (userId && supabase) {
-    const { error } = await supabase.from('user_preferences').upsert({
+    const payload = {
       user_id: userId,
       default_deck_display: preferences.defaultDeckDisplay,
       default_primary_grouping: preferences.defaultPrimaryGrouping,
@@ -53,10 +52,24 @@ export async function saveUserPreferences(
       deck_builder_search_side: preferences.deckBuilderSearchSide,
       deck_statistics_position: preferences.deckStatisticsPosition,
       price_currency: preferences.priceCurrency,
-      show_grid_card_prices: preferences.showGridCardPrices,
       app_theme: preferences.appTheme,
       updated_at: new Date().toISOString(),
-    })
+    }
+    let { error } = await supabase.from('user_preferences').upsert(payload)
+
+    /*
+     * A frontend deployment can briefly precede its database migration. Price
+     * display is USD-only today, so retrying without this optional column keeps
+     * unrelated preferences saveable until the migration reaches PostgREST.
+     */
+    if (isMissingPreferenceColumn(error, 'price_currency')) {
+      const { price_currency: _priceCurrency, ...legacyPayload } = payload
+      const retry = await supabase
+        .from('user_preferences')
+        .upsert(legacyPayload)
+      error = retry.error
+    }
+
     if (error) {
       console.warn('Unable to save user preferences.', error)
       return false
@@ -70,6 +83,17 @@ export async function saveUserPreferences(
   } catch {
     return false
   }
+}
+
+function isMissingPreferenceColumn(
+  error: unknown,
+  column: string,
+): boolean {
+  if (!error || typeof error !== 'object') return false
+  const value = error as { code?: unknown; message?: unknown }
+  return value.code === 'PGRST204' &&
+    typeof value.message === 'string' &&
+    value.message.includes(`'${column}' column`)
 }
 
 export function normalizePreferences(
@@ -100,10 +124,6 @@ export function normalizePreferences(
     deckStatisticsPosition:
       value.deckStatisticsPosition === 'below' ? 'below' : 'above',
     priceCurrency: 'USD',
-    showGridCardPrices:
-      typeof value.showGridCardPrices === 'boolean'
-        ? value.showGridCardPrices
-        : defaults.showGridCardPrices,
     appTheme: normalizeAppTheme(value.appTheme),
   }
 }

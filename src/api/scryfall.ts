@@ -8,6 +8,8 @@ const COLLECTION_BATCH_SIZE = 75
 let lastLookupStartedAt = 0
 const cardPrintingCache = new Map<string, ScryfallCard>()
 
+export type ScryfallSearchUniqueMode = 'cards' | 'art' | 'prints'
+
 /** Lets callers distinguish an outage from a valid empty search result. */
 export class ScryfallUnavailableError extends Error {
   override name = 'ScryfallUnavailableError'
@@ -19,6 +21,7 @@ export class ScryfallUnavailableError extends Error {
 export async function searchCards(
   query: string,
   signal?: AbortSignal,
+  uniqueMode: ScryfallSearchUniqueMode = 'cards',
 ): Promise<ScryfallCard[]> {
   const trimmedQuery = query.trim()
 
@@ -27,8 +30,10 @@ export async function searchCards(
   }
 
   const encodedQuery = encodeURIComponent(trimmedQuery)
+  const uniqueParameter =
+    uniqueMode === 'cards' ? '' : `&unique=${uniqueMode}`
   const response = await fetchFromScryfall(
-    `${BASE_URL}/cards/search?q=${encodedQuery}`,
+    `${BASE_URL}/cards/search?q=${encodedQuery}${uniqueParameter}`,
     {
       headers: { Accept: 'application/json' },
       signal,

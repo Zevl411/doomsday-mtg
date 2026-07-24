@@ -54,9 +54,13 @@ export function cloneDeck(
     createdAt: timestamp,
     updatedAt: timestamp,
     commander: source.commander ? cloneCard(source.commander) : null,
+    ...(source.commanderFoil === true ? { commanderFoil: true } : {}),
     partnerCommander: source.partnerCommander
       ? cloneCard(source.partnerCommander)
       : null,
+    ...(source.partnerCommanderFoil === true
+      ? { partnerCommanderFoil: true }
+      : {}),
     cards: cloneBoard(source.cards),
     sideboard: cloneBoard(source.sideboard),
     maybeboard: cloneBoard(source.maybeboard),

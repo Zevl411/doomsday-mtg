@@ -39,8 +39,8 @@
               v-if="board.value !== 'mainboard'"
               :icon="
                 expandedBoards[board.value]
-                  ? 'mdi-chevron-up'
-                  : 'mdi-chevron-down'
+                  ? '$collapse'
+                  : '$expand'
               "
             />
           </div>
@@ -58,7 +58,7 @@
               <v-icon
                 aria-hidden="true"
                 color="primary"
-                icon="mdi-image-size-select-large"
+                icon="$imageSize"
                 size="small"
               />
               <v-slider
@@ -74,6 +74,15 @@
                 thumb-label
               />
             </div>
+            <v-switch
+              v-if="viewModes[board.value] === 'grid'"
+              v-model="showGridPrices"
+              class="grid-price-toggle"
+              color="primary"
+              density="compact"
+              hide-details
+              label="Show prices"
+            />
             <v-select
               v-model="sortSettings[board.value].primary"
               density="comfortable"
@@ -286,7 +295,7 @@
                   >×{{ entry.card.quantity }}</v-avatar>
                 </v-card>
                 <div
-                  v-if="userPreferences.values.showGridCardPrices"
+                  v-if="showGridPrices"
                   class="deck-grid-price mt-1 text-center text-caption"
                 >
                   {{ formatEntryPrice(entry.card) }}
@@ -388,6 +397,7 @@ interface BoardEntry { card: DeckCard; sourceBoard: TrackedDeckBoard }
 interface DeckPanelPreferences {
   viewModes: Record<VisibleBoard, 'list' | 'grid'>
   gridSizes: Record<VisibleBoard, number>
+  showGridPrices: boolean
   sortSettings: Record<VisibleBoard, {
     primary: SortKey
     secondary: SecondarySortKey
@@ -410,6 +420,7 @@ const preferencesStorageKey = 'doomsday-mtg-deck-panel-preferences'
 const savedPreferences = loadPreferences()
 const viewModes = reactive(savedPreferences.viewModes)
 const gridSizes = reactive(savedPreferences.gridSizes)
+const showGridPrices = ref(savedPreferences.showGridPrices)
 const menuOpen = ref(false)
 const menuX = ref(0)
 const menuY = ref(0)
@@ -450,7 +461,7 @@ const moveBoards = computed(() =>
 )
 
 watch(
-  [viewModes, gridSizes, sortSettings],
+  [viewModes, gridSizes, sortSettings, showGridPrices],
   () => savePreferences(),
   { deep: true },
 )
@@ -545,6 +556,7 @@ function defaultPreferences(): DeckPanelPreferences {
       sideboard: 2,
       maybeboard: 2,
     },
+    showGridPrices: false,
     sortSettings: {
       mainboard: {
         primary: userPreferences.values.defaultPrimaryGrouping,
@@ -591,6 +603,7 @@ function loadPreferences(): DeckPanelPreferences {
         sideboard: validGridSize(saved.gridSizes?.sideboard),
         maybeboard: validGridSize(saved.gridSizes?.maybeboard),
       },
+      showGridPrices: saved.showGridPrices === true,
       sortSettings: {
         mainboard: validBoardSort(saved.sortSettings?.mainboard, defaults.sortSettings.mainboard),
         sideboard: validBoardSort(saved.sortSettings?.sideboard, defaults.sortSettings.sideboard),
@@ -636,6 +649,7 @@ function savePreferences() {
       JSON.stringify({
         viewModes,
         gridSizes,
+        showGridPrices: showGridPrices.value,
         sortSettings,
       }),
     )
@@ -670,7 +684,7 @@ function formatGroupPrice(cards: BoardEntry[]): string {
 }
 function showGroupPrice(board: VisibleBoard): boolean {
   return viewModes[board] === 'list' ||
-    userPreferences.values.showGridCardPrices
+    showGridPrices.value
 }
 function isBoardExpanded(board: VisibleBoard): boolean {
   return board === 'mainboard' || expandedBoards[board]
@@ -786,7 +800,7 @@ function toggleFoil() {
 .board-header {
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 620px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 720px);
 }
 
 .board-title {
@@ -801,6 +815,14 @@ function toggleFoil() {
   justify-self: end;
   max-width: 100%;
   width: 100%;
+}
+
+.grid-price-toggle {
+  flex: 0 0 auto;
+}
+
+.grid-price-toggle :deep(.v-label) {
+  font-size: 0.8rem;
 }
 
 .card-size-control {

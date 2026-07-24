@@ -15,8 +15,6 @@ browser-local.
 currency preference. TCGplayer currently exposes the marketplace values used
 by the app in USD, so the database constraint intentionally accepts only
 `USD`; future native marketplace currencies can extend the constraint.
-`202607240003_add_grid_card_prices_preference.sql` adds the optional Deck-grid
-price-label preference. List rows remain priced regardless of this setting.
 
 Card-art palette extraction also requires the public, host-restricted image
 proxy because Scryfall's image CDN does not allow browsers to read its pixels:

@@ -50,7 +50,6 @@ export interface UserPreferences {
   deckBuilderSearchSide: DeckBuilderSearchSide
   deckStatisticsPosition: DeckStatisticsPosition
   priceCurrency: PriceCurrency
-  showGridCardPrices: boolean
   appTheme: AppThemePreference
 }
 
@@ -63,6 +62,5 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   deckBuilderSearchSide: 'right',
   deckStatisticsPosition: 'above',
   priceCurrency: 'USD',
-  showGridCardPrices: false,
   appTheme: { mode: 'default' },
 }

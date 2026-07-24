@@ -196,6 +196,7 @@ export function getVuetifyTheme(
       outline: palette.outline,
       'on-primary': readableTextColor(palette.primary),
       'on-secondary': readableTextColor(palette.secondary),
+      'on-accent': readableTextColor(palette.accent),
     },
     variables: {
       ...oracleDarkVariables,

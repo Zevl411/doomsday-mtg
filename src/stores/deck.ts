@@ -284,11 +284,13 @@ export const useDeckStore = defineStore('deck', {
 
     setCommander(card: ScryfallCard) {
       this.deck.commander = card
+      delete this.deck.commanderFoil
       if (
         this.deck.partnerCommander &&
         !validateCommanderPairing(card, this.deck.partnerCommander).allowed
       ) {
         this.deck.partnerCommander = null
+        delete this.deck.partnerCommanderFoil
       }
       this.persistActiveDeck()
     },
@@ -300,6 +302,8 @@ export const useDeckStore = defineStore('deck', {
 
       this.deck.commander = null
       this.deck.partnerCommander = null
+      delete this.deck.commanderFoil
+      delete this.deck.partnerCommanderFoil
       this.persistActiveDeck()
     },
 
@@ -319,6 +323,7 @@ export const useDeckStore = defineStore('deck', {
       }
 
       this.deck.partnerCommander = card
+      delete this.deck.partnerCommanderFoil
       this.rejectionMessage = ''
       this.persistActiveDeck()
       return { allowed: true }
@@ -327,7 +332,67 @@ export const useDeckStore = defineStore('deck', {
     clearPartnerCommander() {
       if (!this.deck.partnerCommander) return
       this.deck.partnerCommander = null
+      delete this.deck.partnerCommanderFoil
       this.persistActiveDeck()
+    },
+
+    /**
+     * Commander printing changes preserve the Oracle identity that determines
+     * deck legality. This intentionally cannot replace a Commander with a
+     * different game card, even if a caller passes an unexpected result.
+     */
+    replaceCommanderPrinting(
+      target: 'commander' | 'partner',
+      printing: ScryfallCard,
+      foil?: boolean,
+    ): boolean {
+      const current = target === 'partner'
+        ? this.deck.partnerCommander
+        : this.deck.commander
+      if (
+        !current ||
+        getCardIdentity(current) !== getCardIdentity(printing)
+      ) {
+        return false
+      }
+      const currentFoil = target === 'partner'
+        ? this.deck.partnerCommanderFoil === true
+        : this.deck.commanderFoil === true
+      const nextFoil = foil ?? currentFoil
+      if (nextFoil && !supportsFoil(printing)) return false
+
+      if (target === 'partner') {
+        this.deck.partnerCommander = printing
+        if (nextFoil) this.deck.partnerCommanderFoil = true
+        else delete this.deck.partnerCommanderFoil
+      } else {
+        this.deck.commander = printing
+        if (nextFoil) this.deck.commanderFoil = true
+        else delete this.deck.commanderFoil
+      }
+
+      if (
+        this.previewCard &&
+        getCardIdentity(this.previewCard) === getCardIdentity(current)
+      ) {
+        this.previewCard = printing
+      }
+      if (
+        this.selectedPreviewCard &&
+        getCardIdentity(this.selectedPreviewCard) === getCardIdentity(current)
+      ) {
+        this.selectedPreviewCard = printing
+      }
+      if (
+        this.lastPreviewCard &&
+        getCardIdentity(this.lastPreviewCard) === getCardIdentity(current)
+      ) {
+        this.lastPreviewCard = printing
+      }
+
+      this.rejectionMessage = ''
+      this.persistActiveDeck()
+      return true
     },
 
     addCard(

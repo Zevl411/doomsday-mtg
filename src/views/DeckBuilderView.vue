@@ -159,6 +159,20 @@ const showPartnerPanel = computed(() =>
 const previewCardIsFoil = computed(() => {
   if (!deckStore.previewCard) return false
   const previewIdentity = getCardIdentity(deckStore.previewCard)
+  if (
+    deckStore.deck.commanderFoil === true &&
+    deckStore.deck.commander &&
+    getCardIdentity(deckStore.deck.commander) === previewIdentity
+  ) {
+    return true
+  }
+  if (
+    deckStore.deck.partnerCommanderFoil === true &&
+    deckStore.deck.partnerCommander &&
+    getCardIdentity(deckStore.deck.partnerCommander) === previewIdentity
+  ) {
+    return true
+  }
   return [
     ...deckStore.deck.cards,
     ...deckStore.deck.sideboard,

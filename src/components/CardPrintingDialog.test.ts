@@ -84,4 +84,27 @@ describe('CardPrintingDialog', () => {
     ]])
     expect(wrapper.emitted('update:modelValue')).toContainEqual([false])
   })
+
+  it('hides finish selection when only a printing may be changed', async () => {
+    const wrapper = mount(CardPrintingDialog, {
+      props: {
+        modelValue: true,
+        card: currentPrinting,
+        allowFoil: false,
+      },
+      global: {
+        plugins: [vuetify],
+        stubs: {
+          VDialog: defineComponent({
+            props: { modelValue: Boolean },
+            template: '<div v-if="modelValue"><slot /></div>',
+          }),
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.findComponent({ name: 'VSwitch' }).exists()).toBe(false)
+  })
 })

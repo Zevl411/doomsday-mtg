@@ -51,6 +51,28 @@ describe('DeckBuilderHeader', () => {
     wrapper.unmount()
   })
 
+  it('uses the selected foil Commander price in the Deck total', () => {
+    const store = useDeckStore()
+    store.setCommander({
+      id: 'priced-commander',
+      name: 'Priced Commander',
+      type_line: 'Legendary Creature',
+      color_identity: [],
+      prices: { usd: '2.00', usd_foil: '8.50' },
+    })
+    store.deck.commanderFoil = true
+    const wrapper = mount(DeckBuilderHeader, {
+      global: {
+        plugins: [vuetify],
+        stubs: { RouterLink: true },
+      },
+    })
+
+    expect(wrapper.find('.deck-header-metadata').text())
+      .toContain('Deck total $8.50')
+    wrapper.unmount()
+  })
+
   it('swaps the header columns when search is preferred on the left', () => {
     useUserPreferencesStore().values.deckBuilderSearchSide = 'left'
     const wrapper = mount(DeckBuilderHeader, {
