@@ -74,16 +74,81 @@
     </button>
 
     <v-card-item class="deck-card-content-header">
-      <span
-        :aria-label="`${visibilityLabel} deck`"
-        class="deck-visibility-icon"
-        role="img"
-        :title="`${visibilityLabel} deck`"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-          <path :d="visibilityIconPath" />
-        </svg>
-      </span>
+      <div class="deck-card-header-controls">
+        <span
+          :aria-label="`${visibilityLabel} deck`"
+          class="deck-visibility-icon"
+          role="img"
+          :title="`${visibilityLabel} deck`"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path :d="visibilityIconPath" />
+          </svg>
+        </span>
+        <v-menu
+          v-model="showMobileActions"
+          location="bottom end"
+          :close-on-content-click="false"
+        >
+          <template #activator="{ props }">
+            <v-btn
+              v-if="manageable && !selectable"
+              v-bind="props"
+              aria-label="Open deck actions"
+              class="deck-card-actions-mobile d-flex d-md-none"
+              icon
+              size="small"
+              variant="text"
+              @click.stop.prevent="showMobileActions = true"
+            >
+              <svg
+                aria-hidden="true"
+                class="deck-card-menu-icon"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="12" cy="5" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="12" cy="19" r="2" />
+              </svg>
+            </v-btn>
+          </template>
+          <v-list density="comfortable">
+            <v-list-item
+              :disabled="!canCompare"
+              title="View comparison"
+              @click="emitMobileAction('compare', deck.id)"
+            >
+              <template #prepend>
+                <DeckActionIcon compact name="compare" />
+              </template>
+            </v-list-item>
+            <v-list-item
+              title="Rename"
+              @click="emitMobileAction('rename', deck.id)"
+            >
+              <template #prepend>
+                <DeckActionIcon compact name="rename" />
+              </template>
+            </v-list-item>
+            <v-list-item
+              title="Duplicate"
+              @click="emitMobileAction('duplicate', deck.id)"
+            >
+              <template #prepend>
+                <DeckActionIcon compact name="duplicate" />
+              </template>
+            </v-list-item>
+            <v-list-item
+              title="Delete"
+              @click="emitMobileAction('delete', deck.id)"
+            >
+              <template #prepend>
+                <DeckActionIcon compact name="delete" />
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </div>
       <v-card-title>
         <button
           class="deck-card-title-button"
@@ -179,50 +244,6 @@
       </v-btn-group>
     </v-card-actions>
 
-    <v-menu
-      v-model="showMobileActions"
-      location="bottom end"
-      :close-on-content-click="false"
-    >
-      <template #activator="{ props }">
-        <v-btn
-          v-if="manageable && !selectable"
-          v-bind="props"
-          aria-label="Open deck actions"
-          class="deck-card-actions-mobile d-flex d-md-none"
-          icon
-          size="small"
-          variant="text"
-          @click.stop.prevent="showMobileActions = true"
-        >
-          <v-icon icon="mdi-dots-vertical" />
-        </v-btn>
-      </template>
-      <v-list density="comfortable">
-        <v-list-item
-          :disabled="!canCompare"
-          title="View comparison"
-          @click="emitMobileAction('compare', deck.id)"
-        >
-          <template #prepend><DeckActionIcon compact name="compare" /></template>
-        </v-list-item>
-        <v-list-item title="Rename" @click="emitMobileAction('rename', deck.id)">
-          <template #prepend><DeckActionIcon compact name="rename" /></template>
-        </v-list-item>
-        <v-list-item
-          title="Duplicate"
-          @click="emitMobileAction('duplicate', deck.id)"
-        >
-          <template #prepend><DeckActionIcon compact name="duplicate" /></template>
-        </v-list-item>
-        <v-list-item
-          title="Delete"
-          @click="emitMobileAction('delete', deck.id)"
-        >
-          <template #prepend><DeckActionIcon compact name="delete" /></template>
-        </v-list-item>
-      </v-list>
-    </v-menu>
   </v-card>
 </template>
 
@@ -348,14 +369,22 @@ function emitMobileAction(
   position: relative;
 }
 
+.deck-card-header-controls {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}
+
 .deck-visibility-icon {
   align-items: center;
   color: rgb(var(--v-theme-primary));
   display: inline-flex;
   justify-content: center;
-  position: absolute;
-  right: 16px;
-  top: 16px;
+  padding: 8px;
 }
 
 .deck-visibility-icon svg {
@@ -522,17 +551,23 @@ function emitMobileAction(
 }
 
 .deck-card-actions-mobile {
-  background: rgba(var(--v-theme-surface), 0.92);
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  z-index: 3;
+  color: rgb(var(--v-theme-primary));
+}
+
+.deck-card-menu-icon {
+  fill: currentColor;
+  height: 22px;
+  width: 22px;
 }
 
 @media (max-width: 599px) {
   .deck-card-content-header,
   .deck-library-card :deep(.v-card-text) {
     padding-inline: 12px;
+  }
+
+  .deck-card-content-header {
+    padding-right: 88px;
   }
 }
 </style>

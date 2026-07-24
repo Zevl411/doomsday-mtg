@@ -130,4 +130,30 @@ describe('HomeView', () => {
     expect(commanderTitle!.find('.color-identity-symbols').exists()).toBe(true)
     expect(wrapper.text()).toContain('64 players')
   })
+
+  it('uses compact names for popular partner Commander pairs', async () => {
+    getCommanderMetagame.mockResolvedValue([{
+      commanderKey: 'tymna // kraum',
+      commanderName: "Tymna the Weaver // Kraum, Ludevic's Opus",
+      colorIdentity: ['W', 'U', 'B', 'R'],
+      entries: 10,
+      tournaments: 2,
+      wins: 20,
+      losses: 10,
+      draws: 0,
+      matchWinRate: 2 / 3,
+      top16Finishes: 4,
+      topCutRate: 0.4,
+      firstPlaceFinishes: 1,
+      metaShare: 0.25,
+    }])
+
+    const wrapper = mount(HomeView, {
+      global: { plugins: [vuetify] },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Tymna/Kraum')
+    expect(wrapper.text()).not.toContain('Tymna the Weaver // Kraum')
+  })
 })

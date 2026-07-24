@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeCommanderIdentity } from './commanderIdentity'
+import {
+  getCompactCommanderDisplayName,
+  normalizeCommanderIdentity,
+} from './commanderIdentity'
 
 describe('normalizeCommanderIdentity', () => {
   it('normalizes casing and whitespace for a single Commander', () => {
@@ -31,5 +34,19 @@ describe('normalizeCommanderIdentity', () => {
     expect(forward).toBe(reverse)
     expect(forward).not.toBe(normalizeCommanderIdentity('Tymna').key)
     expect(forward).not.toBe(normalizeCommanderIdentity('Kraum').key)
+  })
+})
+
+describe('getCompactCommanderDisplayName', () => {
+  it('shortens each Commander in a partner pairing', () => {
+    expect(getCompactCommanderDisplayName(
+      "Tymna the Weaver // Kraum, Ludevic's Opus",
+    )).toBe('Tymna/Kraum')
+  })
+
+  it('keeps the full name for a single Commander', () => {
+    expect(getCompactCommanderDisplayName(
+      'Sisay, Weatherlight Captain',
+    )).toBe('Sisay, Weatherlight Captain')
   })
 })

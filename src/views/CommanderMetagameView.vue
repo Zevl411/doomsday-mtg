@@ -20,29 +20,31 @@
         <v-chip>{{ percent(detail.stats.topCutRate) }} top-16 rate</v-chip>
       </div>
       <v-card border class="mb-5 pa-4">
-        <div class="text-subtitle-1 font-weight-bold mb-2">
-          Filter Commander Decks by cards
-        </div>
-        <p class="text-body-2 text-medium-emphasis mb-3">
-          Select up to five cards. Results must contain every selected card in
-          the same complete tournament mainboard.
-        </p>
-        <CardSearch
-          clear-on-select
-          elevated-results
-          :selected-card-ids="selectedCards.map((card) => card.id)"
-          :selected-cards="selectedCards"
-          @card-removed="removeCardFilter"
-          @card-selected="addCardFilter"
-        />
-        <v-alert
-          v-if="cardFilterMessage"
-          class="mt-3"
-          type="warning"
-          variant="tonal"
-        >
-          {{ cardFilterMessage }}
-        </v-alert>
+        <AppMobileFilterPanel>
+          <div class="text-subtitle-1 font-weight-bold mb-2">
+            Filter Commander Decks by cards
+          </div>
+          <p class="text-body-2 text-medium-emphasis mb-3">
+            Select up to five cards. Results must contain every selected card in
+            the same complete tournament mainboard.
+          </p>
+          <CardSearch
+            clear-on-select
+            elevated-results
+            :selected-card-ids="selectedCards.map((card) => card.id)"
+            :selected-cards="selectedCards"
+            @card-removed="removeCardFilter"
+            @card-selected="addCardFilter"
+          />
+          <v-alert
+            v-if="cardFilterMessage"
+            class="mt-3"
+            type="warning"
+            variant="tonal"
+          >
+            {{ cardFilterMessage }}
+          </v-alert>
+        </AppMobileFilterPanel>
       </v-card>
       <v-row align="start">
         <v-col cols="12" md="6">
@@ -358,6 +360,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getCardsByExactNames } from '../api/scryfall'
 import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
+import AppMobileFilterPanel from '../components/AppMobileFilterPanel.vue'
 import CardSearch from '../components/CardSearch.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import DeckActionIcon from '../components/DeckActionIcon.vue'

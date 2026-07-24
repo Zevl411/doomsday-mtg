@@ -30,6 +30,11 @@ describe('DeckLibraryCard', () => {
     expect(
       wrapper.find('button[aria-label="Open deck actions"]').exists(),
     ).toBe(true)
+    expect(
+      wrapper
+        .get('.deck-card-content-header')
+        .findAll('.deck-card-menu-icon circle'),
+    ).toHaveLength(3)
     expect(wrapper.text()).toContain('Library Deck')
     expect(wrapper.text()).toContain('The Commander')
     expect(wrapper.text()).toContain('Main 3')

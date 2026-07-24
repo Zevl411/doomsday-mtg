@@ -4,13 +4,22 @@
       <v-container
         class="d-flex align-center mx-auto px-3 px-md-6"
       >
-        <v-app-bar-nav-icon
+        <v-btn
           aria-label="Open navigation"
           class="mobile-navigation-toggle d-md-none"
           density="comfortable"
+          icon
           variant="text"
           @click="showMobileMenu = true"
-        />
+        >
+          <svg
+            aria-hidden="true"
+            class="mobile-navbar-icon"
+            viewBox="0 0 24 24"
+          >
+            <path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z" />
+          </svg>
+        </v-btn>
         <RouterLink
           :aria-label="`Go to ${appConfig.name} home`"
           class="app-brand-link mr-3"
@@ -111,7 +120,15 @@
               v-bind="props"
               variant="text"
             >
-              <v-icon class="d-md-none" icon="mdi-account-circle" />
+              <svg
+                aria-hidden="true"
+                class="mobile-account-icon d-md-none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 12c5.5 0 9 2.8 9 5.5V22H3v-2.5C3 16.8 6.5 14 12 14Zm0-10a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 12c-4.3 0-7 2-7 3.5v.5h14v-.5C19 18 16.3 16 12 16Z"
+                />
+              </svg>
               <span class="d-none d-md-inline">
                 {{ auth.user?.email ?? 'Account' }}
               </span>
@@ -148,72 +165,115 @@
 
     <v-navigation-drawer
       v-model="showMobileMenu"
-      class="d-md-none"
+      class="mobile-navigation-drawer d-md-none"
+      color="surface"
       location="start"
       temporary
+      width="300"
     >
+      <div class="mobile-drawer-header">
+        <v-img
+          alt=""
+          class="mobile-drawer-logo"
+          cover
+          height="40"
+          :src="brandLogoUrl"
+          width="40"
+        />
+        <div>
+          <div class="mobile-drawer-title">{{ appConfig.name }}</div>
+          <div class="mobile-drawer-subtitle">Commander deck tools</div>
+        </div>
+        <v-spacer />
+        <v-btn
+          aria-label="Close navigation"
+          class="mobile-drawer-close"
+          icon
+          size="small"
+          variant="text"
+          @click="showMobileMenu = false"
+        >
+          <svg
+            aria-hidden="true"
+            class="mobile-drawer-close-icon"
+            viewBox="0 0 24 24"
+          >
+            <path d="m6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5Z" />
+          </svg>
+        </v-btn>
+      </div>
+      <v-divider />
       <v-list
-        color="surface"
+        bg-color="transparent"
+        class="mobile-drawer-list"
+        color="primary"
         density="comfortable"
         nav
       >
+        <v-list-subheader>Browse</v-list-subheader>
         <v-list-item
+          class="mobile-drawer-item"
           :to="{ name: 'home' }"
-          prepend-icon="mdi-home"
           title="Home"
-          color="primary"
         />
-        <v-list-subheader>Events</v-list-subheader>
         <v-list-item
+          class="mobile-drawer-item"
           :to="{ name: 'metagame' }"
-          prepend-icon="mdi-cards-playing-outline"
           title="Metagame"
         />
         <v-list-item
+          class="mobile-drawer-item"
           :to="{ name: 'tournaments' }"
-          prepend-icon="mdi-tournament"
           title="Tournaments"
         />
         <v-list-subheader>Decks</v-list-subheader>
         <v-list-item
+          class="mobile-drawer-item"
           :to="{ name: 'public-decks' }"
-          prepend-icon="mdi-magnify"
           title="Explore Decks"
         />
         <v-list-item
+          class="mobile-drawer-item"
           :to="{ name: 'deck-library' }"
-          prepend-icon="mdi-library"
           title="My Decks"
         />
         <v-list-item
-          prepend-icon="mdi-plus"
+          class="mobile-drawer-item mobile-drawer-item--create"
           title="Create a deck"
           @click="openCreateDeckFromMenu"
         />
-        <v-divider />
-        <v-list-subheader v-if="auth.isSignedIn && isAdmin">Admin</v-list-subheader>
+        <v-divider class="my-3" />
+        <v-list-subheader v-if="auth.isSignedIn && isAdmin">
+          Administration
+        </v-list-subheader>
         <v-list-item
           v-if="auth.isSignedIn && isAdmin"
+          class="mobile-drawer-item"
           :to="{ name: 'admin-ingestion' }"
           title="Admin Panel"
         />
         <v-list-item
           v-if="auth.isSignedIn && isAdmin"
+          class="mobile-drawer-item"
           :to="{ name: 'admin-data-health' }"
           title="Data Health"
         />
         <v-list-subheader>Account</v-list-subheader>
-        <v-list-item prepend-icon="mdi-cog" title="Preferences" @click="openPreferences" />
+        <v-list-item
+          class="mobile-drawer-item"
+          title="Preferences"
+          @click="openPreferences"
+        />
         <v-list-item
           v-if="auth.isSignedIn"
-          prepend-icon="mdi-logout"
+          class="mobile-drawer-item"
           title="Sign Out"
           @click="auth.signOut"
         />
         <v-list-item
           v-else
+          class="mobile-drawer-item"
           :to="{ name: 'auth' }"
-          prepend-icon="mdi-login"
           title="Sign In"
         />
       </v-list>
@@ -450,6 +510,77 @@ function applyDeckBuilderSearchSide(value: unknown) {
   width: 18px;
 }
 
+.mobile-navbar-icon,
+.mobile-account-icon,
+.mobile-drawer-close-icon {
+  fill: currentColor;
+  height: 22px;
+  width: 22px;
+}
+
+.mobile-drawer-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-height: 72px;
+  padding: 12px 10px 12px 16px;
+}
+
+.mobile-drawer-logo {
+  flex: 0 0 40px;
+}
+
+.mobile-drawer-title {
+  color: rgb(var(--v-theme-primary));
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mobile-drawer-subtitle {
+  color: rgba(var(--v-theme-on-surface), 0.66);
+  font-size: 0.72rem;
+}
+
+.mobile-drawer-close {
+  color: rgb(var(--v-theme-primary)) !important;
+}
+
+.mobile-drawer-list {
+  padding: 8px;
+}
+
+.mobile-drawer-list :deep(.v-list-subheader) {
+  color: rgba(var(--v-theme-on-surface), 0.62);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  min-height: 32px;
+  padding-inline: 12px;
+  text-transform: uppercase;
+}
+
+.mobile-drawer-item {
+  border-left: 3px solid transparent;
+  margin-bottom: 2px;
+  min-height: 46px;
+  padding-inline: 13px;
+}
+
+.mobile-drawer-item :deep(.v-list-item-title) {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.mobile-drawer-item.v-list-item--active {
+  background: rgba(var(--v-theme-primary), 0.1);
+  border-left-color: rgb(var(--v-theme-primary));
+}
+
+.mobile-drawer-item--create {
+  color: rgb(var(--v-theme-primary));
+}
+
 .deck-builder-side-toggle {
   display: flex;
   width: 100%;
@@ -461,7 +592,10 @@ function applyDeckBuilderSearchSide(value: unknown) {
 
 @media (max-width: 599px) {
   .mobile-navigation-toggle {
+    color: rgb(var(--v-theme-primary)) !important;
     margin-inline-start: -8px;
+    min-width: 44px;
+    width: 44px;
   }
 
   .app-brand-title__text {
@@ -469,6 +603,7 @@ function applyDeckBuilderSearchSide(value: unknown) {
   }
 
   .account-menu-button {
+    color: rgb(var(--v-theme-primary)) !important;
     min-width: 40px;
     padding-inline: 8px;
   }

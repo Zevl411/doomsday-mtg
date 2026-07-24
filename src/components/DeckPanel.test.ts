@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import DeckPanel from './DeckPanel.vue'
 import vuetify from '../plugins/vuetify'
+import { createEmptyDeck } from '../models/createDeck'
 import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 
@@ -224,5 +225,24 @@ describe('DeckPanel', () => {
     )
     expect(saved.gridSizes.mainboard).toBe(1)
     expect(saved.gridSizes.sideboard).toBe(2)
+  })
+
+  it('renders an external Deck without editing controls in read-only mode', () => {
+    const externalDeck = createEmptyDeck('Public Deck')
+    externalDeck.cards = [{ card: artifact, quantity: 1 }]
+
+    const wrapper = mount(DeckPanel, {
+      props: {
+        deck: externalDeck,
+        readOnly: true,
+      },
+      global: { plugins: [vuetify] },
+    })
+
+    expect(wrapper.text()).toContain('Mainboard (1)')
+    expect(wrapper.find('img[alt="Arcane Signet"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Remove Arcane Signet"]').exists())
+      .toBe(false)
+    expect(wrapper.text()).not.toContain('Move to')
   })
 })

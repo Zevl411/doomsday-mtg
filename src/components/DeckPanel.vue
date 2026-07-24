@@ -171,7 +171,7 @@
                     {{ entry.card.card.type_line }}
                   </span>
                 </v-list-item-title>
-                <template #append>
+                <template v-if="!readOnly" #append>
                   <v-btn
                     :aria-label="`Remove one ${entry.card.card.name}`"
                     icon
@@ -282,6 +282,7 @@
   </v-card>
 
   <v-menu
+    v-if="!readOnly"
     v-model="menuOpen"
     :target="[menuX, menuY]"
   >
@@ -320,7 +321,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import type { DeckCard, TrackedDeckBoard } from '../models/deck'
+import type { Deck, DeckCard, TrackedDeckBoard } from '../models/deck'
 import { useDeckStore } from '../stores/deck'
 import { getCardIdentity } from '../utils/cardIdentity'
 import { getCardImage } from '../utils/cardDisplay'
@@ -343,6 +344,15 @@ interface DeckPanelPreferences {
 
 const deckStore = useDeckStore()
 const userPreferences = useUserPreferencesStore()
+const props = withDefaults(defineProps<{
+  deck?: Deck
+  readOnly?: boolean
+}>(), {
+  deck: undefined,
+  readOnly: false,
+})
+const displayedDeck = computed(() => props.deck ?? deckStore.deck)
+const readOnly = computed(() => props.readOnly)
 const preferencesStorageKey = 'doomsday-mtg-deck-panel-preferences'
 const savedPreferences = loadPreferences()
 const viewModes = reactive(savedPreferences.viewModes)
@@ -391,11 +401,11 @@ watch(
 )
 
 function entries(board: VisibleBoard): BoardEntry[] {
-  if (board === 'mainboard') return deckStore.deck.cards.map(card => ({ card, sourceBoard: 'mainboard' }))
-  if (board === 'sideboard') return deckStore.deck.sideboard.map(card => ({ card, sourceBoard: 'sideboard' }))
+  if (board === 'mainboard') return displayedDeck.value.cards.map(card => ({ card, sourceBoard: 'mainboard' }))
+  if (board === 'sideboard') return displayedDeck.value.sideboard.map(card => ({ card, sourceBoard: 'sideboard' }))
   return [
-    ...deckStore.deck.maybeboard.map(card => ({ card, sourceBoard: 'maybeboard' as const })),
-    ...deckStore.deck.considering.map(card => ({ card, sourceBoard: 'considering' as const })),
+    ...displayedDeck.value.maybeboard.map(card => ({ card, sourceBoard: 'maybeboard' as const })),
+    ...displayedDeck.value.considering.map(card => ({ card, sourceBoard: 'considering' as const })),
   ]
 }
 function groupedCards(board: VisibleBoard) {
@@ -616,6 +626,7 @@ function moveEntry(entry: BoardEntry, board: VisibleBoard) {
   )
 }
 function openMenu(event: MouseEvent, entry: BoardEntry) {
+  if (readOnly.value) return
   menuEntry.value = entry
   menuX.value = event.clientX
   menuY.value = event.clientY

@@ -1,3 +1,5 @@
+import { getCompactCardName } from './cardName'
+
 export interface CommanderIdentity {
   displayName: string
   key: string
@@ -27,3 +29,13 @@ export function normalizeCommanderIdentity(name: string): CommanderIdentity {
   }
 }
 
+/**
+ * Partner pairs use compact first-name labels in crowded UI, while a lone
+ * Commander's full name remains intact.
+ */
+export function getCompactCommanderDisplayName(name: string): string {
+  const identity = normalizeCommanderIdentity(name)
+  if (identity.commanders.length < 2) return identity.displayName
+
+  return identity.commanders.map(getCompactCardName).join('/')
+}

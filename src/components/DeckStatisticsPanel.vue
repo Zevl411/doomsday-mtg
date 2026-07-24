@@ -159,20 +159,26 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import type { Deck } from '../models/deck'
 import { useDeckStore } from '../stores/deck'
+import type { ScryfallCard } from '../types/card'
 import { getCardManaValue } from '../utils/cardManaValue'
 
 const deckStore = useDeckStore()
+const props = defineProps<{
+  deck?: Deck
+}>()
+const displayedDeck = computed(() => props.deck ?? deckStore.deck)
 const excludeLands = ref(true)
 const showTrendLine = ref(true)
 const selectedManaValue = ref(0)
 const curveCards = computed(() =>
-  deckStore.deck.cards.filter(
+  displayedDeck.value.cards.filter(
     (entry) => !excludeLands.value || !isLand(entry.card),
   ),
 )
 const mainboardCount = computed(() =>
-  deckStore.deck.cards.reduce((sum, entry) => sum + entry.quantity, 0),
+  displayedDeck.value.cards.reduce((sum, entry) => sum + entry.quantity, 0),
 )
 const averageManaValue = computed(() => {
   const total = curveCards.value.reduce(
@@ -189,13 +195,13 @@ const averageManaValue = computed(() => {
 })
 const summaryStats = computed(() => [
   { label: 'Mainboard', value: mainboardCount.value },
-  { label: 'Unique Cards', value: deckStore.deck.cards.length },
+  { label: 'Unique Cards', value: displayedDeck.value.cards.length },
   { label: 'Avg. Mana Value', value: averageManaValue.value },
   {
     label: 'Colors',
     value: new Set([
-      ...(deckStore.deck.commander?.color_identity ?? []),
-      ...(deckStore.deck.partnerCommander?.color_identity ?? []),
+      ...(displayedDeck.value.commander?.color_identity ?? []),
+      ...(displayedDeck.value.partnerCommander?.color_identity ?? []),
     ]).size,
   },
 ])
@@ -258,11 +264,11 @@ watch(
   { immediate: true },
 )
 
-function getManaValueBucket(card: (typeof deckStore.deck.cards)[number]['card']) {
+function getManaValueBucket(card: ScryfallCard) {
   return Math.min(Math.max(0, Math.floor(getCardManaValue(card))), 6)
 }
 
-function isLand(card: (typeof deckStore.deck.cards)[number]['card']) {
+function isLand(card: ScryfallCard) {
   const typeLine = card.card_faces?.[0]?.type_line ?? card.type_line
   return /\bLand\b/i.test(typeLine)
 }
@@ -279,7 +285,7 @@ const typeCounts = computed(() => {
   return types
     .map((label) => ({
       label,
-      count: deckStore.deck.cards.reduce((sum, entry) => {
+      count: displayedDeck.value.cards.reduce((sum, entry) => {
         const typeLine =
           entry.card.card_faces?.[0]?.type_line ?? entry.card.type_line
         return sum +

@@ -17,7 +17,8 @@
     </div>
 
     <v-card border class="mb-6 pa-4" color="surface" rounded="lg">
-      <v-row>
+      <AppMobileFilterPanel>
+        <v-row>
         <v-col cols="12" sm="6" md="2">
           <v-select
             v-model="timeframe"
@@ -61,7 +62,8 @@
           <v-btn color="primary" @click="load">Apply</v-btn>
           <v-btn variant="text" @click="reset">Reset</v-btn>
         </v-col>
-      </v-row>
+        </v-row>
+      </AppMobileFilterPanel>
     </v-card>
 
     <AppLoadingSkeleton
@@ -167,6 +169,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
+import AppMobileFilterPanel from '../components/AppMobileFilterPanel.vue'
 import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
 import type { CommanderMetagameStats } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'

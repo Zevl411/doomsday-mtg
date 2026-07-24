@@ -124,7 +124,8 @@
             </v-card-subtitle>
           </v-card-item>
           <v-card-text>
-            <v-row>
+            <AppMobileFilterPanel>
+              <v-row>
               <v-col cols="12" sm="4" md="2">
                 <v-select
                   v-model="filters.sampleStatus"
@@ -176,12 +177,13 @@
                   label="Paired only"
                 />
               </v-col>
-            </v-row>
-            <div class="d-flex justify-end my-3">
-              <v-btn color="primary" variant="tonal" @click="loadHealth">
-                Apply filters
-              </v-btn>
-            </div>
+              </v-row>
+              <div class="d-flex justify-end my-3">
+                <v-btn color="primary" variant="tonal" @click="loadHealth">
+                  Apply filters
+                </v-btn>
+              </div>
+            </AppMobileFilterPanel>
           </v-card-text>
           <v-table density="comfortable">
             <thead>
@@ -388,6 +390,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
+import AppMobileFilterPanel from '../components/AppMobileFilterPanel.vue'
 import type {
   DataHealthFilters,
   DataHealthReport,

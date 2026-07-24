@@ -149,7 +149,9 @@
               }"
             >
               <v-list-item-title class="d-flex align-center ga-2">
-                <span>{{ commander.commanderName }}</span>
+                <span>
+                  {{ getCompactCommanderDisplayName(commander.commanderName) }}
+                </span>
                 <ColorIdentitySymbols
                   :colors="commander.colorIdentity"
                   size="small"
@@ -263,6 +265,7 @@ import type {
   Tournament,
 } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'
+import { getCompactCommanderDisplayName } from '../utils/commanderIdentity'
 import { useDeckStore } from '../stores/deck'
 
 const deckStore = useDeckStore()

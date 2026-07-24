@@ -9,7 +9,8 @@
     </div>
 
     <v-card border class="association-controls mb-3 pa-3">
-      <v-row density="comfortable">
+      <AppMobileFilterPanel>
+        <v-row density="comfortable">
         <v-col v-if="!initialCommanderKey" cols="12" md="6">
           <v-autocomplete
             v-model="commanderKey"
@@ -35,8 +36,8 @@
             @cleared="selectedCard = null"
           />
         </v-col>
-      </v-row>
-      <div class="association-filter-grid mt-2">
+        </v-row>
+        <div class="association-filter-grid mt-2">
         <v-text-field
           v-model="startDate"
           density="comfortable"
@@ -119,7 +120,8 @@
             View associations
           </v-btn>
         </div>
-      </div>
+        </div>
+      </AppMobileFilterPanel>
     </v-card>
 
     <v-card border class="metric-key mb-3 pa-3">
@@ -198,6 +200,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import AppMobileFilterPanel from '../components/AppMobileFilterPanel.vue'
 import { getCardsByOracleIds } from '../api/scryfall'
 import CardSearch from '../components/CardSearch.vue'
 import { getCardImage } from '../utils/cardDisplay'

@@ -28,7 +28,59 @@
       </v-alert>
 
       <template v-else>
-        <v-card border class="mb-5 pa-4">
+        <v-expansion-panels
+          v-model="mobileFilterPanel"
+          class="comparison-mobile-filter-panel d-sm-none mb-5"
+        >
+          <v-expansion-panel value="filters">
+            <v-expansion-panel-title>
+              Filters
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <div class="comparison-mobile-filter-grid">
+                <v-text-field
+                  v-model="filters.startDate"
+                  hide-details
+                  label="Start date"
+                  type="date"
+                />
+                <v-text-field
+                  v-model="filters.endDate"
+                  hide-details
+                  label="End date"
+                  type="date"
+                />
+                <v-text-field
+                  v-model.number="filters.minimumTournamentSize"
+                  hide-details
+                  label="Minimum event size"
+                  min="0"
+                  type="number"
+                />
+                <v-text-field
+                  v-model.number="filters.maximumStanding"
+                  clearable
+                  hide-details
+                  label="Maximum placing"
+                  min="1"
+                  type="number"
+                />
+                <v-text-field
+                  v-model.number="filters.minimumCompleteDecks"
+                  hide-details
+                  label="Minimum Deck sample"
+                  min="1"
+                  type="number"
+                />
+                <v-btn color="primary" block @click="loadComparison">
+                  Apply filters
+                </v-btn>
+              </div>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
+
+        <v-card border class="d-none d-sm-block mb-5 pa-4">
           <v-card-title>Sample filters</v-card-title>
           <v-row>
             <v-col cols="12" sm="4" lg="2">
@@ -65,7 +117,7 @@
 
         <template v-else-if="summary">
           <v-alert
-            class="mb-5"
+            class="d-none d-sm-block mb-5"
             :type="sampleAlertType"
             variant="tonal"
           >
@@ -107,7 +159,7 @@
               fallback identity and could not be matched to this sample.
             </v-alert>
 
-            <v-row class="mb-5">
+            <v-row class="d-none d-sm-flex mb-5">
               <v-col v-for="metric in summaryMetrics" :key="metric.label" cols="6" md="3">
                 <v-card border class="pa-4 h-100">
                   <div class="text-caption text-medium-emphasis">{{ metric.label }}</div>
@@ -116,7 +168,56 @@
               </v-col>
             </v-row>
 
-            <v-alert class="mb-5" type="info" variant="tonal">
+            <v-expansion-panels
+              v-model="mobileStatsPanel"
+              class="comparison-mobile-stats-panel d-sm-none mb-5"
+            >
+              <v-expansion-panel value="stats">
+                <v-expansion-panel-title>
+                  Statistics
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <v-alert
+                    class="mb-3"
+                    :type="sampleAlertType"
+                    variant="tonal"
+                  >
+                    <strong>
+                      {{ summary.totalEligibleDecks }} eligible Decks
+                    </strong>
+                    are included. {{ sampleMessage }}
+                    Tournament inclusion does not prove card quality.
+                  </v-alert>
+                  <div class="comparison-mobile-stats">
+                    <v-sheet
+                      v-for="metric in summaryMetrics"
+                      :key="metric.label"
+                      border
+                      class="pa-3"
+                      color="surface-light"
+                    >
+                      <div class="text-caption text-medium-emphasis">
+                        {{ metric.label }}
+                      </div>
+                      <div class="text-h6 font-weight-bold">
+                        {{ metric.value }}
+                      </div>
+                    </v-sheet>
+                  </div>
+                  <v-alert class="mt-3" type="info" variant="tonal">
+                    Aggregate overlap is the share of cards played in at least
+                    20% of the eligible sample that are also present in your
+                    mainboard. It is not a power or optimization score.
+                  </v-alert>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+
+            <v-alert
+              class="d-none d-sm-block mb-5"
+              type="info"
+              variant="tonal"
+            >
               Aggregate overlap is the share of cards played in at least 20% of
               the eligible sample that are also present in your mainboard. It is
               not a power or optimization score.
@@ -176,7 +277,12 @@
                 </div>
                 <v-table
                   v-if="section.cards.length"
-                  class="comparison-table comparison-table--cards"
+                  class="
+                    comparison-table
+                    comparison-table--cards
+                    d-none
+                    d-sm-block
+                  "
                 >
                   <thead>
                     <tr>
@@ -233,6 +339,57 @@
                     </tr>
                   </tbody>
                 </v-table>
+                <div
+                  v-if="section.cards.length"
+                  class="comparison-mobile-card-list d-sm-none"
+                >
+                  <v-card
+                    v-for="card in section.cards"
+                    :key="`mobile-${card.identityKey}`"
+                    border
+                    :class="[
+                      'comparison-mobile-card',
+                      comparisonRowClass(card),
+                    ]"
+                    color="surface"
+                    variant="flat"
+                  >
+                    <v-card-text class="pa-3">
+                      <div class="comparison-mobile-card__top">
+                        <v-img
+                          :alt="`${card.cardName} card`"
+                          aspect-ratio="0.714"
+                          class="comparison-mobile-card__image"
+                          :src="comparisonCardImageUrl(card)"
+                        />
+                        <div class="comparison-mobile-card__summary">
+                          <div class="font-weight-bold">
+                            {{ card.cardName }}
+                          </div>
+                          <div class="text-caption text-medium-emphasis">
+                            {{ card.typeLine || 'Type unavailable' }}
+                          </div>
+                          <v-chip
+                            class="mt-2"
+                            size="small"
+                            variant="tonal"
+                          >
+                            {{ categoryLabel(card.category) }}
+                          </v-chip>
+                        </div>
+                      </div>
+                      <div class="comparison-mobile-card__metrics">
+                        <div
+                          v-for="metric in mobileCardMetrics(card)"
+                          :key="metric.label"
+                        >
+                          <span>{{ metric.label }}</span>
+                          <strong>{{ metric.value }}</strong>
+                        </div>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </div>
                 <v-card-text v-else class="text-medium-emphasis">
                   {{ section.emptyMessage }}
                 </v-card-text>
@@ -326,6 +483,8 @@ const filters = reactive<DeckComparisonFilters>({
 })
 const loading = ref(false)
 const errorMessage = ref('')
+const mobileFilterPanel = ref<string>()
+const mobileStatsPanel = ref<string>()
 const summary = ref<ReturnType<typeof buildDeckComparisonSummary> | null>(null)
 const similarities = ref<TournamentDeckSimilarity[]>([])
 const cardFilter = ref<CardFilter>('all')
@@ -453,6 +612,20 @@ function comparisonRowClass(card: DeckComparisonCard): string | undefined {
   return 'comparison-row--medium'
 }
 
+function mobileCardMetrics(card: DeckComparisonCard) {
+  return [
+    { label: 'Inclusion', value: percent(card.inclusionRate) },
+    {
+      label: 'Decks',
+      value: `${card.deckCount} / ${card.totalEligibleDecks}`,
+    },
+    { label: 'Average quantity', value: card.averageQuantity.toFixed(2) },
+    { label: 'Top 16', value: percent(card.top16InclusionRate) },
+    { label: 'First place', value: percent(card.firstPlaceInclusionRate) },
+    { label: 'My quantity', value: card.userQuantity.toString() },
+  ]
+}
+
 function percent(value: number) {
   return `${(value * 100).toFixed(1)}%`
 }
@@ -486,6 +659,70 @@ onMounted(async () => {
 
 .comparison-row--low {
   box-shadow: inset 0 0 0 2px rgb(var(--v-theme-error));
+}
+
+.comparison-mobile-filter-grid,
+.comparison-mobile-stats {
+  display: grid;
+  gap: 10px;
+}
+
+.comparison-mobile-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.comparison-mobile-card-list {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.comparison-mobile-card {
+  overflow: hidden;
+}
+
+.comparison-mobile-card__top {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+
+.comparison-mobile-card__image {
+  background: rgb(var(--v-theme-background));
+  border-radius: 6px;
+  overflow: hidden;
+  width: 96px;
+}
+
+.comparison-mobile-card__summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.comparison-mobile-card__metrics {
+  border-top: 1px solid
+    rgba(var(--v-border-color), var(--v-border-opacity));
+  display: grid;
+  gap: 10px 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.comparison-mobile-card__metrics div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.comparison-mobile-card__metrics span {
+  color: rgba(var(--v-theme-on-surface), 0.62);
+  font-size: 0.7rem;
+}
+
+.comparison-mobile-card__metrics strong {
+  font-size: 0.9rem;
 }
 
 @media (max-width: 599px) {
@@ -527,24 +764,6 @@ onMounted(async () => {
     letter-spacing: 0.04em;
     opacity: 0.62;
     text-transform: uppercase;
-  }
-
-  .comparison-table--cards :deep(.comparison-rank-cell) {
-    display: none;
-  }
-
-  .comparison-table--cards :deep(.comparison-card-image-cell) {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-  }
-
-  .comparison-table--cards :deep(.comparison-card-image) {
-    max-width: 96px;
-    width: min(96px, 100%) !important;
-  }
-
-  .comparison-table--cards :deep(.comparison-card-name-cell) {
-    grid-column: 2;
   }
 
   .comparison-table--similar :deep(tbody td:nth-child(2)) {

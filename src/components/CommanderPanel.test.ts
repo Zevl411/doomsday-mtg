@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import CommanderPanel from './CommanderPanel.vue'
 import vuetify from '../plugins/vuetify'
+import type { Deck } from '../models/deck'
+import { createEmptyDeck } from '../models/createDeck'
 import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 
@@ -24,6 +26,8 @@ function mountPanel(
     displayOnly?: boolean
     displayTarget?: 'commander' | 'partner'
     compactDisplay?: boolean
+    deck?: Deck
+    readOnly?: boolean
   } = {},
 ) {
   return mount(CommanderPanel, {
@@ -176,5 +180,23 @@ describe('CommanderPanel', () => {
     expect(wrapper.find('[data-test="commander-search"]').exists()).toBe(true)
     expect(wrapper.classes()).toContain('commander-panel--compact')
     wrapper.unmount()
+  })
+
+  it('shows an external Commander without removal actions in read-only mode', async () => {
+    const externalDeck = createEmptyDeck('Public Deck')
+    externalDeck.commander = commander
+    const wrapper = mountPanel({
+      deck: externalDeck,
+      displayOnly: true,
+      readOnly: true,
+    })
+
+    await wrapper
+      .find('[aria-label="Selected Commander"]')
+      .trigger('contextmenu', { clientX: 40, clientY: 60 })
+
+    expect(wrapper.find('[data-test="commander-search"]').exists()).toBe(false)
+    expect(wrapper.findComponent({ name: 'VMenu' }).exists()).toBe(false)
+    expect(useDeckStore().deck.commander).toBeNull()
   })
 })

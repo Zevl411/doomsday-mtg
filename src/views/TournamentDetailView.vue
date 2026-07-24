@@ -291,84 +291,87 @@
               </v-alert>
 
               <section>
-                <div class="board-header d-flex flex-wrap align-center ga-3 mb-3">
-                  <h2 class="text-h6">Mainboard</h2>
-                  <v-chip size="small" variant="tonal">
-                    {{ getDeckCardCount(entry.id) }} cards
-                  </v-chip>
-                  <v-spacer />
-                  <TournamentDecklistExport
-                    :cards="decklists[entry.id]?.cards ?? []"
-                    compact
-                    :commanders="decklists[entry.id]?.commanders ?? []"
-                  />
-                  <v-btn
-                    :aria-label="`Duplicate ${entry.commanderName} Deck`"
-                    class="decklist-toolbar-button"
-                    density="comfortable"
-                    :disabled="!normalizedDecks[entry.id]"
-                    variant="outlined"
-                    @click="copyDeck(entry)"
-                  >
-                    <DeckActionIcon compact name="duplicate" />
-                    Duplicate
-                  </v-btn>
-                  <v-select
-                    v-model="decklistGrouping"
-                    aria-label="Group tournament decklist"
-                    class="decklist-toolbar-select"
-                    density="comfortable"
-                    hide-details
-                    :items="groupingOptions"
-                    label="Group by"
-                    style="max-width: 180px"
-                    variant="outlined"
-                  />
-                  <v-select
-                    v-model="decklistOrder"
-                    aria-label="Order tournament decklist"
-                    class="decklist-toolbar-select"
-                    density="comfortable"
-                    hide-details
-                    :items="orderOptions"
-                    label="Order by"
-                    style="max-width: 180px"
-                    variant="outlined"
-                  />
-                  <v-btn-toggle
-                    v-model="decklistView"
-                    class="decklist-view-toggle"
-                    density="comfortable"
-                    mandatory
-                    variant="outlined"
-                  >
-                    <v-btn
-                      aria-label="Grid view"
-                      density="comfortable"
-                      value="grid"
-                    >
-                      <svg
-                        aria-hidden="true"
-                        class="view-toggle-icon"
-                        viewBox="0 0 24 24"
+                <div class="board-header mb-3">
+                  <div class="board-title d-flex align-center ga-3">
+                    <h2 class="text-h6">Mainboard</h2>
+                    <v-chip size="small" variant="tonal">
+                      {{ getDeckCardCount(entry.id) }} cards
+                    </v-chip>
+                  </div>
+                  <div class="board-controls">
+                    <div class="decklist-actions">
+                      <TournamentDecklistExport
+                        :cards="decklists[entry.id]?.cards ?? []"
+                        compact
+                        :commanders="decklists[entry.id]?.commanders ?? []"
+                      />
+                      <v-btn
+                        :aria-label="`Duplicate ${entry.commanderName} Deck`"
+                        class="decklist-toolbar-button"
+                        density="comfortable"
+                        :disabled="!normalizedDecks[entry.id]"
+                        variant="outlined"
+                        @click="copyDeck(entry)"
                       >
-                        <path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z" />
-                      </svg>
-                    </v-btn>
-                    <v-btn
-                      aria-label="List view"
+                        <DeckActionIcon compact name="duplicate" />
+                        Duplicate
+                      </v-btn>
+                    </div>
+                    <v-select
+                      v-model="decklistGrouping"
+                      aria-label="Group tournament decklist"
+                      class="decklist-toolbar-select"
                       density="comfortable"
-                      value="list"
+                      hide-details
+                      :items="groupingOptions"
+                      label="Group by"
+                      variant="outlined"
+                    />
+                    <v-select
+                      v-model="decklistOrder"
+                      aria-label="Order tournament decklist"
+                      class="decklist-toolbar-select"
+                      density="comfortable"
+                      hide-details
+                      :items="orderOptions"
+                      label="Order by"
+                      variant="outlined"
+                    />
+                    <v-btn-toggle
+                      v-model="decklistView"
+                      class="decklist-view-toggle"
+                      density="comfortable"
+                      mandatory
+                      variant="outlined"
                     >
-                      <svg
-                        aria-hidden="true"
-                        class="view-toggle-icon"
-                        viewBox="0 0 24 24"
+                      <v-btn
+                        aria-label="Grid view"
+                        density="comfortable"
+                        value="grid"
                       >
-                        <path d="M4 5h3v3H4V5Zm5 0h11v3H9V5ZM4 10.5h3v3H4v-3Zm5 0h11v3H9v-3ZM4 16h3v3H4v-3Zm5 0h11v3H9v-3Z" />
-                      </svg>
-                    </v-btn>
-                  </v-btn-toggle>
+                        <svg
+                          aria-hidden="true"
+                          class="view-toggle-icon"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z" />
+                        </svg>
+                      </v-btn>
+                      <v-btn
+                        aria-label="List view"
+                        density="comfortable"
+                        value="list"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          class="view-toggle-icon"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M4 5h3v3H4V5Zm5 0h11v3H9V5ZM4 10.5h3v3H4v-3Zm5 0h11v3H9v-3ZM4 16h3v3H4v-3Zm5 0h11v3H9v-3Z" />
+                        </svg>
+                      </v-btn>
+                    </v-btn-toggle>
+                  </div>
                 </div>
                 <div
                   v-for="group in groupedDeckCards(entry.id)"
@@ -896,6 +899,24 @@ function getPlacementClass(standing?: number): string {
   width: 22px;
 }
 
+.board-header {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.board-title {
+  align-self: center;
+  min-height: 40px;
+}
+
+.board-controls,
+.decklist-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
 .decklist-toolbar-button,
 .decklist-view-toggle,
 .decklist-view-toggle :deep(.v-btn) {
@@ -905,6 +926,7 @@ function getPlacementClass(standing?: number): string {
 
 .decklist-toolbar-select {
   flex: 0 1 180px;
+  max-width: 180px;
 }
 
 .decklist-toolbar-select :deep(.v-field) {
@@ -1134,6 +1156,15 @@ function getPlacementClass(standing?: number): string {
   .preview-column {
     display: none;
   }
+
+  .board-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .board-controls {
+    flex-wrap: wrap;
+    width: 100%;
+  }
 }
 
 @media (max-width: 680px) {
@@ -1170,23 +1201,42 @@ function getPlacementClass(standing?: number): string {
   }
 
   .board-header {
-    align-items: stretch !important;
-    flex-direction: column;
+    gap: 10px;
   }
 
-  .board-header > .v-spacer {
-    display: none;
+  .board-title {
+    min-height: 36px;
   }
 
-  :deep(.board-header > .v-btn),
-  :deep(.board-header > .v-btn-toggle),
-  :deep(.board-header > .v-input) {
+  .board-title h2 {
+    font-size: 1rem !important;
+  }
+
+  .board-controls {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .decklist-actions {
+    display: contents;
+  }
+
+  :deep(.decklist-actions > .v-btn),
+  :deep(.decklist-actions > .tournament-export-button),
+  :deep(.board-controls > .v-input) {
     max-width: none !important;
     width: 100%;
   }
 
-  :deep(.board-header > .v-btn-toggle .v-btn) {
+  .decklist-view-toggle {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  :deep(.decklist-view-toggle .v-btn) {
     flex: 1 1 50%;
+    min-width: 44px;
   }
 
   .card-grid {

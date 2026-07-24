@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import DeckStatisticsPanel from './DeckStatisticsPanel.vue'
 import vuetify from '../plugins/vuetify'
+import { createEmptyDeck } from '../models/createDeck'
 import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
 
@@ -59,5 +60,19 @@ describe('DeckStatisticsPanel', () => {
     await item.trigger('mouseleave')
     expect(store.previewCard).toEqual(selectedCard)
     wrapper.unmount()
+  })
+
+  it('calculates statistics from an explicitly provided Deck', () => {
+    const externalDeck = createEmptyDeck('Public Deck')
+    externalDeck.cards = [{ card: curveCard, quantity: 3 }]
+    const wrapper = mount(DeckStatisticsPanel, {
+      props: { deck: externalDeck },
+      global: { plugins: [vuetify] },
+    })
+
+    const mainboardStat = wrapper.findAll('.v-sheet').find(
+      (sheet) => sheet.text().includes('Mainboard'),
+    )
+    expect(mainboardStat?.text()).toContain('3')
   })
 })

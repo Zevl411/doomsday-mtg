@@ -172,7 +172,7 @@
       v-else-if="!searchOnly"
       class="commander-empty-state d-flex flex-column justify-start pa-4"
     >
-      <div class="empty-commander-search">
+      <div v-if="!readOnly" class="empty-commander-search">
         <div class="mb-2 text-subtitle-2">
           {{ displayTarget === 'partner' ? 'Partner' : 'Commander' }}
         </div>
@@ -211,12 +211,17 @@
           size="36"
         />
         <h2 class="text-h6">
-          Choose your
-          {{ displayTarget === 'partner' ? 'Partner' : 'Commander' }}
+          {{
+            readOnly
+              ? `No ${displayTarget === 'partner' ? 'Partner' : 'Commander'}`
+              : `Choose your ${displayTarget === 'partner' ? 'Partner' : 'Commander'}`
+          }}
         </h2>
         <p class="mt-1 text-body-2 text-medium-emphasis">
           {{
-            displayTarget === 'partner'
+            readOnly
+              ? 'This shared Deck does not have a card selected here.'
+              : displayTarget === 'partner'
               ? 'Search for a compatible partner for your Commander.'
               : 'Search for a legendary card to establish this deck’s color identity.'
           }}
@@ -235,6 +240,7 @@
     </v-card-text>
 
     <v-menu
+      v-if="!readOnly"
       v-model="commanderMenuOpen"
       :target="[commanderMenuX, commanderMenuY]"
     >
@@ -259,6 +265,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { Deck } from '../models/deck'
 import CardSearch from './CardSearch.vue'
 import DeckActionIcon from './DeckActionIcon.vue'
 import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
@@ -278,18 +285,26 @@ const props = withDefaults(defineProps<{
   displayOnly?: boolean
   displayTarget?: 'commander' | 'partner'
   compactDisplay?: boolean
+  deck?: Deck
+  readOnly?: boolean
 }>(), {
   searchOnly: false,
   displayOnly: false,
   displayTarget: 'commander',
   compactDisplay: false,
+  deck: undefined,
+  readOnly: false,
 })
 const searchOnly = computed(() => props.searchOnly)
 const displayOnly = computed(() => props.displayOnly)
 const displayTarget = computed(() => props.displayTarget)
 const compactDisplay = computed(() => props.compactDisplay)
-const commander = computed(() => deckStore.deck.commander)
-const partnerCommander = computed(() => deckStore.deck.partnerCommander ?? null)
+const readOnly = computed(() => props.readOnly)
+const displayedDeck = computed(() => props.deck ?? deckStore.deck)
+const commander = computed(() => displayedDeck.value.commander)
+const partnerCommander = computed(() =>
+  displayedDeck.value.partnerCommander ?? null,
+)
 const displayedCommander = computed(() =>
   displayTarget.value === 'partner'
     ? partnerCommander.value
@@ -334,12 +349,14 @@ function isSelectedPreview(card: ScryfallCard): boolean {
 }
 
 function openCommanderMenu(event: MouseEvent) {
+  if (readOnly.value) return
   commanderMenuX.value = event.clientX
   commanderMenuY.value = event.clientY
   commanderMenuOpen.value = true
 }
 
 function removeDisplayedCommander() {
+  if (readOnly.value) return
   if (displayTarget.value === 'partner') {
     deckStore.clearPartnerCommander()
   } else {

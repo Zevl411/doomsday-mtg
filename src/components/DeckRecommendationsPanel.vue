@@ -55,9 +55,17 @@
           class="recommendation-skeleton"
         >
           <div class="recommendation-skeleton__image skeleton-pulse" />
-          <div class="recommendation-skeleton__controls d-flex ga-2">
-            <div class="recommendation-skeleton__chip skeleton-pulse" />
-            <div class="recommendation-skeleton__chip skeleton-pulse" />
+          <div
+            class="recommendation-skeleton__controls"
+            :class="{
+              'recommendation-skeleton__controls--read-only': readOnly,
+            }"
+          >
+            <div class="recommendation-skeleton__metrics skeleton-pulse" />
+            <div
+              v-if="!readOnly"
+              class="recommendation-skeleton__action skeleton-pulse"
+            />
           </div>
         </div>
       </div>
@@ -99,23 +107,37 @@
             cover
             :src="cardImage(suggestion)"
           />
-          <div class="recommendation-card__controls d-flex align-center ga-1">
-            <div class="d-flex flex-wrap ga-1">
-              <v-chip size="x-small" variant="outlined">
-                {{ suggestion.supportingCardCount }} evidence
-              </v-chip>
-              <v-chip size="x-small" variant="outlined">
-                {{ suggestion.sampleSize }} Decks
-              </v-chip>
+          <div
+            class="recommendation-card__controls"
+            :class="{
+              'recommendation-card__controls--read-only': readOnly,
+            }"
+          >
+            <div
+              :aria-label="
+                `${suggestion.supportingCardCount} supporting ` +
+                `${suggestion.supportingCardCount === 1 ? 'card' : 'cards'}; ` +
+                `${suggestion.sampleSize} Deck sample`
+              "
+              class="recommendation-card__metrics"
+            >
+              <div class="recommendation-card__metric">
+                <strong>{{ suggestion.supportingCardCount }}</strong>
+                <span>Evidence</span>
+              </div>
+              <div class="recommendation-card__metric">
+                <strong>{{ suggestion.sampleSize }}</strong>
+                <span>Sample</span>
+              </div>
             </div>
-            <v-spacer />
             <v-btn
+              v-if="!readOnly"
               :aria-label="`Add ${suggestion.suggestedCardName} to Mainboard`"
               class="recommendation-card__add"
               :disabled="addOnCooldown"
               icon
               :ripple="false"
-              size="x-small"
+              size="small"
               variant="text"
               @click.stop="addToBoard(suggestion, 'mainboard')"
             >
@@ -136,9 +158,17 @@
           class="recommendation-skeleton"
         >
           <div class="recommendation-skeleton__image skeleton-pulse" />
-          <div class="recommendation-skeleton__controls d-flex ga-2">
-            <div class="recommendation-skeleton__chip skeleton-pulse" />
-            <div class="recommendation-skeleton__chip skeleton-pulse" />
+          <div
+            class="recommendation-skeleton__controls"
+            :class="{
+              'recommendation-skeleton__controls--read-only': readOnly,
+            }"
+          >
+            <div class="recommendation-skeleton__metrics skeleton-pulse" />
+            <div
+              v-if="!readOnly"
+              class="recommendation-skeleton__action skeleton-pulse"
+            />
           </div>
         </div>
       </div>
@@ -148,7 +178,7 @@
   <v-dialog
     :model-value="Boolean(selectedSuggestion)"
     max-width="760"
-    @update:model-value="closeDetails"
+    @update:model-value="updateDetailsDialog"
   >
     <v-card v-if="selectedSuggestion">
       <v-card-title class="d-flex align-center ga-3">
@@ -198,7 +228,7 @@
               >
                 View Tournament Decks
               </v-btn>
-              <v-menu location="bottom" open-on-hover>
+              <v-menu v-if="!readOnly" location="bottom" open-on-hover>
                 <template #activator="{ props }">
                   <v-btn
                     color="primary"
@@ -428,7 +458,7 @@ import type {
   AssociationBasedSuggestion,
   AssociationSuggestionEvidence,
 } from '../models/associationSuggestion'
-import type { TrackedDeckBoard } from '../models/deck'
+import type { Deck, TrackedDeckBoard } from '../models/deck'
 import type {
   CardInclusionHistoryPoint,
   CardInclusionPeriod,
@@ -450,7 +480,16 @@ const emit = defineEmits<{
   add: [card: NonNullable<AssociationBasedSuggestion['suggestedCard']>, board: TrackedDeckBoard]
   contentResized: [height: number]
 }>()
+const props = withDefaults(defineProps<{
+  deck?: Deck
+  readOnly?: boolean
+}>(), {
+  deck: undefined,
+  readOnly: false,
+})
 const deckStore = useDeckStore()
+const displayedDeck = computed(() => props.deck ?? deckStore.deck)
+const readOnly = computed(() => props.readOnly)
 const loading = ref(false)
 const refreshing = ref(false)
 const errorMessage = ref('')
@@ -548,7 +587,7 @@ const timeframeOptions: Array<{
 ]
 const sourceOracleIds = computed(() => [
   ...new Set(
-    deckStore.deck.cards
+    displayedDeck.value.cards
       .map((entry) => entry.card.oracle_id)
       .filter((value): value is string => Boolean(value)),
   ),
@@ -556,27 +595,27 @@ const sourceOracleIds = computed(() => [
 const ownedOracleIds = computed(() => [
   ...sourceOracleIds.value,
   ...[
-    deckStore.deck.commander?.oracle_id,
-    deckStore.deck.partnerCommander?.oracle_id,
+    displayedDeck.value.commander?.oracle_id,
+    displayedDeck.value.partnerCommander?.oracle_id,
   ].filter((value): value is string => Boolean(value)),
 ])
 const sourceCardsByOracleId = computed(() => new Map(
-  deckStore.deck.cards
+  displayedDeck.value.cards
     .filter((entry) => entry.card.oracle_id)
     .map((entry) => [entry.card.oracle_id!.toLowerCase(), entry.card]),
 ))
 const canLoad = computed(() =>
-  Boolean(deckStore.deck.commander && sourceOracleIds.value.length),
+  Boolean(displayedDeck.value.commander && sourceOracleIds.value.length),
 )
 const comparisonCommanderName = computed(() => {
   const commanders = [
-    deckStore.deck.commander,
-    deckStore.deck.partnerCommander,
+    displayedDeck.value.commander,
+    displayedDeck.value.partnerCommander,
   ].filter((card): card is ScryfallCard => Boolean(card))
   if (commanders.length > 1) {
     return commanders.map((card) => getCompactCardName(card.name)).join('/')
   }
-  return getComparisonCommander(deckStore.deck).name || 'this Commander'
+  return getComparisonCommander(displayedDeck.value).name || 'this Commander'
 })
 const boards: Array<{ title: string; value: TrackedDeckBoard }> = [
   { title: 'Mainboard', value: 'mainboard' },
@@ -586,8 +625,8 @@ const boards: Array<{ title: string; value: TrackedDeckBoard }> = [
 
 watch(
   [
-    () => deckStore.deck.id,
-    () => deckStore.deck.commander?.oracle_id,
+    () => displayedDeck.value.id,
+    () => displayedDeck.value.commander?.oracle_id,
     timeframe,
   ],
   () => void load(false),
@@ -635,7 +674,7 @@ onBeforeUnmount(() => {
 async function load(showLoader: boolean) {
   const requestId = ++recommendationRequestId
   errorMessage.value = ''
-  if (!canLoad.value || !deckStore.deck.commander) {
+  if (!canLoad.value || !displayedDeck.value.commander) {
     suggestions.value = []
     refreshing.value = false
     return
@@ -643,7 +682,7 @@ async function load(showLoader: boolean) {
   loading.value = showLoader || suggestions.value.length === 0
   refreshing.value = !loading.value
   try {
-    const commander = getComparisonCommander(deckStore.deck)
+    const commander = getComparisonCommander(displayedDeck.value)
     const rows = await associationSuggestionRepository.getSuggestionEvidence(
       commander.key,
       sourceOracleIds.value,
@@ -738,6 +777,7 @@ function addToBoard(
   suggestion: AssociationBasedSuggestion,
   board: TrackedDeckBoard,
 ) {
+  if (readOnly.value) return
   if (addOnCooldown.value) return
   const card = suggestion.suggestedCard ?? fallbackSuggestionCard(suggestion)
   suggestions.value = suggestions.value.filter(
@@ -966,16 +1006,18 @@ function cardImage(suggestion: AssociationBasedSuggestion): string {
     : ''
 }
 
-function closeDetails(value = false) {
-  if (!value) {
-    selectedSuggestion.value = null
-    historyRequestId += 1
-    dialogPreviewCard.value = null
-    historyPoints.value = []
-    historyError.value = ''
-    evidenceError.value = ''
-    dialogCardsByOracleId.value = new Map()
-  }
+function updateDetailsDialog(value: boolean) {
+  if (!value) closeDetails()
+}
+
+function closeDetails() {
+  selectedSuggestion.value = null
+  historyRequestId += 1
+  dialogPreviewCard.value = null
+  historyPoints.value = []
+  historyError.value = ''
+  evidenceError.value = ''
+  dialogCardsByOracleId.value = new Map()
 }
 
 function percent(value: number) {
@@ -1180,15 +1222,77 @@ function timeframeStartDate(
   flex: 0 0 auto;
 }
 
-.recommendation-card__controls,
 .recommendation-skeleton__controls {
-  min-height: 34px;
-  padding: 5px 7px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  min-height: 46px;
+  padding: 5px 6px 6px;
+}
+
+.recommendation-skeleton__controls--read-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.recommendation-card__controls {
+  align-items: stretch;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  min-height: 46px;
+  padding: 5px 6px 6px;
+}
+
+.recommendation-card__controls--read-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.recommendation-card__metrics {
+  align-items: center;
+  background: rgba(var(--v-theme-surface), 0.42);
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.recommendation-card__metric {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.05;
+  min-width: 0;
+  padding: 4px 2px;
+}
+
+.recommendation-card__metric + .recommendation-card__metric {
+  border-left: 1px solid rgba(
+    var(--v-border-color),
+    var(--v-border-opacity)
+  );
+}
+
+.recommendation-card__metric strong {
+  font-size: 0.75rem;
+}
+
+.recommendation-card__metric span {
+  color: rgba(var(--v-theme-on-surface), 0.68);
+  font-size: 0.625rem;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .recommendation-card__add {
+  align-self: stretch;
   color: rgb(var(--v-theme-primary)) !important;
-  flex: 0 0 auto;
+  height: auto !important;
+  min-height: 34px;
+  min-width: 34px !important;
+  width: 34px;
 }
 
 .recommendation-card__add-icon {
@@ -1228,10 +1332,14 @@ function timeframeStartDate(
   width: 100%;
 }
 
-.recommendation-skeleton__chip {
-  border-radius: 999px;
-  height: 22px;
-  width: 72px;
+.recommendation-skeleton__metrics,
+.recommendation-skeleton__action {
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.recommendation-skeleton__action {
+  width: 34px;
 }
 
 .skeleton-pulse {
@@ -1252,6 +1360,21 @@ function timeframeStartDate(
 }
 
 @media (max-width: 599px) {
+  .recommendation-grid {
+    grid-auto-columns: minmax(142px, 44vw);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding-bottom: 4px;
+    scroll-snap-type: inline proximity;
+  }
+
+  .recommendation-card,
+  .recommendation-skeleton {
+    scroll-snap-align: start;
+  }
+
   .recommendation-details__top {
     grid-template-columns: 1fr;
   }

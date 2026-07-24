@@ -160,6 +160,19 @@ describe('DeckComparisonView', () => {
     expect(wrapper.text().indexOf('Cards in Your Deck')).toBeLessThan(
       wrapper.text().indexOf('Usual Inclusions Not in Your Deck'),
     )
+    expect(wrapper.find('.comparison-mobile-filter-panel').exists()).toBe(true)
+    const mobileStatsPanel = wrapper.get('.comparison-mobile-stats-panel')
+    await mobileStatsPanel.get('button').trigger('click')
+    expect(mobileStatsPanel.text()).toContain('20 eligible Decks')
+    expect(mobileStatsPanel.text()).toContain(
+      'Aggregate overlap is the share of cards',
+    )
+    const mobileCard = wrapper.get('.comparison-mobile-card')
+    expect(mobileCard.text()).toContain('Inclusion')
+    expect(mobileCard.text()).toContain('Average quantity')
+    expect(
+      mobileCard.findComponent({ name: 'VImg' }).props('cover'),
+    ).toBe(false)
   })
 
   it('shows limited sample and repository failure states', async () => {
@@ -189,7 +202,11 @@ describe('DeckComparisonView', () => {
     expect(wrapper.text()).toContain('limited sample may be volatile')
 
     mocks.compare.mockRejectedValueOnce(new Error('Comparison failed.'))
-    await wrapper.get('button').trigger('click')
+    const applyButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().trim() === 'Apply filters')
+    expect(applyButton).toBeDefined()
+    await applyButton!.trigger('click')
     await flushPromises()
     expect(wrapper.text()).toContain('Comparison failed.')
   })

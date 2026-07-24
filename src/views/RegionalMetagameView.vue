@@ -7,7 +7,8 @@
     </p>
 
     <v-card border class="mb-6 pa-4">
-      <v-row>
+      <AppMobileFilterPanel>
+        <v-row>
         <v-col cols="12" sm="4">
           <v-text-field v-model="startDate" label="Start date" type="date" />
         </v-col>
@@ -25,7 +26,8 @@
         <v-col class="d-flex align-center" cols="12" sm="2">
           <v-btn color="primary" @click="load">Apply</v-btn>
         </v-col>
-      </v-row>
+        </v-row>
+      </AppMobileFilterPanel>
     </v-card>
 
     <AppLoadingSkeleton
@@ -78,6 +80,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
+import AppMobileFilterPanel from '../components/AppMobileFilterPanel.vue'
 import type { RegionalMetagameStats } from '../models/tournament'
 import { tournamentRepository } from '../repositories/tournamentRepository'
 
