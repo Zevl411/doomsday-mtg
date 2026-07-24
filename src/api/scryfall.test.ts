@@ -3,6 +3,7 @@ import type { ScryfallCard } from '../types/card'
 import {
   getCardsByExactNames,
   getCardsByOracleIds,
+  getCardPrintings,
   searchCards,
 } from './scryfall'
 
@@ -58,6 +59,84 @@ describe('Scryfall client', () => {
     expect(JSON.parse(String(request.body))).toEqual({
       identifiers: [{ oracle_id: oracleId }],
     })
+  })
+
+  it('requests all paper printings by Oracle identity', async () => {
+    const printing = {
+      ...solRing,
+      id: 'sol-ring-retro',
+      oracle_id: 'sol-ring-oracle',
+      set: 'brc',
+      set_name: 'The Brothers’ War Commander',
+      collector_number: '127',
+      released_at: '2022-11-18',
+    }
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({
+        data: [printing],
+        has_more: false,
+      }),
+    } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getCardPrintings({
+      ...solRing,
+      oracle_id: 'sol-ring-oracle',
+    })).resolves.toEqual([printing])
+
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    expect(url.pathname).toBe('/cards/search')
+    expect(url.searchParams.get('q')).toBe(
+      'oracleid:sol-ring-oracle game:paper lang:en',
+    )
+    expect(url.searchParams.get('unique')).toBe('prints')
+    expect(url.searchParams.get('order')).toBe('released')
+  })
+
+  it('follows Scryfall printing pages and removes duplicate records', async () => {
+    const nextPage =
+      'https://api.scryfall.com/cards/search?page=2&q=oracleid%3Asol-ring'
+    const firstPrinting = {
+      ...solRing,
+      id: 'first-printing',
+      oracle_id: 'sol-ring-oracle',
+    }
+    const secondPrinting = {
+      ...solRing,
+      id: 'second-printing',
+      oracle_id: 'sol-ring-oracle',
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          data: [firstPrinting],
+          has_more: true,
+          next_page: nextPage,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          data: [firstPrinting, secondPrinting],
+          has_more: false,
+        }),
+      } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getCardPrintings({
+      ...solRing,
+      oracle_id: 'sol-ring-oracle',
+    })).resolves.toEqual([firstPrinting, secondPrinting])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('returns a clear message for HTTP 429 responses', async () => {

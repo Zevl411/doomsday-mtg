@@ -37,12 +37,16 @@ tournament evidence.
 - Maintain multiple authenticated decks or one browser-local guest draft
 - Organize Mainboard, Sideboard, and Maybeboard cards in grid or list views
 - Group and order cards by name, mana value, card type, or color
+- Choose a specific English paper printing and foil treatment for cards
+  already in a deck
 - Inspect deck statistics, card-type counts, and an interactive mana curve
 - Configure deck visibility as private, unlisted, or public
 - Add deck descriptions and attribution to the deck creator
 - Copy, rename, delete, import, and export decks
 - Customize default display, grouping, visibility, search placement, and
   statistics placement through user preferences
+- Keep the Oracle default theme or derive a persistent app palette from any
+  card's artwork
 - Import and export plaintext decklists
 - Copy tournament decks into a personal deck library
 

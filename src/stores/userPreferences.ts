@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import {
   DEFAULT_USER_PREFERENCES,
+  type AppThemePreference,
   type DeckBuilderSearchSide,
   type UserPreferences,
 } from '../models/userPreferences'
@@ -37,6 +38,20 @@ export const useUserPreferencesStore = defineStore('userPreferences', {
       this.values = {
         ...this.values,
         deckBuilderSearchSide: side,
+      }
+      const saved = await saveUserPreferences(this.values, this.userId)
+      if (!saved) this.values = previousValues
+      return saved
+    },
+    /**
+     * Theme choices preview across the entire application, so they persist as
+     * soon as the user chooses a card or returns to the Oracle default.
+     */
+    async saveAppTheme(appTheme: AppThemePreference) {
+      const previousValues = { ...this.values }
+      this.values = {
+        ...this.values,
+        appTheme,
       }
       const saved = await saveUserPreferences(this.values, this.userId)
       if (!saved) this.values = previousValues

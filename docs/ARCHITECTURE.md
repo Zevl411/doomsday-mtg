@@ -19,6 +19,14 @@ defaults unless card artwork or a specific workflow needs a documented
 exception. This keeps visual changes separate from route composition, domain
 logic, and interaction behavior.
 
+The Oracle theme is also the permanent fallback for user-selected app themes.
+`src/theme/cardArtTheme.ts` samples Scryfall's art-only card crop in a small
+browser canvas, derives a dark palette, and validates the saved palette before
+it reaches Vuetify. The generated colors are stored with the source card in
+user preferences so restoring a theme does not require a network request.
+Semantic error, warning, and success colors remain fixed across generated
+themes so their meaning and contrast do not depend on the selected artwork.
+
 Indeterminate loading states use `AppLoadingSkeleton` variants that approximate
 the incoming card, list, table, detail, or chart layout. Determinate ingestion
 progress remains a progress bar because it communicates measured completion,
@@ -89,6 +97,15 @@ the import component until the user confirms replacement.
 
 Card equality uses `oracle_id` when available so different printings still
 represent one game card. The printed `id` is only a fallback/display identity.
+The printing picker queries Scryfall's paginated English paper editions and
+passes the confirmed record to `replaceCardPrinting`. That store action rejects
+a different Oracle identity and changes only the stored card record, preserving
+its board and quantity. Printing metadata is optional so older saved Decks
+remain valid.
+The selected foil treatment belongs to `DeckCard`, not `ScryfallCard`, because
+finish is a choice for one Deck entry. Scryfall's printing-level finish data
+guards new choices when available; legacy saved cards remain permissive. The
+foil overlay is presentation-only and never changes card identity or legality.
 
 ## Board rules
 
@@ -115,6 +132,8 @@ but are not stored yet.
 rate pacing, and network error messages. Regular search uses Scryfall search.
 Deck import uses the collection endpoint in groups of at most 75 normalized
 names to avoid per-card traffic and HTTP 429 responses.
+Printing lookup uses `unique=prints`, follows validated Scryfall pagination,
+and progressively renders large result sets in the picker.
 
 The collection endpoint is the primary resolver. Modal double-faced entries use
 their front face as the collection identifier. Names the batch cannot resolve

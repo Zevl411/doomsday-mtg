@@ -5,9 +5,9 @@ import vuetify from '../plugins/vuetify'
 import type { ScryfallCard } from '../types/card'
 import { createEmptyDeck } from '../models/createDeck'
 
-function mountPreview(card: ScryfallCard | null) {
+function mountPreview(card: ScryfallCard | null, foil = false) {
   return mount(CardPreview, {
-    props: { card },
+    props: { card, foil },
     global: {
       plugins: [vuetify],
     },
@@ -122,5 +122,21 @@ describe('CardPreview', () => {
     )
     expect(wrapper.get('.mana-cost').findAll('.ms')).toHaveLength(4)
     wrapper.unmount()
+  })
+
+  it('overlays the preview when the selected Deck entry is foil', () => {
+    const wrapper = mountPreview({
+      id: 'foil-printing',
+      name: 'Foil Card',
+      type_line: 'Artifact',
+      color_identity: [],
+      image_uris: {
+        small: 'small.jpg',
+        normal: 'normal.jpg',
+        large: 'large.jpg',
+      },
+    }, true)
+
+    expect(wrapper.find('.foil-card-overlay').exists()).toBe(true)
   })
 })

@@ -46,11 +46,27 @@ function normalizeCard(value: unknown): ScryfallCard | null {
     'printed_name',
     'mana_cost',
     'oracle_text',
+    'set',
+    'set_name',
+    'collector_number',
+    'released_at',
+    'rarity',
+    'lang',
+    'artist',
   ]
   if (
     optionalStringFields.some(
       (field) =>
         value[field] !== undefined && typeof value[field] !== 'string',
+    ) ||
+    (value.foil !== undefined && typeof value.foil !== 'boolean') ||
+    (value.nonfoil !== undefined && typeof value.nonfoil !== 'boolean') ||
+    (
+      value.finishes !== undefined &&
+      (
+        !Array.isArray(value.finishes) ||
+        !value.finishes.every((finish) => typeof finish === 'string')
+      )
     ) ||
     (value.cmc !== undefined &&
       (typeof value.cmc !== 'number' ||
@@ -83,6 +99,11 @@ function normalizeCard(value: unknown): ScryfallCard | null {
     }
   }
   if (typeof value.cmc === 'number') card.cmc = value.cmc
+  if (typeof value.foil === 'boolean') card.foil = value.foil
+  if (typeof value.nonfoil === 'boolean') card.nonfoil = value.nonfoil
+  if (Array.isArray(value.finishes)) {
+    card.finishes = [...value.finishes]
+  }
   if (imageUris !== undefined) card.image_uris = imageUris
   if (cardFaces !== undefined) card.card_faces = cardFaces
   if (
@@ -189,7 +210,8 @@ function normalizeBoard(value: unknown): DeckCard[] | null {
       typeof entry.quantity !== 'number' ||
       !Number.isFinite(entry.quantity) ||
       !Number.isInteger(entry.quantity) ||
-      entry.quantity <= 0
+      entry.quantity <= 0 ||
+      (entry.foil !== undefined && typeof entry.foil !== 'boolean')
     ) {
       return null
     }
@@ -199,7 +221,11 @@ function normalizeBoard(value: unknown): DeckCard[] | null {
       return null
     }
 
-    board.push({ card, quantity: entry.quantity })
+    board.push({
+      card,
+      quantity: entry.quantity,
+      ...(entry.foil === true ? { foil: true } : {}),
+    })
   }
 
   return board

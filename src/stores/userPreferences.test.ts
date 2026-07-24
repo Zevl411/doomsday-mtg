@@ -44,4 +44,58 @@ describe('userPreferences store', () => {
     expect(await store.saveDeckBuilderSearchSide('left')).toBe(false)
     expect(store.values.deckBuilderSearchSide).toBe('right')
   })
+
+  it('applies and persists a card artwork theme immediately', async () => {
+    const store = useUserPreferencesStore()
+    const appTheme = {
+      mode: 'card' as const,
+      cardId: 'card-id',
+      cardName: 'Black Lotus',
+      artUrl: 'art.jpg',
+      palette: {
+        background: '#101018',
+        surface: '#181826',
+        surfaceBright: '#242438',
+        surfaceLight: '#30304A',
+        primary: '#D08040',
+        primaryDarken: '#94582D',
+        primaryLighten: '#EAB989',
+        secondary: '#5080C0',
+        accent: '#283C62',
+        outline: '#826052',
+      },
+    }
+
+    expect(await store.saveAppTheme(appTheme)).toBe(true)
+    expect(store.values.appTheme).toEqual(appTheme)
+    expect(mocks.saveUserPreferences).toHaveBeenCalledWith(
+      expect.objectContaining({ appTheme }),
+      null,
+    )
+  })
+
+  it('restores the prior theme when persistence fails', async () => {
+    mocks.saveUserPreferences.mockResolvedValue(false)
+    const store = useUserPreferencesStore()
+
+    expect(await store.saveAppTheme({
+      mode: 'card',
+      cardId: 'card-id',
+      cardName: 'Black Lotus',
+      artUrl: 'art.jpg',
+      palette: {
+        background: '#101018',
+        surface: '#181826',
+        surfaceBright: '#242438',
+        surfaceLight: '#30304A',
+        primary: '#D08040',
+        primaryDarken: '#94582D',
+        primaryLighten: '#EAB989',
+        secondary: '#5080C0',
+        accent: '#283C62',
+        outline: '#826052',
+      },
+    })).toBe(false)
+    expect(store.values.appTheme).toEqual({ mode: 'default' })
+  })
 })

@@ -23,6 +23,8 @@ defineProps<{
     | 'decrease'
     | 'increase'
     | 'move'
+    | 'printing'
+    | 'foil'
     | 'delete'
     | 'close'
 }>()
@@ -45,6 +47,10 @@ const paths = {
   decrease: 'M5 11h14v2H5v-2Z',
   increase: 'M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z',
   move: 'M7 7h9l-3-3 1.4-1.4L19.8 8l-5.4 5.4L13 12l3-3H7V7Zm10 10H8l3 3-1.4 1.4L4.2 16l5.4-5.4L11 12l-3 3h9v2Z',
+  printing:
+    'M6 2h12a2 2 0 0 1 2 2v12h-2V4H6V2Zm-2 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Zm0 2v12h11V8H4Zm2 2h7v2H6v-2Zm0 4h7v2H6v-2Z',
+  foil:
+    'm12 2 1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Zm6 11 1 2.8 3 1.2-3 1.2L18 21l-1-2.8-3-1.2 3-1.2 1-2.8ZM6 14l.8 2.2L9 17l-2.2.8L6 20l-.8-2.2L3 17l2.2-.8L6 14Z',
   delete:
     'M9 3h6l1 2h4v2h-1l-1 14H6L5 7H4V5h4l1-2Zm-2 4 1 12h8l1-12H7Zm3 2h2v8h-2V9Zm4 0h2v8h-2V9Z',
   close:

@@ -11,14 +11,18 @@
     </v-card-title>
 
     <template v-if="card">
-      <DoubleFacedCardImage
+      <div
         v-if="getCardImage(card, 'large')"
-        aspect-ratio="0.716"
-        :card="card"
-        class="mx-5 mt-4 rounded-lg"
-        cover
-        image-size="large"
-      />
+        class="card-preview-image mx-5 mt-4 rounded-lg"
+      >
+        <DoubleFacedCardImage
+          aspect-ratio="0.716"
+          :card="card"
+          cover
+          image-size="large"
+        />
+        <FoilCardOverlay v-if="foil" />
+      </div>
 
       <v-card-title class="px-5 pt-5 text-wrap">
         {{ card.name }}
@@ -80,10 +84,14 @@ import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
 import ManaCost from './ManaCost.vue'
 import OracleText from './OracleText.vue'
 import { getCardImage } from '../utils/cardDisplay'
+import FoilCardOverlay from './FoilCardOverlay.vue'
 
-defineProps<{
+withDefaults(defineProps<{
   card: ScryfallCard | null
-}>()
+  foil?: boolean
+}>(), {
+  foil: false,
+})
 
 </script>
 
@@ -95,5 +103,10 @@ defineProps<{
 .card-preview-copy {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.card-preview-image {
+  overflow: hidden;
+  position: relative;
 }
 </style>

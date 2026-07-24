@@ -91,12 +91,14 @@ describe('deck library store', () => {
     const store = useDeckStore()
     const source = store.createDeck('Source')
     store.addCardToBoard(artifact, 'sideboard', 2)
+    source.sideboard[0]!.foil = true
 
     const duplicate = store.duplicateDeck(source.id)
 
     expect(duplicate?.id).not.toBe(source.id)
     expect(duplicate?.name).toBe('Source Copy')
     expect(duplicate?.sideboard).not.toBe(source.sideboard)
+    expect(duplicate?.sideboard[0]?.foil).toBe(true)
     duplicate!.sideboard[0]!.quantity = 9
     expect(source.sideboard[0]?.quantity).toBe(2)
   })
@@ -177,6 +179,88 @@ describe('deck library store', () => {
 
     store.removeCardFromBoard('artifact-oracle', 'maybeboard')
     expect(store.deck.maybeboard).toHaveLength(0)
+  })
+
+  it('changes only a card printing while retaining its board and quantity', () => {
+    const store = useDeckStore()
+    store.createDeck()
+    store.addCardToBoard(artifact, 'sideboard', 3)
+    store.selectPreviewCard(artifact)
+    const alternatePrinting = {
+      ...artifact,
+      id: 'artifact-retro-printing',
+      set: 'retro',
+      set_name: 'Retro Artifacts',
+    }
+
+    expect(store.replaceCardPrinting(
+      'artifact-oracle',
+      'sideboard',
+      alternatePrinting,
+    )).toBe(true)
+    expect(store.deck.sideboard).toEqual([
+      { card: alternatePrinting, quantity: 3 },
+    ])
+    expect(store.selectedPreviewCard).toEqual(alternatePrinting)
+    expect(store.previewCard).toEqual(alternatePrinting)
+  })
+
+  it('sets a foil finish without changing the card or quantity', () => {
+    const store = useDeckStore()
+    store.createDeck()
+    store.addCardToBoard({
+      ...artifact,
+      finishes: ['nonfoil', 'foil'],
+      foil: true,
+    }, 'sideboard', 1)
+
+    expect(store.setCardFoil(
+      'artifact-oracle',
+      'sideboard',
+      true,
+    )).toBe(true)
+    expect(store.deck.sideboard[0]).toEqual({
+      card: expect.objectContaining({ id: 'artifact-printing' }),
+      quantity: 1,
+      foil: true,
+    })
+
+    expect(store.setCardFoil(
+      'artifact-oracle',
+      'sideboard',
+      false,
+    )).toBe(true)
+    expect(store.deck.sideboard[0]?.foil).toBeUndefined()
+  })
+
+  it('rejects foil for a printing that is only available nonfoil', () => {
+    const store = useDeckStore()
+    store.createDeck()
+    store.addCardToBoard({
+      ...artifact,
+      finishes: ['nonfoil'],
+      foil: false,
+    }, 'sideboard', 1)
+
+    expect(store.setCardFoil(
+      'artifact-oracle',
+      'sideboard',
+      true,
+    )).toBe(false)
+    expect(store.deck.sideboard[0]?.foil).toBeUndefined()
+  })
+
+  it('rejects a printing with a different Oracle identity', () => {
+    const store = useDeckStore()
+    store.createDeck()
+    store.addCardToBoard(artifact, 'sideboard', 1)
+
+    expect(store.replaceCardPrinting(
+      'artifact-oracle',
+      'sideboard',
+      island,
+    )).toBe(false)
+    expect(store.deck.sideboard[0]?.card).toEqual(artifact)
   })
 
   it('merges matching auxiliary entries when moving without losing quantity', () => {

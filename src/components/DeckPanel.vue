@@ -167,6 +167,15 @@
                     v-if="getCastingCost(entry.card.card)"
                     :cost="getCastingCost(entry.card.card)"
                   />
+                  <v-chip
+                    v-if="entry.card.foil"
+                    class="deck-list-foil-chip"
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                  >
+                    Foil
+                  </v-chip>
                   <span class="text-body-2 text-medium-emphasis">
                     {{ entry.card.card.type_line }}
                   </span>
@@ -260,9 +269,10 @@
                     cover
                     :src="getCardImage(entry.card.card)"
                   />
+                  <FoilCardOverlay v-if="entry.card.foil" />
                   <v-avatar
                     v-if="entry.card.quantity > 1"
-                    class="position-absolute ma-2"
+                    class="deck-card-quantity position-absolute ma-2"
                     color="black"
                     style="top: 0; right: 0"
                     size="32"
@@ -293,6 +303,18 @@
       <v-list-item title="Add 1" @click="increase">
         <template #prepend><DeckActionIcon name="increase" /></template>
       </v-list-item>
+      <v-list-item title="Change printing" @click="changePrinting">
+        <template #prepend><DeckActionIcon name="printing" /></template>
+      </v-list-item>
+      <v-list-item
+        :disabled="
+          !menuEntry.card.foil && !supportsFoil(menuEntry.card.card)
+        "
+        :title="menuEntry.card.foil ? 'Remove foil' : 'Make foil'"
+        @click="toggleFoil"
+      >
+        <template #prepend><DeckActionIcon name="foil" /></template>
+      </v-list-item>
       <v-menu location="end" open-on-hover>
         <template #activator="{ props }">
           <v-list-item title="Move to" v-bind="props">
@@ -317,6 +339,13 @@
       </v-list-item>
     </v-list>
   </v-menu>
+
+  <CardPrintingDialog
+    v-model="printingDialogOpen"
+    :card="printingEntry?.card.card ?? null"
+    :foil="printingEntry?.card.foil === true"
+    @selected="replacePrinting"
+  />
 </template>
 
 <script setup lang="ts">
@@ -328,6 +357,10 @@ import { getCardImage } from '../utils/cardDisplay'
 import DeckActionIcon from './DeckActionIcon.vue'
 import { useUserPreferencesStore } from '../stores/userPreferences'
 import ManaCost from './ManaCost.vue'
+import CardPrintingDialog from './CardPrintingDialog.vue'
+import type { ScryfallCard } from '../types/card'
+import FoilCardOverlay from './FoilCardOverlay.vue'
+import { supportsFoil } from '../utils/cardFinish'
 
 type VisibleBoard = 'mainboard' | 'sideboard' | 'maybeboard'
 type SortKey = 'name' | 'mana' | 'type' | 'color'
@@ -361,6 +394,8 @@ const menuOpen = ref(false)
 const menuX = ref(0)
 const menuY = ref(0)
 const menuEntry = ref<BoardEntry | null>(null)
+const printingEntry = ref<BoardEntry | null>(null)
+const printingDialogOpen = ref(false)
 const expandedBoards = reactive<Record<Exclude<VisibleBoard, 'mainboard'>, boolean>>({
   sideboard: false,
   maybeboard: false,
@@ -649,6 +684,34 @@ function move(board: VisibleBoard) {
   deckStore.moveCardBetweenBoards(identity(menuEntry.value.card.card), menuEntry.value.sourceBoard, board)
   menuOpen.value = false
 }
+function changePrinting() {
+  if (!menuEntry.value) return
+  printingEntry.value = menuEntry.value
+  menuOpen.value = false
+  printingDialogOpen.value = true
+}
+function replacePrinting(selection: {
+  printing: ScryfallCard
+  foil: boolean
+}) {
+  if (!printingEntry.value) return
+  deckStore.replaceCardPrinting(
+    identity(printingEntry.value.card.card),
+    printingEntry.value.sourceBoard,
+    selection.printing,
+    selection.foil,
+  )
+  printingEntry.value = null
+}
+function toggleFoil() {
+  if (!menuEntry.value) return
+  deckStore.setCardFoil(
+    identity(menuEntry.value.card.card),
+    menuEntry.value.sourceBoard,
+    !menuEntry.value.card.foil,
+  )
+  menuOpen.value = false
+}
 </script>
 
 <style scoped>
@@ -701,6 +764,10 @@ function move(board: VisibleBoard) {
     auto-fill,
     minmax(min(100%, var(--deck-card-min-width)), 1fr)
   );
+}
+
+.deck-card-quantity {
+  z-index: 2;
 }
 
 @media (max-width: 900px) {

@@ -6,6 +6,7 @@ import vuetify from '../plugins/vuetify'
 import { createEmptyDeck } from '../models/createDeck'
 import { useDeckStore } from '../stores/deck'
 import type { ScryfallCard } from '../types/card'
+import { defineComponent } from 'vue'
 
 const artifact: ScryfallCard = {
   id: 'artifact',
@@ -244,5 +245,43 @@ describe('DeckPanel', () => {
     expect(wrapper.find('[aria-label="Remove Arcane Signet"]').exists())
       .toBe(false)
     expect(wrapper.text()).not.toContain('Move to')
+  })
+
+  it('offers printing selection from the card context menu', async () => {
+    useDeckStore().deck.cards = [{ card: artifact, quantity: 1 }]
+    const wrapper = mount(DeckPanel, {
+      global: {
+        plugins: [vuetify],
+        stubs: {
+          VMenu: defineComponent({
+            props: { modelValue: Boolean },
+            template: `
+              <div>
+                <slot name="activator" :props="{}" />
+                <div v-if="modelValue"><slot /></div>
+              </div>
+            `,
+          }),
+        },
+      },
+    })
+
+    await wrapper
+      .find('img[alt="Arcane Signet"]')
+      .trigger('contextmenu', { clientX: 40, clientY: 60 })
+
+    expect(wrapper.text()).toContain('Change printing')
+    expect(wrapper.text()).toContain('Make foil')
+  })
+
+  it('renders a foil treatment over foil grid cards', () => {
+    useDeckStore().deck.cards = [{
+      card: artifact,
+      quantity: 1,
+      foil: true,
+    }]
+    const wrapper = mountPanel()
+
+    expect(wrapper.find('.foil-card-overlay').exists()).toBe(true)
   })
 })

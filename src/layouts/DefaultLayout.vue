@@ -290,10 +290,83 @@
       @created="openCreatedDeck"
     />
 
-    <v-dialog v-model="showPreferences" max-width="560">
+    <v-dialog v-model="showPreferences" max-width="680">
       <v-card>
         <v-card-title>User Preferences</v-card-title>
         <v-card-text>
+          <section aria-labelledby="app-theme-heading" class="preference-section">
+            <div id="app-theme-heading" class="text-subtitle-2">
+              App Theme
+            </div>
+            <p class="mb-3 mt-1 text-body-2 text-medium-emphasis">
+              Keep the Oracle theme or build a dark app palette from any card's
+              artwork.
+            </p>
+            <div class="app-theme-options mb-4">
+              <button
+                :aria-pressed="preferencesStore.values.appTheme.mode === 'default'"
+                class="app-theme-option"
+                :class="{
+                  'app-theme-option--selected':
+                    preferencesStore.values.appTheme.mode === 'default',
+                }"
+                type="button"
+                @click="useDefaultAppTheme"
+              >
+                <span class="app-theme-option__preview app-theme-option__preview--default" />
+                <span>
+                  <strong>Oracle Default</strong>
+                  <small>Original DoomsdayMTG colors</small>
+                </span>
+              </button>
+              <div
+                v-if="preferencesStore.values.appTheme.mode === 'card'"
+                class="app-theme-option app-theme-option--selected"
+              >
+                <span
+                  class="app-theme-option__preview"
+                  :style="{
+                    backgroundImage:
+                      `url(${preferencesStore.values.appTheme.artUrl})`,
+                  }"
+                />
+                <span class="app-theme-option__details">
+                  <strong>{{ preferencesStore.values.appTheme.cardName }}</strong>
+                  <small>Card artwork theme</small>
+                  <span class="app-theme-swatches" aria-hidden="true">
+                    <i
+                      v-for="color in activeThemeSwatches"
+                      :key="color"
+                      :style="{ backgroundColor: color }"
+                    />
+                  </span>
+                </span>
+              </div>
+            </div>
+            <CardSearch
+              v-model="themeCardQuery"
+              clear-on-select
+              compact
+              elevated-results
+              @card-selected="useCardAppTheme"
+            />
+            <v-skeleton-loader
+              v-if="themeGenerating"
+              aria-label="Building a palette from the artwork"
+              class="mt-2"
+              max-width="260"
+              type="text"
+            />
+            <v-alert
+              v-if="themeError"
+              class="mt-3"
+              type="error"
+              variant="tonal"
+            >
+              {{ themeError }}
+            </v-alert>
+          </section>
+          <v-divider class="my-5" />
           <v-select
             v-model="preferenceDraft.defaultDeckDisplay"
             :items="displayOptions"
@@ -357,8 +430,10 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { useTheme } from 'vuetify'
 import { appConfig } from '../config/app'
+import CardSearch from '../components/CardSearch.vue'
 import DeckCreationDialog from '../components/DeckCreationDialog.vue'
 import { dataHealthRepository } from '../repositories/dataHealthRepository'
 import { useAuthStore } from '../stores/auth'
@@ -368,15 +443,25 @@ import type {
   DeckBuilderSearchSide,
   UserPreferences,
 } from '../models/userPreferences'
+import type { ScryfallCard } from '../types/card'
+import {
+  CARD_ART_THEME_NAME,
+  createCardArtTheme,
+  getVuetifyTheme,
+} from '../theme/cardArtTheme'
 
 const auth = useAuthStore()
 const preferencesStore = useUserPreferencesStore()
+const vuetifyTheme = useTheme()
 const router = useRouter()
 const isAdmin = ref(false)
 const showCreateDialog = ref(false)
 const showMobileMenu = ref(false)
 const showPreferences = ref(false)
 const preferenceError = ref('')
+const themeError = ref('')
+const themeGenerating = ref(false)
+const themeCardQuery = ref('')
 const preferenceDraft = reactive<UserPreferences>({
   ...preferencesStore.values,
 })
@@ -399,6 +484,30 @@ const visibilityOptions = [
   { title: 'Unlisted', value: 'unlisted' },
   { title: 'Public', value: 'public' },
 ]
+const activeThemeSwatches = computed(() => {
+  const appTheme = preferencesStore.values.appTheme
+  return appTheme.mode === 'card'
+    ? [
+        appTheme.palette.primary,
+        appTheme.palette.secondary,
+        appTheme.palette.accent,
+        appTheme.palette.surfaceLight,
+      ]
+    : []
+})
+
+watch(
+  () => preferencesStore.values.appTheme,
+  (appTheme) => {
+    if (appTheme.mode === 'default') {
+      vuetifyTheme.change('oracleDarkTheme')
+      return
+    }
+    vuetifyTheme.themes.value[CARD_ART_THEME_NAME] = getVuetifyTheme(appTheme)
+    vuetifyTheme.change(CARD_ART_THEME_NAME)
+  },
+  { deep: true, immediate: true },
+)
 
 function openCreateDeckFromMenu() {
   showMobileMenu.value = false
@@ -433,13 +542,54 @@ function openCreatedDeck(deckId: string) {
 function openPreferences() {
   Object.assign(preferenceDraft, preferencesStore.values)
   preferenceError.value = ''
+  themeError.value = ''
+  themeCardQuery.value = ''
   showPreferences.value = true
 }
 
 async function savePreferences() {
+  // A theme can save independently while this dialog remains open.
+  preferenceDraft.appTheme = preferencesStore.values.appTheme
   const saved = await preferencesStore.save({ ...preferenceDraft })
   preferenceError.value = saved ? '' : 'Unable to save preferences.'
   if (saved) showPreferences.value = false
+}
+
+let themeRequestId = 0
+
+async function useCardAppTheme(card: ScryfallCard) {
+  const requestId = ++themeRequestId
+  themeGenerating.value = true
+  themeError.value = ''
+  try {
+    const appTheme = await createCardArtTheme(card)
+    if (requestId !== themeRequestId) return
+    const saved = await preferencesStore.saveAppTheme(appTheme)
+    if (!saved) {
+      themeError.value = 'Unable to save the card artwork theme.'
+      return
+    }
+    preferenceDraft.appTheme = appTheme
+  } catch (error) {
+    if (requestId !== themeRequestId) return
+    themeError.value =
+      error instanceof Error ? error.message : 'Unable to build this theme.'
+  } finally {
+    if (requestId === themeRequestId) themeGenerating.value = false
+  }
+}
+
+async function useDefaultAppTheme() {
+  ++themeRequestId
+  themeGenerating.value = false
+  themeError.value = ''
+  const appTheme = { mode: 'default' } as const
+  const saved = await preferencesStore.saveAppTheme(appTheme)
+  if (!saved) {
+    themeError.value = 'Unable to save the default theme.'
+    return
+  }
+  preferenceDraft.appTheme = appTheme
 }
 
 /*
@@ -590,6 +740,82 @@ function applyDeckBuilderSearchSide(value: unknown) {
   flex: 1 1 50%;
 }
 
+.preference-section {
+  position: relative;
+}
+
+.app-theme-options {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.app-theme-option {
+  align-items: center;
+  background: rgb(var(--v-theme-surface-light));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
+  color: rgb(var(--v-theme-on-surface));
+  display: flex;
+  gap: 12px;
+  min-height: 76px;
+  overflow: hidden;
+  padding: 8px;
+  text-align: left;
+  width: 100%;
+}
+
+button.app-theme-option {
+  cursor: pointer;
+}
+
+.app-theme-option--selected {
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: inset 0 0 0 1px rgb(var(--v-theme-primary));
+}
+
+.app-theme-option__preview {
+  align-self: stretch;
+  background-position: center 35%;
+  background-size: cover;
+  border-radius: 5px;
+  flex: 0 0 72px;
+  min-height: 58px;
+}
+
+.app-theme-option__preview--default {
+  background:
+    radial-gradient(circle at 28% 32%, #D7A24A 0 12%, transparent 13%),
+    linear-gradient(135deg, #2A1C31 0 48%, #171321 49% 100%);
+}
+
+.app-theme-option strong,
+.app-theme-option small {
+  display: block;
+}
+
+.app-theme-option small {
+  color: rgba(var(--v-theme-on-surface), 0.68);
+  margin-top: 2px;
+}
+
+.app-theme-option__details {
+  min-width: 0;
+}
+
+.app-theme-swatches {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.app-theme-swatches i {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.25);
+  border-radius: 50%;
+  height: 13px;
+  width: 13px;
+}
+
 @media (max-width: 599px) {
   .mobile-navigation-toggle {
     color: rgb(var(--v-theme-primary)) !important;
@@ -606,6 +832,10 @@ function applyDeckBuilderSearchSide(value: unknown) {
     color: rgb(var(--v-theme-primary)) !important;
     min-width: 40px;
     padding-inline: 8px;
+  }
+
+  .app-theme-options {
+    grid-template-columns: 1fr;
   }
 }
 </style>

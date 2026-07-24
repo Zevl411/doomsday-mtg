@@ -3,6 +3,7 @@ import {
   DEFAULT_USER_PREFERENCES,
   type UserPreferences,
 } from '../models/userPreferences'
+import { normalizeAppTheme } from '../theme/cardArtTheme'
 
 const STORAGE_KEY = 'doomsday-mtg-user-preferences'
 
@@ -23,6 +24,7 @@ export async function loadUserPreferences(
       defaultCommanderColorFilter: data.default_commander_color_filter,
       deckBuilderSearchSide: data.deck_builder_search_side,
       deckStatisticsPosition: data.deck_statistics_position,
+      appTheme: data.app_theme,
     })
     if (error) console.warn('Unable to load user preferences.', error)
   }
@@ -48,6 +50,7 @@ export async function saveUserPreferences(
       default_commander_color_filter: preferences.defaultCommanderColorFilter,
       deck_builder_search_side: preferences.deckBuilderSearchSide,
       deck_statistics_position: preferences.deckStatisticsPosition,
+      app_theme: preferences.appTheme,
       updated_at: new Date().toISOString(),
     })
     if (error) {
@@ -65,7 +68,9 @@ export async function saveUserPreferences(
   }
 }
 
-function normalizePreferences(value: Partial<UserPreferences>): UserPreferences {
+export function normalizePreferences(
+  value: Partial<UserPreferences>,
+): UserPreferences {
   const defaults = DEFAULT_USER_PREFERENCES
   const grouping = ['name', 'mana', 'type', 'color']
   return {
@@ -90,5 +95,6 @@ function normalizePreferences(value: Partial<UserPreferences>): UserPreferences 
       value.deckBuilderSearchSide === 'left' ? 'left' : 'right',
     deckStatisticsPosition:
       value.deckStatisticsPosition === 'below' ? 'below' : 'above',
+    appTheme: normalizeAppTheme(value.appTheme),
   }
 }

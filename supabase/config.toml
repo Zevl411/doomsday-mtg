@@ -6,3 +6,8 @@ verify_jwt = true
 # ID and never exposes database write credentials.
 [functions.tournament-decklist]
 verify_jwt = false
+
+# Card themes are available to guests. The function only proxies a validated
+# cards.scryfall.io art-crop URL and exposes no database or user data.
+[functions.card-art-proxy]
+verify_jwt = false

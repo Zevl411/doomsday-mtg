@@ -40,4 +40,18 @@ export interface ScryfallCard {
   image_uris?: ScryfallImageUris
   card_faces?: ScryfallCardFace[]
   legalities?: Record<string, string>
+  // Printing metadata is optional because older saved decks predate the
+  // printing picker and analytical card records may not include set details.
+  set?: string
+  set_name?: string
+  collector_number?: string
+  released_at?: string
+  rarity?: string
+  lang?: string
+  artist?: string
+  // Scryfall uses these fields to describe finishes available for one printed
+  // edition. A Deck entry separately records which finish the user selected.
+  finishes?: string[]
+  foil?: boolean
+  nonfoil?: boolean
 }

@@ -23,6 +23,7 @@ import {
 import { validateCommanderPairing } from '../utils/commanderPairing'
 import { guestDraftRepository } from '../repositories/localDeckRepository'
 import type { DeckRepository } from '../repositories/deckRepository'
+import { supportsFoil } from '../utils/cardFinish'
 
 let activeDeckRepository: DeckRepository = guestDraftRepository
 
@@ -420,6 +421,76 @@ export const useDeckStore = defineStore('deck', {
 
       this.rejectionMessage = ''
       this.persistActiveDeck()
+    },
+
+    /**
+     * A printing change is presentation-only: Oracle identity, board, and
+     * quantity must remain stable. Rejecting another identity here prevents a
+     * UI or network mistake from silently replacing the actual deck card.
+     */
+    replaceCardPrinting(
+      identity: string,
+      board: TrackedDeckBoard,
+      printing: ScryfallCard,
+      foil?: boolean,
+    ): boolean {
+      if (getCardIdentity(printing) !== identity) return false
+
+      const entry = getDeckBoardEntries(this.deck, board).find(
+        (item) => getCardIdentity(item.card) === identity,
+      )
+      if (!entry) return false
+      const nextFoil = foil ?? (entry.foil === true)
+      if (nextFoil && !supportsFoil(printing)) return false
+      if (
+        entry.card.id === printing.id &&
+        (entry.foil === true) === nextFoil
+      ) {
+        return true
+      }
+
+      entry.card = printing
+      if (nextFoil) entry.foil = true
+      else delete entry.foil
+      if (
+        this.previewCard &&
+        getCardIdentity(this.previewCard) === identity
+      ) {
+        this.previewCard = printing
+      }
+      if (
+        this.selectedPreviewCard &&
+        getCardIdentity(this.selectedPreviewCard) === identity
+      ) {
+        this.selectedPreviewCard = printing
+      }
+      if (
+        this.lastPreviewCard &&
+        getCardIdentity(this.lastPreviewCard) === identity
+      ) {
+        this.lastPreviewCard = printing
+      }
+
+      this.rejectionMessage = ''
+      this.persistActiveDeck()
+      return true
+    },
+
+    setCardFoil(
+      identity: string,
+      board: TrackedDeckBoard,
+      foil: boolean,
+    ): boolean {
+      const entry = getDeckBoardEntries(this.deck, board).find(
+        (item) => getCardIdentity(item.card) === identity,
+      )
+      if (!entry || (foil && !supportsFoil(entry.card))) return false
+      if ((entry.foil === true) === foil) return true
+
+      if (foil) entry.foil = true
+      else delete entry.foil
+      this.persistActiveDeck()
+      return true
     },
 
     increaseBoardQuantity(

@@ -27,6 +27,13 @@ const card: ScryfallCard = {
   color_identity: [],
   cmc: 3,
   mana_cost: '{3}',
+  set: 'tst',
+  set_name: 'Test Set',
+  collector_number: '42',
+  released_at: '2026-01-01',
+  rarity: 'rare',
+  lang: 'en',
+  artist: 'Test Artist',
 }
 
 function createStoredDeck(id = 'deck-one', quantity = 1): Deck {
@@ -61,6 +68,7 @@ describe('deck-library storage', () => {
 
   it('saves and loads a valid library', () => {
     const deck = createStoredDeck()
+    deck.cards[0]!.foil = true
     const library: StoredDeckLibrary = {
       version: DECK_LIBRARY_VERSION,
       activeDeckId: deck.id,

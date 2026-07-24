@@ -72,6 +72,7 @@ function cloneBoard(board: DeckCard[]): DeckCard[] {
   return board.map((entry) => ({
     card: cloneCard(entry.card),
     quantity: entry.quantity,
+    ...(entry.foil === true ? { foil: true } : {}),
   }))
 }
 
@@ -79,6 +80,7 @@ function cloneCard(card: ScryfallCard): ScryfallCard {
   return {
     ...card,
     color_identity: [...card.color_identity],
+    finishes: card.finishes ? [...card.finishes] : undefined,
     image_uris: card.image_uris ? { ...card.image_uris } : undefined,
     card_faces: card.card_faces?.map((face) => ({
       ...face,

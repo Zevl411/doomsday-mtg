@@ -7,6 +7,9 @@ import type { ScryfallCard } from '../types/card'
 export interface DeckCard {
   card: ScryfallCard
   quantity: number
+  // Finish belongs to this Deck entry rather than the shared Scryfall record.
+  // Missing and false both represent the normal nonfoil treatment.
+  foil?: boolean
 }
 
 /** Boards that the application currently persists and lets users edit. */

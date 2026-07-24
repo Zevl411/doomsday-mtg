@@ -156,10 +156,86 @@ export async function getCardsByOracleIds(
   return cards
 }
 
+/**
+ * Returns every English paper printing for the same Oracle card. Following
+ * Scryfall pagination is important for heavily reprinted staples and basics;
+ * deck identity remains unchanged when one of these records is selected.
+ */
+export async function getCardPrintings(
+  card: ScryfallCard,
+  signal?: AbortSignal,
+): Promise<ScryfallCard[]> {
+  const query = card.oracle_id
+    ? `oracleid:${card.oracle_id} game:paper lang:en`
+    : `!"${escapeSearchPhrase(card.name)}" game:paper lang:en`
+  const initialUrl = new URL(`${BASE_URL}/cards/search`)
+  initialUrl.searchParams.set('q', query)
+  initialUrl.searchParams.set('unique', 'prints')
+  initialUrl.searchParams.set('order', 'released')
+  initialUrl.searchParams.set('dir', 'desc')
+
+  const printings: ScryfallCard[] = []
+  const seenIds = new Set<string>()
+  const visitedPages = new Set<string>()
+  let nextUrl: string | null = initialUrl.toString()
+
+  while (nextUrl) {
+    if (visitedPages.has(nextUrl)) {
+      throw invalidScryfallResponseError('printing lookup')
+    }
+    visitedPages.add(nextUrl)
+    await waitForLookupTurn(signal)
+    const response = await fetchFromScryfall(
+      nextUrl,
+      {
+        headers: { Accept: 'application/json' },
+        signal,
+      },
+      signal,
+    )
+    if (!response.ok) {
+      throw createScryfallResponseError('printing lookup', response)
+    }
+
+    const page = await readCardPage(response, 'printing lookup')
+    for (const printing of page.cards) {
+      if (!seenIds.has(printing.id)) {
+        seenIds.add(printing.id)
+        printings.push(printing)
+      }
+    }
+    nextUrl = validateScryfallPageUrl(page.nextPage)
+  }
+
+  return printings
+}
+
+function validateScryfallPageUrl(value: string | null): string | null {
+  if (!value) return null
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw invalidScryfallResponseError('printing lookup')
+  }
+  if (
+    url.protocol !== 'https:' ||
+    url.hostname !== 'api.scryfall.com' ||
+    url.pathname !== '/cards/search'
+  ) {
+    throw invalidScryfallResponseError('printing lookup')
+  }
+  return url.toString()
+}
+
 function getCollectionLookupName(name: string): string {
   // Scryfall collection identifiers reliably accept the front face even when
   // a source export supplied the complete modal double-faced name.
   return name.split('//')[0]?.trim() ?? name
+}
+
+function escapeSearchPhrase(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
 function getCardLookupNames(card: ScryfallCard): Set<string> {
@@ -336,6 +412,33 @@ async function readCardList(
     throw invalidScryfallResponseError(operation)
   }
   return value.data
+}
+
+async function readCardPage(
+  response: Response,
+  operation: string,
+): Promise<{ cards: ScryfallCard[]; nextPage: string | null }> {
+  const value = await readJson(response, operation)
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.data) ||
+    !value.data.every(isScryfallCard) ||
+    (value.has_more !== undefined && typeof value.has_more !== 'boolean') ||
+    (value.next_page !== undefined && typeof value.next_page !== 'string')
+  ) {
+    throw invalidScryfallResponseError(operation)
+  }
+
+  const hasMore = value.has_more === true
+  if (hasMore && typeof value.next_page !== 'string') {
+    throw invalidScryfallResponseError(operation)
+  }
+  const nextPage =
+    hasMore && typeof value.next_page === 'string' ? value.next_page : null
+  return {
+    cards: value.data,
+    nextPage,
+  }
 }
 
 function isScryfallCard(value: unknown): value is ScryfallCard {

@@ -65,7 +65,10 @@
     </div>
 
     <div class="workspace-preview">
-      <CardPreview :card="deckStore.previewCard" />
+      <CardPreview
+        :card="deckStore.previewCard"
+        :foil="previewCardIsFoil"
+      />
     </div>
   </div>
 
@@ -139,6 +142,7 @@ import { useUserPreferencesStore } from '../stores/userPreferences'
 import type { TrackedDeckBoard } from '../models/deck'
 import type { ScryfallCard } from '../types/card'
 import { canHavePartner } from '../utils/commanderPairing'
+import { getCardIdentity } from '../utils/cardIdentity'
 
 const deckStore = useDeckStore()
 const preferencesStore = useUserPreferencesStore()
@@ -152,6 +156,19 @@ const showPartnerPanel = computed(() =>
     && canHavePartner(deckStore.deck.commander),
   ),
 )
+const previewCardIsFoil = computed(() => {
+  if (!deckStore.previewCard) return false
+  const previewIdentity = getCardIdentity(deckStore.previewCard)
+  return [
+    ...deckStore.deck.cards,
+    ...deckStore.deck.sideboard,
+    ...deckStore.deck.maybeboard,
+    ...deckStore.deck.considering,
+  ].some((entry) =>
+    entry.foil === true &&
+    getCardIdentity(entry.card) === previewIdentity
+  )
+})
 const importExport = ref<InstanceType<typeof DeckImportExport> | null>(null)
 const recommendationContentHeight = ref(0)
 const commanderPanelStyle = computed(() =>

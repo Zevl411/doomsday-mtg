@@ -6,6 +6,22 @@ In the Supabase project dashboard, open **SQL Editor**, choose **New query**,
 paste `supabase/migrations/202607170001_create_decks_table.sql`, and run it.
 Successful execution reports success with no returned rows.
 
+Apply later migrations in timestamp order as features are deployed. In
+particular, `202607240001_add_app_theme_preference.sql` adds the validated JSON
+preference used for card-art themes. Until that migration is applied,
+authenticated users cannot persist a generated theme; guest preferences remain
+browser-local.
+
+Card-art palette extraction also requires the public, host-restricted image
+proxy because Scryfall's image CDN does not allow browsers to read its pixels:
+
+```bash
+npx supabase functions deploy card-art-proxy --no-verify-jwt
+```
+
+The proxy accepts only HTTPS `cards.scryfall.io/art_crop/` URLs and returns
+cacheable image responses with the CORS header required by browser canvases.
+
 Then open **Table Editor → decks** and verify the table includes `user_id`,
 `deck_id`, `deck_data`, and timestamps. In **Database → Tables → decks**, verify
 Row Level Security is enabled. Open the table's **Policies** view and confirm
