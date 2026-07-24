@@ -56,6 +56,18 @@
             {{ deck.visibility ?? 'private' }}
           </v-chip>
           <v-chip
+            class="deck-price-chip"
+            color="primary"
+            size="small"
+            variant="outlined"
+          >
+            Deck total {{ formattedDeckPrice }}
+            <v-tooltip activator="parent" location="bottom" max-width="260">
+              Commander and Mainboard prices for the selected printings and
+              finishes. Cards without a current TCGplayer price are excluded.
+            </v-tooltip>
+          </v-chip>
+          <v-chip
             v-if="validitySeverity"
             class="validity-chip"
             :color="validitySeverity === 'error' ? 'error' : 'warning'"
@@ -209,22 +221,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { DeckVisibility } from '../models/deck'
 import { useAuthStore } from '../stores/auth'
 import { useDeckStore } from '../stores/deck'
 import { useUserPreferencesStore } from '../stores/userPreferences'
+import { useCardPricingStore } from '../stores/cardPricing'
 import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
 import DeckActionIcon from './DeckActionIcon.vue'
 import {
   getDeckValidityIssues,
   getDeckValiditySeverity,
 } from '../utils/deckValidity'
+import {
+  formatCardPrice,
+  sumKnownDeckEntryPrices,
+} from '../utils/cardPrice'
 
 const emit = defineEmits<{ import: []; export: [] }>()
 const deckStore = useDeckStore()
 const preferencesStore = useUserPreferencesStore()
+const pricingStore = useCardPricingStore()
 const auth = useAuthStore()
 const router = useRouter()
 // Deletion clears the active Deck immediately, while route navigation finishes
@@ -257,6 +275,41 @@ const deckColorIdentity = computed(() => [
 const validityIssues = computed(() => getDeckValidityIssues(deck.value))
 const validitySeverity = computed(() =>
   getDeckValiditySeverity(validityIssues.value),
+)
+const deckPrice = computed(() => sumKnownDeckEntryPrices(
+  [
+    ...(deck.value.commander
+      ? [{ card: deck.value.commander, quantity: 1 }]
+      : []),
+    ...(deck.value.partnerCommander
+      ? [{ card: deck.value.partnerCommander, quantity: 1 }]
+      : []),
+    ...deck.value.cards,
+  ],
+  (card) => pricingStore.resolve(card),
+))
+const formattedDeckPrice = computed(() =>
+  deckPrice.value === null
+    ? '—'
+    : formatCardPrice(
+        deckPrice.value,
+        preferencesStore.values.priceCurrency,
+      ),
+)
+
+watch(
+  () => [
+    deck.value.id,
+    deck.value.commander?.id,
+    deck.value.partnerCommander?.id,
+    ...deck.value.cards.map((entry) =>
+      `${entry.card.id}:${entry.quantity}:${entry.foil === true}`
+    ),
+  ],
+  () => {
+    void pricingStore.refreshDeck(deck.value)
+  },
+  { immediate: true },
 )
 
 function openSettings() {

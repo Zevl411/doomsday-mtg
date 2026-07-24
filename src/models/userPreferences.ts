@@ -5,6 +5,9 @@ export type DeckGrouping = 'name' | 'mana' | 'type' | 'color'
 export type DeckSecondaryGrouping = DeckGrouping | 'none'
 export type DeckBuilderSearchSide = 'left' | 'right'
 export type DeckStatisticsPosition = 'above' | 'below'
+// TCGplayer's marketplace API currently exposes US-dollar price values only.
+// Keeping currency explicit makes future native currencies additive.
+export type PriceCurrency = 'USD'
 
 /**
  * Card themes store the generated colors instead of regenerating them on every
@@ -46,6 +49,8 @@ export interface UserPreferences {
   defaultCommanderColorFilter: boolean
   deckBuilderSearchSide: DeckBuilderSearchSide
   deckStatisticsPosition: DeckStatisticsPosition
+  priceCurrency: PriceCurrency
+  showGridCardPrices: boolean
   appTheme: AppThemePreference
 }
 
@@ -57,5 +62,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   defaultCommanderColorFilter: true,
   deckBuilderSearchSide: 'right',
   deckStatisticsPosition: 'above',
+  priceCurrency: 'USD',
+  showGridCardPrices: false,
   appTheme: { mode: 'default' },
 }

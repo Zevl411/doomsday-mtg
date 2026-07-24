@@ -25,6 +25,16 @@ beforeEach(() => {
 
 describe('DeckBuilderHeader', () => {
   it('shows deck validity beside visibility', () => {
+    useDeckStore().deck.cards = [{
+      card: {
+        id: 'priced-card',
+        name: 'Priced Card',
+        type_line: 'Artifact',
+        color_identity: [],
+        prices: { usd: '3.25' },
+      },
+      quantity: 2,
+    }]
     const wrapper = mount(DeckBuilderHeader, {
       global: {
         plugins: [vuetify],
@@ -36,7 +46,8 @@ describe('DeckBuilderHeader', () => {
 
     const metadata = wrapper.find('.deck-header-metadata')
     expect(metadata.text()).toContain('public')
-    expect(metadata.text()).toContain('Warning (1)')
+    expect(metadata.text()).toContain('Warning')
+    expect(metadata.text()).toContain('Deck total $6.50')
     wrapper.unmount()
   })
 

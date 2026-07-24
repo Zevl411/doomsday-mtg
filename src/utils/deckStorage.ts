@@ -7,7 +7,9 @@ import {
 import type {
   ScryfallCard,
   ScryfallCardFace,
+  ScryfallCardPrices,
   ScryfallImageUris,
+  ScryfallPurchaseUris,
 } from '../types/card'
 
 export const DECK_LIBRARY_STORAGE_KEY = 'doomsday-mtg-guest-library'
@@ -71,15 +73,28 @@ function normalizeCard(value: unknown): ScryfallCard | null {
     (value.cmc !== undefined &&
       (typeof value.cmc !== 'number' ||
         !Number.isFinite(value.cmc) ||
-        value.cmc < 0))
+        value.cmc < 0)) ||
+    (value.tcgplayer_id !== undefined &&
+      (
+        typeof value.tcgplayer_id !== 'number' ||
+        !Number.isInteger(value.tcgplayer_id) ||
+        value.tcgplayer_id <= 0
+      ))
   ) {
     return null
   }
 
   const imageUris = normalizeImageUris(value.image_uris)
   const cardFaces = normalizeCardFaces(value.card_faces)
+  const prices = normalizePrices(value.prices)
+  const purchaseUris = normalizePurchaseUris(value.purchase_uris)
 
-  if (imageUris === null || cardFaces === null) {
+  if (
+    imageUris === null ||
+    cardFaces === null ||
+    prices === null ||
+    purchaseUris === null
+  ) {
     return null
   }
 
@@ -99,6 +114,9 @@ function normalizeCard(value: unknown): ScryfallCard | null {
     }
   }
   if (typeof value.cmc === 'number') card.cmc = value.cmc
+  if (typeof value.tcgplayer_id === 'number') {
+    card.tcgplayer_id = value.tcgplayer_id
+  }
   if (typeof value.foil === 'boolean') card.foil = value.foil
   if (typeof value.nonfoil === 'boolean') card.nonfoil = value.nonfoil
   if (Array.isArray(value.finishes)) {
@@ -106,6 +124,8 @@ function normalizeCard(value: unknown): ScryfallCard | null {
   }
   if (imageUris !== undefined) card.image_uris = imageUris
   if (cardFaces !== undefined) card.card_faces = cardFaces
+  if (prices !== undefined) card.prices = prices
+  if (purchaseUris !== undefined) card.purchase_uris = purchaseUris
   if (
     isObject(value.legalities) &&
     Object.values(value.legalities).every(
@@ -115,6 +135,38 @@ function normalizeCard(value: unknown): ScryfallCard | null {
     card.legalities = { ...(value.legalities as Record<string, string>) }
   }
   return card
+}
+
+function normalizePrices(
+  value: unknown,
+): ScryfallCardPrices | undefined | null {
+  if (value === undefined) return undefined
+  if (!isObject(value)) return null
+
+  const prices: ScryfallCardPrices = {}
+  for (const key of ['usd', 'usd_foil', 'usd_etched'] as const) {
+    const price = value[key]
+    if (price !== undefined && price !== null && typeof price !== 'string') {
+      return null
+    }
+    if (typeof price === 'string' || price === null) prices[key] = price
+  }
+  return prices
+}
+
+function normalizePurchaseUris(
+  value: unknown,
+): ScryfallPurchaseUris | undefined | null {
+  if (value === undefined) return undefined
+  if (
+    !isObject(value) ||
+    (value.tcgplayer !== undefined && typeof value.tcgplayer !== 'string')
+  ) {
+    return null
+  }
+  return typeof value.tcgplayer === 'string'
+    ? { tcgplayer: value.tcgplayer }
+    : {}
 }
 
 function normalizeImageUris(

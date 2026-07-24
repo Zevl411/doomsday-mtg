@@ -34,6 +34,15 @@ const card: ScryfallCard = {
   rarity: 'rare',
   lang: 'en',
   artist: 'Test Artist',
+  tcgplayer_id: 12345,
+  prices: {
+    usd: '1.25',
+    usd_foil: '4.50',
+    usd_etched: null,
+  },
+  purchase_uris: {
+    tcgplayer: 'https://www.tcgplayer.com/product/12345',
+  },
 }
 
 function createStoredDeck(id = 'deck-one', quantity = 1): Deck {

@@ -367,6 +367,27 @@
             </v-alert>
           </section>
           <v-divider class="my-5" />
+          <section aria-labelledby="card-pricing-heading" class="preference-section">
+            <div id="card-pricing-heading" class="text-subtitle-2">
+              Card Pricing
+            </div>
+            <p class="mb-3 mt-1 text-body-2 text-medium-emphasis">
+              TCGplayer currently provides marketplace prices in US dollars.
+            </p>
+            <v-select
+              v-model="preferenceDraft.priceCurrency"
+              :items="priceCurrencyOptions"
+              label="Price currency"
+            />
+            <v-checkbox
+              v-model="preferenceDraft.showGridCardPrices"
+              color="primary"
+              density="comfortable"
+              hide-details
+              label="Show card prices in Deck grid view"
+            />
+          </section>
+          <v-divider class="mb-5" />
           <v-select
             v-model="preferenceDraft.defaultDeckDisplay"
             :items="displayOptions"
@@ -483,6 +504,9 @@ const visibilityOptions = [
   { title: 'Private', value: 'private' },
   { title: 'Unlisted', value: 'unlisted' },
   { title: 'Public', value: 'public' },
+]
+const priceCurrencyOptions = [
+  { title: 'US Dollar (USD)', value: 'USD' },
 ]
 const activeThemeSwatches = computed(() => {
   const appTheme = preferencesStore.values.appTheme

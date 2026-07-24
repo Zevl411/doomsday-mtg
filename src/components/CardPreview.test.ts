@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import { createPinia } from 'pinia'
 import CardPreview from './CardPreview.vue'
 import vuetify from '../plugins/vuetify'
 import type { ScryfallCard } from '../types/card'
@@ -9,7 +10,7 @@ function mountPreview(card: ScryfallCard | null, foil = false) {
   return mount(CardPreview, {
     props: { card, foil },
     global: {
-      plugins: [vuetify],
+      plugins: [createPinia(), vuetify],
     },
   })
 }
@@ -138,5 +139,33 @@ describe('CardPreview', () => {
     }, true)
 
     expect(wrapper.find('.foil-card-overlay').exists()).toBe(true)
+  })
+
+  it('shows printing-specific TCGplayer prices and purchase link', () => {
+    const wrapper = mountPreview({
+      id: 'priced-printing',
+      name: 'Priced Card',
+      type_line: 'Artifact',
+      color_identity: [],
+      prices: {
+        usd: '1.25',
+        usd_foil: '4.50',
+        usd_etched: null,
+      },
+      purchase_uris: {
+        tcgplayer: 'https://www.tcgplayer.com/product/12345',
+      },
+    }, true)
+
+    expect(wrapper.text()).toContain('TCGplayer prices')
+    expect(wrapper.text()).toContain('Regular')
+    expect(wrapper.text()).toContain('$1.25')
+    expect(wrapper.text()).toContain('Foil')
+    expect(wrapper.text()).toContain('$4.50')
+    expect(wrapper.get('a[href*="tcgplayer.com"]').attributes('target'))
+      .toBe('_blank')
+    expect(wrapper.get('.card-preview-price--selected').text())
+      .toContain('Foil')
+    wrapper.unmount()
   })
 })

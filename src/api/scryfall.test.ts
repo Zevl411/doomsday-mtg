@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ScryfallCard } from '../types/card'
 import {
   getCardsByExactNames,
+  getCardsByIds,
   getCardsByOracleIds,
+  getCardById,
   getCardPrintings,
   searchCards,
 } from './scryfall'
@@ -20,6 +22,29 @@ afterEach(() => {
 })
 
 describe('Scryfall client', () => {
+  it('loads one exact printing for current marketplace data', async () => {
+    const pricedCard = {
+      ...solRing,
+      id: '00000000-0000-4000-8000-000000000001',
+      prices: { usd: '1.25', usd_foil: '4.50' },
+    }
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => pricedCard,
+    } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getCardById(pricedCard.id)).resolves.toEqual(pricedCard)
+    expect(fetchMock).toHaveBeenCalledWith(
+      `https://api.scryfall.com/cards/${pricedCard.id}`,
+      expect.objectContaining({
+        headers: { Accept: 'application/json' },
+      }),
+    )
+  })
+
   it('deduplicates names in a collection request', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -58,6 +83,25 @@ describe('Scryfall client', () => {
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit
     expect(JSON.parse(String(request.body))).toEqual({
       identifiers: [{ oracle_id: oracleId }],
+    })
+  })
+
+  it('loads exact printings in one deduplicated collection request', async () => {
+    const printingId = '00000000-0000-4000-8000-000000000002'
+    const printing = { ...solRing, id: printingId, prices: { usd: '1.00' } }
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ data: [printing] }),
+    } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getCardsByIds([printingId, printingId]))
+      .resolves.toEqual([printing])
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit
+    expect(JSON.parse(String(request.body))).toEqual({
+      identifiers: [{ id: printingId }],
     })
   })
 

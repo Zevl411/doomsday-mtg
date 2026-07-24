@@ -69,6 +69,48 @@
             :text="card.oracle_text"
           />
         </template>
+
+        <v-sheet
+          v-if="marketPrices.length || tcgplayerUrl"
+          class="card-preview-pricing mt-5 pa-3"
+          color="surface-light"
+          rounded="lg"
+        >
+          <div class="align-center d-flex ga-2 justify-space-between">
+            <div>
+              <div class="text-subtitle-2">TCGplayer prices</div>
+              <div class="text-caption text-medium-emphasis">
+                Selected printing · USD
+              </div>
+            </div>
+            <v-btn
+              v-if="tcgplayerUrl"
+              :href="tcgplayerUrl"
+              rel="noopener noreferrer sponsored"
+              size="small"
+              target="_blank"
+              variant="text"
+            >
+              View
+            </v-btn>
+          </div>
+          <div v-if="marketPrices.length" class="card-preview-price-grid mt-3">
+            <div
+              v-for="price in marketPrices"
+              :key="price.finish"
+              class="card-preview-price"
+              :class="{
+                'card-preview-price--selected':
+                  foil ? price.finish === 'Foil' : price.finish === 'Regular',
+              }"
+            >
+              <span class="text-caption text-medium-emphasis">
+                {{ price.finish }}
+              </span>
+              <strong>{{ formatPrice(price.amount) }}</strong>
+            </div>
+          </div>
+        </v-sheet>
       </v-card-text>
     </template>
 
@@ -79,19 +121,75 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onUnmounted, ref, watch } from 'vue'
+import { getCardById } from '../api/scryfall'
 import type { ScryfallCard } from '../types/card'
 import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
 import ManaCost from './ManaCost.vue'
 import OracleText from './OracleText.vue'
 import { getCardImage } from '../utils/cardDisplay'
 import FoilCardOverlay from './FoilCardOverlay.vue'
+import { useUserPreferencesStore } from '../stores/userPreferences'
+import {
+  formatCardPrice,
+  getCardMarketPrices,
+  getTcgplayerPurchaseUrl,
+} from '../utils/cardPrice'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   card: ScryfallCard | null
   foil?: boolean
 }>(), {
   foil: false,
 })
+
+const preferences = useUserPreferencesStore()
+const refreshedCard = ref<ScryfallCard | null>(null)
+let priceController: AbortController | null = null
+
+const pricingCard = computed(() => refreshedCard.value ?? props.card)
+const marketPrices = computed(() =>
+  pricingCard.value ? getCardMarketPrices(pricingCard.value) : [],
+)
+const tcgplayerUrl = computed(() =>
+  pricingCard.value ? getTcgplayerPurchaseUrl(pricingCard.value) : null,
+)
+
+watch(
+  () => props.card,
+  (card) => {
+    priceController?.abort()
+    refreshedCard.value = null
+    if (
+      !card ||
+      card.prices !== undefined ||
+      !isScryfallPrintingId(card.id)
+    ) {
+      return
+    }
+
+    priceController = new AbortController()
+    const activeController = priceController
+    void getCardById(card.id, activeController.signal)
+      .then((freshCard) => {
+        if (!activeController.signal.aborted) refreshedCard.value = freshCard
+      })
+      // Price refresh is supplementary and must never obstruct card details.
+      .catch(() => undefined)
+  },
+  { immediate: true },
+)
+
+onUnmounted(() => priceController?.abort())
+
+function formatPrice(amount: number): string {
+  return formatCardPrice(amount, preferences.values.priceCurrency)
+}
+
+function isScryfallPrintingId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    .test(value)
+}
 
 </script>
 
@@ -108,5 +206,25 @@ withDefaults(defineProps<{
 .card-preview-image {
   overflow: hidden;
   position: relative;
+}
+
+.card-preview-pricing {
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.card-preview-price-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+}
+
+.card-preview-price {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.card-preview-price--selected strong {
+  color: rgb(var(--v-theme-primary));
 }
 </style>

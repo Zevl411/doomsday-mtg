@@ -81,6 +81,8 @@ function cloneCard(card: ScryfallCard): ScryfallCard {
     ...card,
     color_identity: [...card.color_identity],
     finishes: card.finishes ? [...card.finishes] : undefined,
+    prices: card.prices ? { ...card.prices } : undefined,
+    purchase_uris: card.purchase_uris ? { ...card.purchase_uris } : undefined,
     image_uris: card.image_uris ? { ...card.image_uris } : undefined,
     card_faces: card.card_faces?.map((face) => ({
       ...face,

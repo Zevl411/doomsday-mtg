@@ -133,6 +133,9 @@
           >
             <h3 class="text-subtitle-2 text-medium-emphasis mb-2">
               {{ group.label }} ({{ group.count }})
+              <template v-if="showGroupPrice(board.value)">
+                · {{ formatGroupPrice(group.cards) }}
+              </template>
             </h3>
             <v-list
               v-if="viewModes[board.value] === 'list'"
@@ -178,6 +181,9 @@
                   </v-chip>
                   <span class="text-body-2 text-medium-emphasis">
                     {{ entry.card.card.type_line }}
+                  </span>
+                  <span class="deck-list-price">
+                    {{ formatEntryPrice(entry.card) }}
                   </span>
                 </v-list-item-title>
                 <template v-if="!readOnly" #append>
@@ -243,6 +249,7 @@
               <div
                 v-for="entry in group.cards"
                 :key="`${entry.sourceBoard}-${identity(entry.card.card)}`"
+                class="deck-grid-entry"
               >
                 <v-card
                   border
@@ -278,6 +285,12 @@
                     size="32"
                   >×{{ entry.card.quantity }}</v-avatar>
                 </v-card>
+                <div
+                  v-if="userPreferences.values.showGridCardPrices"
+                  class="deck-grid-price mt-1 text-center text-caption"
+                >
+                  {{ formatEntryPrice(entry.card) }}
+                </div>
               </div>
             </div>
           </div>
@@ -356,11 +369,17 @@ import { getCardIdentity } from '../utils/cardIdentity'
 import { getCardImage } from '../utils/cardDisplay'
 import DeckActionIcon from './DeckActionIcon.vue'
 import { useUserPreferencesStore } from '../stores/userPreferences'
+import { useCardPricingStore } from '../stores/cardPricing'
 import ManaCost from './ManaCost.vue'
 import CardPrintingDialog from './CardPrintingDialog.vue'
 import type { ScryfallCard } from '../types/card'
 import FoilCardOverlay from './FoilCardOverlay.vue'
 import { supportsFoil } from '../utils/cardFinish'
+import {
+  formatCardPrice,
+  getDeckEntryPrice,
+  sumKnownDeckEntryPrices,
+} from '../utils/cardPrice'
 
 type VisibleBoard = 'mainboard' | 'sideboard' | 'maybeboard'
 type SortKey = 'name' | 'mana' | 'type' | 'color'
@@ -377,6 +396,7 @@ interface DeckPanelPreferences {
 
 const deckStore = useDeckStore()
 const userPreferences = useUserPreferencesStore()
+const pricingStore = useCardPricingStore()
 const props = withDefaults(defineProps<{
   deck?: Deck
   readOnly?: boolean
@@ -433,6 +453,21 @@ watch(
   [viewModes, gridSizes, sortSettings],
   () => savePreferences(),
   { deep: true },
+)
+
+watch(
+  () => [
+    displayedDeck.value.id,
+    ...boards.flatMap((board) =>
+      entries(board.value).map((entry) =>
+        `${entry.card.card.id}:${entry.card.quantity}:${entry.card.foil === true}`
+      )
+    ),
+  ],
+  () => {
+    void pricingStore.refreshDeck(displayedDeck.value)
+  },
+  { immediate: true },
 )
 
 function entries(board: VisibleBoard): BoardEntry[] {
@@ -615,6 +650,28 @@ function gridCardWidth(board: VisibleBoard): number {
 function boardCount(board: VisibleBoard) {
   return entries(board).reduce((total, entry) => total + entry.card.quantity, 0)
 }
+function formatEntryPrice(entry: DeckCard): string {
+  const price = getDeckEntryPrice(
+    entry,
+    pricingStore.resolve(entry.card),
+  )
+  return price === null
+    ? '—'
+    : formatCardPrice(price, userPreferences.values.priceCurrency)
+}
+function formatGroupPrice(cards: BoardEntry[]): string {
+  const price = sumKnownDeckEntryPrices(
+    cards.map((entry) => entry.card),
+    (card) => pricingStore.resolve(card),
+  )
+  return price === null
+    ? '—'
+    : formatCardPrice(price, userPreferences.values.priceCurrency)
+}
+function showGroupPrice(board: VisibleBoard): boolean {
+  return viewModes[board] === 'list' ||
+    userPreferences.values.showGridCardPrices
+}
 function isBoardExpanded(board: VisibleBoard): boolean {
   return board === 'mainboard' || expandedBoards[board]
 }
@@ -768,6 +825,22 @@ function toggleFoil() {
 
 .deck-card-quantity {
   z-index: 2;
+}
+
+.deck-grid-entry {
+  min-width: 0;
+}
+
+.deck-grid-price,
+.deck-list-price {
+  color: rgb(var(--v-theme-primary));
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.deck-list-price {
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {

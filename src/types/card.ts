@@ -20,6 +20,17 @@ export interface ScryfallCardFace {
   image_uris?: ScryfallImageUris
 }
 
+/** Daily marketplace values attached to one specific printed edition. */
+export interface ScryfallCardPrices {
+  usd?: string | null
+  usd_foil?: string | null
+  usd_etched?: string | null
+}
+
+export interface ScryfallPurchaseUris {
+  tcgplayer?: string
+}
+
 export interface ScryfallCard {
   // id identifies one printing; oracle_id identifies the same card across sets.
   id: string
@@ -49,6 +60,11 @@ export interface ScryfallCard {
   rarity?: string
   lang?: string
   artist?: string
+  // TCGplayer prices and links describe this printing, not the shared Oracle
+  // identity. They therefore change when a user chooses another printing.
+  tcgplayer_id?: number
+  prices?: ScryfallCardPrices
+  purchase_uris?: ScryfallPurchaseUris
   // Scryfall uses these fields to describe finishes available for one printed
   // edition. A Deck entry separately records which finish the user selected.
   finishes?: string[]

@@ -39,6 +39,9 @@ tournament evidence.
 - Group and order cards by name, mana value, card type, or color
 - Choose a specific English paper printing and foil treatment for cards
   already in a deck
+- View printing- and finish-specific TCGplayer prices in card previews
+- See Commander-plus-Mainboard Deck totals, always-visible list prices, and
+  optional card and group prices in Deck grid views
 - Inspect deck statistics, card-type counts, and an interactive mana curve
 - Configure deck visibility as private, unlisted, or public
 - Add deck descriptions and attribution to the deck creator
@@ -47,6 +50,8 @@ tournament evidence.
   statistics placement through user preferences
 - Keep the Oracle default theme or derive a persistent app palette from any
   card's artwork
+- Keep card-price currency explicit and choose whether Deck grids show prices
+  through user preferences; TCGplayer pricing is currently available in USD
 - Import and export plaintext decklists
 - Copy tournament decks into a personal deck library
 

@@ -24,6 +24,8 @@ export async function loadUserPreferences(
       defaultCommanderColorFilter: data.default_commander_color_filter,
       deckBuilderSearchSide: data.deck_builder_search_side,
       deckStatisticsPosition: data.deck_statistics_position,
+      priceCurrency: data.price_currency,
+      showGridCardPrices: data.show_grid_card_prices,
       appTheme: data.app_theme,
     })
     if (error) console.warn('Unable to load user preferences.', error)
@@ -50,6 +52,8 @@ export async function saveUserPreferences(
       default_commander_color_filter: preferences.defaultCommanderColorFilter,
       deck_builder_search_side: preferences.deckBuilderSearchSide,
       deck_statistics_position: preferences.deckStatisticsPosition,
+      price_currency: preferences.priceCurrency,
+      show_grid_card_prices: preferences.showGridCardPrices,
       app_theme: preferences.appTheme,
       updated_at: new Date().toISOString(),
     })
@@ -95,6 +99,11 @@ export function normalizePreferences(
       value.deckBuilderSearchSide === 'left' ? 'left' : 'right',
     deckStatisticsPosition:
       value.deckStatisticsPosition === 'below' ? 'below' : 'above',
+    priceCurrency: 'USD',
+    showGridCardPrices:
+      typeof value.showGridCardPrices === 'boolean'
+        ? value.showGridCardPrices
+        : defaults.showGridCardPrices,
     appTheme: normalizeAppTheme(value.appTheme),
   }
 }

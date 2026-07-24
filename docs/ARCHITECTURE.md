@@ -106,6 +106,20 @@ The selected foil treatment belongs to `DeckCard`, not `ScryfallCard`, because
 finish is a choice for one Deck entry. Scryfall's printing-level finish data
 guards new choices when available; legacy saved cards remain permissive. The
 foil overlay is presentation-only and never changes card identity or legality.
+Printing-specific TCGplayer market values remain optional metadata on
+`ScryfallCard`. `CardPreview` displays regular, foil, and etched USD values
+when supplied. Older stored cards are refreshed by printing ID on first
+preview. `useCardPricingStore` refreshes a Deck's exact printing IDs in
+collection-sized batches and retains one current snapshot per browser session,
+so totals do not require a request per card. Pricing never participates in
+Oracle identity, legality, or Deck mutations.
+
+All Deck price surfaces use `src/utils/cardPrice.ts`: list rows and optional
+grid labels multiply the selected finish by quantity, group headings sum those
+entries, and the header sums Commander(s) plus Mainboard. Missing prices are
+excluded rather than treated as zero. Sideboard, Maybeboard, and Considering
+prices appear in their own rows and groups but do not inflate the playable
+Deck total.
 
 ## Board rules
 
@@ -134,6 +148,9 @@ Deck import uses the collection endpoint in groups of at most 75 normalized
 names to avoid per-card traffic and HTTP 429 responses.
 Printing lookup uses `unique=prints`, follows validated Scryfall pagination,
 and progressively renders large result sets in the picker.
+Exact-printing lookup supplies current preview pricing for legacy Deck records.
+Price refresh failures stay silent because marketplace data is supplementary
+and must not obscure otherwise usable card details.
 
 The collection endpoint is the primary resolver. Modal double-faced entries use
 their front face as the collection identifier. Names the batch cannot resolve

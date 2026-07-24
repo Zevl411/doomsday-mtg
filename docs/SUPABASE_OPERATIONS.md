@@ -11,6 +11,12 @@ particular, `202607240001_add_app_theme_preference.sql` adds the validated JSON
 preference used for card-art themes. Until that migration is applied,
 authenticated users cannot persist a generated theme; guest preferences remain
 browser-local.
+`202607240002_add_price_currency_preference.sql` adds the explicit card-price
+currency preference. TCGplayer currently exposes the marketplace values used
+by the app in USD, so the database constraint intentionally accepts only
+`USD`; future native marketplace currencies can extend the constraint.
+`202607240003_add_grid_card_prices_preference.sql` adds the optional Deck-grid
+price-label preference. List rows remain priced regardless of this setting.
 
 Card-art palette extraction also requires the public, host-restricted image
 proxy because Scryfall's image CDN does not allow browsers to read its pixels:

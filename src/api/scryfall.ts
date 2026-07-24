@@ -6,6 +6,7 @@ const BASE_URL = 'https://api.scryfall.com'
 const LOOKUP_INTERVAL_MS = 100
 const COLLECTION_BATCH_SIZE = 75
 let lastLookupStartedAt = 0
+const cardPrintingCache = new Map<string, ScryfallCard>()
 
 /** Lets callers distinguish an outage from a valid empty search result. */
 export class ScryfallUnavailableError extends Error {
@@ -154,6 +155,85 @@ export async function getCardsByOracleIds(
   }
 
   return cards
+}
+
+/** Resolves exact printings in collection-sized batches for Deck totals. */
+export async function getCardsByIds(
+  cardIds: string[],
+  signal?: AbortSignal,
+): Promise<ScryfallCard[]> {
+  const uniqueIds = [...new Set(cardIds.map((id) => id.trim()).filter(Boolean))]
+  const cards: ScryfallCard[] = []
+
+  for (
+    let index = 0;
+    index < uniqueIds.length;
+    index += COLLECTION_BATCH_SIZE
+  ) {
+    const batch = uniqueIds.slice(index, index + COLLECTION_BATCH_SIZE)
+    await waitForLookupTurn(signal)
+    const response = await fetchFromScryfall(
+      `${BASE_URL}/cards/collection`,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identifiers: batch.map((id) => ({ id })),
+        }),
+        signal,
+      },
+      signal,
+    )
+    if (!response.ok) {
+      throw createScryfallResponseError('printing collection lookup', response)
+    }
+    const batchCards = await readCardList(
+      response,
+      'printing collection lookup',
+    )
+    for (const card of batchCards) {
+      cardPrintingCache.set(card.id, card)
+      cards.push(card)
+    }
+  }
+
+  return cards
+}
+
+/**
+ * Refreshes one exact printing. Card previews use this for older saved Decks
+ * that predate persisted marketplace fields; caching prevents repeated price
+ * requests while moving the preview between cards.
+ */
+export async function getCardById(
+  cardId: string,
+  signal?: AbortSignal,
+): Promise<ScryfallCard> {
+  const cached = cardPrintingCache.get(cardId)
+  if (cached) return cached
+
+  await waitForLookupTurn(signal)
+  const response = await fetchFromScryfall(
+    `${BASE_URL}/cards/${encodeURIComponent(cardId)}`,
+    {
+      headers: { Accept: 'application/json' },
+      signal,
+    },
+    signal,
+  )
+  if (!response.ok) {
+    throw createScryfallResponseError('printing lookup', response)
+  }
+
+  const value = await readJson(response, 'printing lookup')
+  if (!isScryfallCard(value)) {
+    throw invalidScryfallResponseError('printing lookup')
+  }
+  cardPrintingCache.set(cardId, value)
+  return value
 }
 
 /**
