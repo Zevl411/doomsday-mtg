@@ -1,22 +1,17 @@
-import type {
-  CommanderReadiness,
-  DataHealthSummary,
-  HealthCheck,
-} from '../models/dataHealth'
-import { getAnalyticsSampleStatus } from '../utils/sampleStatus'
+import { getAnalyticsSampleStatus } from '../utils/sampleStatus';
 
-export function getNormalizationCompletionRate(
-  summary: DataHealthSummary,
-): number {
+import type { CommanderReadiness, DataHealthSummary, HealthCheck } from '../models/dataHealth';
+
+export function getNormalizationCompletionRate(summary: DataHealthSummary): number {
   return summary.normalizedDeckCount === 0
     ? 0
-    : summary.completeDeckCount / summary.normalizedDeckCount
+    : summary.completeDeckCount / summary.normalizedDeckCount;
 }
 
 export function getUnresolvedCardRate(summary: DataHealthSummary): number {
   return summary.tournamentCardCount === 0
     ? 0
-    : summary.unresolvedCardRowCount / summary.tournamentCardCount
+    : summary.unresolvedCardRowCount / summary.tournamentCardCount;
 }
 
 /** Impossible aggregate relationships are visible warnings, never hidden. */
@@ -24,46 +19,46 @@ export function checkDataHealthConsistency(
   summary: DataHealthSummary,
   commanders: CommanderReadiness[],
 ): HealthCheck[] {
-  const checks: HealthCheck[] = []
+  const checks: HealthCheck[] = [];
   const classifiedDecks =
     summary.completeDeckCount +
     summary.partialDeckCount +
     summary.unavailableDeckCount +
-    summary.invalidDeckCount
-  checks.push(check(
-    'Normalized Deck status totals',
-    classifiedDecks <= summary.normalizedDeckCount,
-    `${classifiedDecks} classified of ${summary.normalizedDeckCount} normalized Decks.`,
-  ))
-  checks.push(check(
-    'Canonical card references',
-    summary.tournamentCardWithoutCanonicalCount <= summary.tournamentCardCount,
-    `${summary.tournamentCardWithoutCanonicalCount} of ${summary.tournamentCardCount} card rows lack canonical identity.`,
-  ))
+    summary.invalidDeckCount;
+  checks.push(
+    check(
+      'Normalized Deck status totals',
+      classifiedDecks <= summary.normalizedDeckCount,
+      `${classifiedDecks} classified of ${summary.normalizedDeckCount} normalized Decks.`,
+    ),
+  );
+  checks.push(
+    check(
+      'Canonical card references',
+      summary.tournamentCardWithoutCanonicalCount <= summary.tournamentCardCount,
+      `${summary.tournamentCardWithoutCanonicalCount} of ${summary.tournamentCardCount} card rows lack canonical identity.`,
+    ),
+  );
   for (const commander of commanders) {
     const ordered =
       commander.firstPlaceSampleCount <= commander.top16SampleCount &&
-      commander.top16SampleCount <= commander.completeDeckCount
+      commander.top16SampleCount <= commander.completeDeckCount;
     if (!ordered) {
       checks.push({
         label: commander.commanderName,
         status: 'warning',
-        message:
-          'First-place, Top-16, and complete sample counts are inconsistent.',
-      })
+        message: 'First-place, Top-16, and complete sample counts are inconsistent.',
+      });
     }
-    if (
-      commander.sampleStatus !==
-      getAnalyticsSampleStatus(commander.completeDeckCount)
-    ) {
+    if (commander.sampleStatus !== getAnalyticsSampleStatus(commander.completeDeckCount)) {
       checks.push({
         label: commander.commanderName,
         status: 'warning',
         message: 'The server and client sample classifications disagree.',
-      })
+      });
     }
   }
-  return checks
+  return checks;
 }
 
 export function checkComparisonSamples(
@@ -89,17 +84,13 @@ export function checkComparisonSamples(
       firstPlaceSample <= top16Sample && top16Sample <= aggregateSample,
       `${firstPlaceSample} first-place, ${top16Sample} Top-16, ${aggregateSample} total.`,
     ),
-  ]
+  ];
 }
 
-function check(
-  label: string,
-  passed: boolean,
-  message: string,
-): HealthCheck {
+function check(label: string, passed: boolean, message: string): HealthCheck {
   return {
     label,
     status: passed ? 'pass' : 'warning',
     message,
-  }
+  };
 }

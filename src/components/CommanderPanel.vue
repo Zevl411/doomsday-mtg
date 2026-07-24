@@ -19,9 +19,7 @@
           }"
         >
           <div>
-            <div class="compact-search-header text-subtitle-1">
-              Commander
-            </div>
+            <div class="compact-search-header text-subtitle-1">Commander</div>
             <div class="compact-search-field">
               <CardSearch
                 clearable
@@ -37,9 +35,7 @@
             </div>
           </div>
           <div v-if="canSearchPartner">
-            <div class="compact-search-header text-subtitle-1">
-              Partner
-            </div>
+            <div class="compact-search-header text-subtitle-1">Partner</div>
             <div class="compact-search-field">
               <CardSearch
                 clearable
@@ -70,9 +66,7 @@
 
       <template v-else>
         <v-card-title class="px-5 pt-5">Commander Search</v-card-title>
-        <v-card-subtitle class="px-5">
-          Find and manage your selected Commander
-        </v-card-subtitle>
+        <v-card-subtitle class="px-5"> Find and manage your selected Commander </v-card-subtitle>
         <v-card-text class="pa-5">
           <CardSearch
             clearable
@@ -86,9 +80,7 @@
           />
           <template v-if="canSearchPartner">
             <v-divider class="my-5" />
-            <p class="mb-3 text-subtitle-1 font-weight-medium">
-              Partner Commander
-            </p>
+            <p class="mb-3 text-subtitle-1 font-weight-medium">Partner Commander</p>
             <CardSearch
               clearable
               clear-on-select
@@ -111,15 +103,12 @@
     <template v-if="!searchOnly && displayedCommander">
       <div
         :aria-label="
-          displayTarget === 'partner'
-            ? 'Selected Partner Commander'
-            : 'Selected Commander'
+          displayTarget === 'partner' ? 'Selected Partner Commander' : 'Selected Commander'
         "
         :class="[
           'commander-choice selected-commander-content text-center',
           {
-            'commander-choice--selected':
-              isSelectedPreview(displayedCommander),
+            'commander-choice--selected': isSelectedPreview(displayedCommander),
           },
         ]"
         tabindex="0"
@@ -142,7 +131,6 @@
           />
           <FoilCardOverlay v-if="displayedCommanderFoil" />
         </div>
-
       </div>
       <template v-if="partnerCommander && !displayOnly">
         <v-divider class="mx-2" />
@@ -151,8 +139,7 @@
           :class="[
             'commander-choice text-center',
             {
-              'commander-choice--selected':
-                isSelectedPreview(partnerCommander),
+              'commander-choice--selected': isSelectedPreview(partnerCommander),
             },
           ]"
           tabindex="0"
@@ -214,13 +201,7 @@
       </div>
 
       <div class="mt-5 text-center">
-        <v-icon
-          aria-hidden="true"
-          class="mb-2"
-          color="primary"
-          icon="$commander"
-          size="36"
-        />
+        <v-icon aria-hidden="true" class="mb-2" color="primary" icon="$commander" size="36" />
         <h2 class="text-h6">
           {{
             readOnly
@@ -233,28 +214,18 @@
             readOnly
               ? 'This shared Deck does not have a card selected here.'
               : displayTarget === 'partner'
-              ? 'Search for a compatible partner for your Commander.'
-              : 'Search for a legendary card to establish this deck’s color identity.'
+                ? 'Search for a compatible partner for your Commander.'
+                : 'Search for a legendary card to establish this deck’s color identity.'
           }}
         </p>
       </div>
 
-      <v-alert
-        v-if="partnerError"
-        class="mt-3"
-        density="comfortable"
-        type="error"
-        variant="tonal"
-      >
+      <v-alert v-if="partnerError" class="mt-3" density="comfortable" type="error" variant="tonal">
         {{ partnerError }}
       </v-alert>
     </v-card-text>
 
-    <v-menu
-      v-if="!readOnly"
-      v-model="commanderMenuOpen"
-      :target="[commanderMenuX, commanderMenuY]"
-    >
+    <v-menu v-if="!readOnly" v-model="commanderMenuOpen" :target="[commanderMenuX, commanderMenuY]">
       <v-list density="comfortable">
         <v-list-item title="Change printing" @click="changePrinting">
           <template #prepend>
@@ -263,11 +234,7 @@
         </v-list-item>
         <v-list-item
           base-color="error"
-          :title="
-            menuTarget === 'partner'
-              ? 'Remove Partner'
-              : 'Remove Commander'
-          "
+          :title="menuTarget === 'partner' ? 'Remove Partner' : 'Remove Commander'"
           @click="removeDisplayedCommander"
         >
           <template #prepend>
@@ -288,154 +255,141 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { Deck } from '../models/deck'
-import CardSearch from './CardSearch.vue'
-import CardPrintingDialog from './CardPrintingDialog.vue'
-import DeckActionIcon from './DeckActionIcon.vue'
-import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
-import FoilCardOverlay from './FoilCardOverlay.vue'
-import { useDeckStore } from '../stores/deck'
-import { getCardImage } from '../utils/cardDisplay'
-import { getCardIdentity } from '../utils/cardIdentity'
-import type { ScryfallCard } from '../types/card'
+import { computed, ref } from 'vue';
+
+import { useDeckStore } from '../stores/deck';
+import { getCardImage } from '../utils/cardDisplay';
+import { getCardIdentity } from '../utils/cardIdentity';
 import {
   canHavePartner,
   getPartnerSearchFilter,
   validateCommanderPairing,
-} from '../utils/commanderPairing'
+} from '../utils/commanderPairing';
 
-const deckStore = useDeckStore()
-const props = withDefaults(defineProps<{
-  searchOnly?: boolean
-  displayOnly?: boolean
-  displayTarget?: 'commander' | 'partner'
-  compactDisplay?: boolean
-  deck?: Deck
-  readOnly?: boolean
-}>(), {
-  searchOnly: false,
-  displayOnly: false,
-  displayTarget: 'commander',
-  compactDisplay: false,
-  deck: undefined,
-  readOnly: false,
-})
-const searchOnly = computed(() => props.searchOnly)
-const displayOnly = computed(() => props.displayOnly)
-const displayTarget = computed(() => props.displayTarget)
-const compactDisplay = computed(() => props.compactDisplay)
-const readOnly = computed(() => props.readOnly)
-const displayedDeck = computed(() => props.deck ?? deckStore.deck)
-const commander = computed(() => displayedDeck.value.commander)
-const partnerCommander = computed(() =>
-  displayedDeck.value.partnerCommander ?? null,
-)
+import CardPrintingDialog from './CardPrintingDialog.vue';
+import CardSearch from './CardSearch.vue';
+import DeckActionIcon from './DeckActionIcon.vue';
+import DoubleFacedCardImage from './DoubleFacedCardImage.vue';
+import FoilCardOverlay from './FoilCardOverlay.vue';
+
+import type { Deck } from '../models/deck';
+import type { ScryfallCard } from '../types/card';
+
+const deckStore = useDeckStore();
+const props = withDefaults(
+  defineProps<{
+    searchOnly?: boolean;
+    displayOnly?: boolean;
+    displayTarget?: 'commander' | 'partner';
+    compactDisplay?: boolean;
+    deck?: Deck;
+    readOnly?: boolean;
+  }>(),
+  {
+    searchOnly: false,
+    displayOnly: false,
+    displayTarget: 'commander',
+    compactDisplay: false,
+    deck: undefined,
+    readOnly: false,
+  },
+);
+const searchOnly = computed(() => props.searchOnly);
+const displayOnly = computed(() => props.displayOnly);
+const displayTarget = computed(() => props.displayTarget);
+const compactDisplay = computed(() => props.compactDisplay);
+const readOnly = computed(() => props.readOnly);
+const displayedDeck = computed(() => props.deck ?? deckStore.deck);
+const commander = computed(() => displayedDeck.value.commander);
+const partnerCommander = computed(() => displayedDeck.value.partnerCommander ?? null);
 const displayedCommander = computed(() =>
-  displayTarget.value === 'partner'
-    ? partnerCommander.value
-    : commander.value,
-)
+  displayTarget.value === 'partner' ? partnerCommander.value : commander.value,
+);
 const displayedCommanderFoil = computed(() =>
   displayTarget.value === 'partner'
     ? displayedDeck.value.partnerCommanderFoil === true
     : displayedDeck.value.commanderFoil === true,
-)
-const partnerError = ref('')
-const commanderMenuOpen = ref(false)
-const commanderMenuX = ref(0)
-const commanderMenuY = ref(0)
-const menuTarget = ref<'commander' | 'partner'>('commander')
-const printingDialogOpen = ref(false)
+);
+const partnerError = ref('');
+const commanderMenuOpen = ref(false);
+const commanderMenuX = ref(0);
+const commanderMenuY = ref(0);
+const menuTarget = ref<'commander' | 'partner'>('commander');
+const printingDialogOpen = ref(false);
 const printingCommander = computed(() =>
-  menuTarget.value === 'partner'
-    ? partnerCommander.value
-    : commander.value,
-)
+  menuTarget.value === 'partner' ? partnerCommander.value : commander.value,
+);
 const printingCommanderFoil = computed(() =>
   menuTarget.value === 'partner'
     ? displayedDeck.value.partnerCommanderFoil === true
     : displayedDeck.value.commanderFoil === true,
-)
+);
 const selectedCommanderIds = computed(() =>
-  [commander.value?.id, partnerCommander.value?.id].filter(
-    (id): id is string => Boolean(id),
-  ),
-)
+  [commander.value?.id, partnerCommander.value?.id].filter((id): id is string => Boolean(id)),
+);
 const partnerSearchFilter = computed(() =>
   commander.value ? getPartnerSearchFilter(commander.value) : '',
-)
+);
 const canSearchPartner = computed(() =>
   Boolean(commander.value && canHavePartner(commander.value)),
-)
+);
 
 function selectPartner(card: ScryfallCard) {
-  const result = deckStore.setPartnerCommander(card)
+  const result = deckStore.setPartnerCommander(card);
   partnerError.value = result.allowed
     ? ''
-    : result.reason ?? 'Those commanders cannot be paired.'
+    : (result.reason ?? 'Those commanders cannot be paired.');
 }
 
 function isCompatiblePartner(card: ScryfallCard): boolean {
-  return Boolean(
-    commander.value
-    && validateCommanderPairing(commander.value, card).allowed,
-  )
+  return Boolean(commander.value && validateCommanderPairing(commander.value, card).allowed);
 }
 
 function isSelectedPreview(card: ScryfallCard): boolean {
   return Boolean(
-    deckStore.selectedPreviewCard
-    && getCardIdentity(deckStore.selectedPreviewCard) ===
-      getCardIdentity(card),
-  )
+    deckStore.selectedPreviewCard &&
+    getCardIdentity(deckStore.selectedPreviewCard) === getCardIdentity(card),
+  );
 }
 
 function openCommanderMenu(
   event: MouseEvent,
   target: 'commander' | 'partner' = displayTarget.value,
 ) {
-  if (readOnly.value) return
-  menuTarget.value = target
-  commanderMenuX.value = event.clientX
-  commanderMenuY.value = event.clientY
-  commanderMenuOpen.value = true
+  if (readOnly.value) return;
+  menuTarget.value = target;
+  commanderMenuX.value = event.clientX;
+  commanderMenuY.value = event.clientY;
+  commanderMenuOpen.value = true;
 }
 
 function removeDisplayedCommander() {
-  if (readOnly.value) return
+  if (readOnly.value) return;
   if (menuTarget.value === 'partner') {
-    deckStore.clearPartnerCommander()
+    deckStore.clearPartnerCommander();
   } else {
-    deckStore.clearCommander()
+    deckStore.clearCommander();
   }
-  deckStore.clearPreviewCard()
-  commanderMenuOpen.value = false
+  deckStore.clearPreviewCard();
+  commanderMenuOpen.value = false;
 }
 
 function changePrinting() {
-  if (!printingCommander.value) return
-  commanderMenuOpen.value = false
-  printingDialogOpen.value = true
+  if (!printingCommander.value) return;
+  commanderMenuOpen.value = false;
+  printingDialogOpen.value = true;
 }
 
-function replacePrinting(selection: {
-  printing: ScryfallCard
-  foil: boolean
-}) {
-  deckStore.replaceCommanderPrinting(
-    menuTarget.value,
-    selection.printing,
-    selection.foil,
-  )
+function replacePrinting(selection: { printing: ScryfallCard; foil: boolean }) {
+  deckStore.replaceCommanderPrinting(menuTarget.value, selection.printing, selection.foil);
 }
 </script>
 
 <style scoped>
 .commander-panel {
-  border-color: rgba(var(--v-theme-on-surface), 0.14);
   min-width: 0;
   overflow: hidden;
+  border-color: rgb(var(--v-theme-on-surface), 0.14);
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease;
@@ -451,50 +405,41 @@ function replacePrinting(selection: {
 
 .empty-commander-search {
   position: relative;
-  text-align: left;
   z-index: 10;
+  text-align: left;
 }
 
 .commander-image {
-  max-width: none;
-  overflow: hidden;
   position: relative;
   width: calc(100% - 24px);
+  max-width: none;
+  overflow: hidden;
 }
 
 .commander-image-art {
-  height: 100%;
   width: 100%;
+  height: 100%;
 }
 
 .selected-commander-content {
-  align-items: center;
   display: flex;
-  height: 100%;
+  align-items: center;
   justify-content: center;
+  height: 100%;
 }
 
 .selected-commander-content .commander-image {
-  aspect-ratio: 0.716;
   flex: 0 0 auto;
-  height: calc(100% - 32px) !important;
-  margin-top: 0 !important;
-  max-height: none;
-  max-width: calc(100% - 24px);
   width: auto !important;
+  max-width: calc(100% - 24px);
+  height: calc(100% - 32px) !important;
+  max-height: none;
+  aspect-ratio: 0.716;
+  margin-top: 0 !important;
 }
 
 .commander-panel--compact .commander-image {
   width: min(calc(100% - 24px), 125px);
-}
-
-.commander-panel--compact .commander-name {
-  font-size: 1rem;
-  padding-top: 8px !important;
-}
-
-.commander-panel--compact .commander-type {
-  padding-bottom: 8px !important;
 }
 
 .commander-panel--compact .commander-empty-state {
@@ -506,8 +451,8 @@ function replacePrinting(selection: {
 }
 
 .commander-choice {
-  border: 1px solid transparent;
   cursor: pointer;
+  border: 1px solid transparent;
   transition:
     background-color 120ms ease,
     border-color 120ms ease,
@@ -521,8 +466,8 @@ function replacePrinting(selection: {
 
 .commander-panel:has(.commander-choice:hover),
 .commander-panel:has(.commander-choice:focus-visible) {
-  border-color: rgba(var(--v-theme-primary), 0.42);
-  box-shadow: inset 0 0 12px rgba(var(--v-theme-primary), 0.08);
+  border-color: rgb(var(--v-theme-primary), 0.42);
+  box-shadow: inset 0 0 12px rgb(var(--v-theme-primary), 0.08);
 }
 
 .commander-choice--selected {
@@ -531,12 +476,14 @@ function replacePrinting(selection: {
   box-shadow: none;
 }
 
+/* The persistent selection state intentionally takes precedence over hover. */
+/* stylelint-disable-next-line no-descending-specificity */
 .commander-panel:has(.commander-choice--selected) {
-  background: rgba(var(--v-theme-primary), 0.09);
-  border-color: rgba(var(--v-theme-primary), 0.72);
+  background: rgb(var(--v-theme-primary), 0.09);
+  border-color: rgb(var(--v-theme-primary), 0.72);
   box-shadow:
-    inset 0 0 0 1px rgba(var(--v-theme-primary), 0.22),
-    inset 0 0 12px rgba(var(--v-theme-primary), 0.1);
+    inset 0 0 0 1px rgb(var(--v-theme-primary), 0.22),
+    inset 0 0 12px rgb(var(--v-theme-primary), 0.1);
 }
 
 .commander-name {
@@ -544,23 +491,32 @@ function replacePrinting(selection: {
   line-height: 1.3;
 }
 
+.commander-panel--compact .commander-name {
+  padding-top: 8px !important;
+  font-size: 1rem;
+}
+
 .commander-type {
   line-height: 1.25;
   opacity: 0.72;
 }
 
+.commander-panel--compact .commander-type {
+  padding-bottom: 8px !important;
+}
+
 .compact-search-header {
-  align-items: center;
   display: flex;
+  align-items: center;
   height: 32px;
-  line-height: 1.5rem;
   min-height: 32px;
+  line-height: 1.5rem;
 }
 
 .compact-commander-searches {
   display: grid;
-  gap: 16px;
   grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
 }
 
 .compact-commander-searches--paired {
@@ -571,7 +527,7 @@ function replacePrinting(selection: {
   padding-top: 8px;
 }
 
-@media (max-width: 700px) {
+@media (width <= 700px) {
   .compact-commander-searches--paired {
     grid-template-columns: minmax(0, 1fr);
   }

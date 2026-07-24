@@ -1,16 +1,15 @@
-import type { DecklistFormat } from '../types/deckImport'
-import { normalizeDecklistHeading } from './decklistHeadings'
+import { normalizeDecklistHeading } from './decklistHeadings';
+
+import type { DecklistFormat } from '../types/deckImport';
 
 export function detectDecklistFormat(text: string): DecklistFormat {
   const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter(Boolean)
-  const headings = lines.map(normalizeDecklistHeading)
+    .filter(Boolean);
+  const headings = lines.map(normalizeDecklistHeading);
 
-  const uppercaseHeadings = lines.map((line) =>
-    line.replace(/:$/, '').trim(),
-  )
+  const uppercaseHeadings = lines.map((line) => line.replace(/:$/, '').trim());
 
   // Archidekt and Arena both append set and collector metadata. Check
   // Archidekt's decorated headings first so the broader Arena signal does not
@@ -19,27 +18,23 @@ export function detectDecklistFormat(text: string): DecklistFormat {
     lines.some((line) => /^\s*(?:\*\*|#{1,6}\s|\[).+(?:\*\*|\])?\s*$/.test(line)) &&
     lines.some((line) => /\s+\([A-Z0-9]{2,6}\)\s+\S+/.test(line))
   ) {
-    return 'archidekt'
+    return 'archidekt';
   }
 
   if (lines.some((line) => /\s+\([a-z0-9]{2,6}\)\s+\S+\s*$/i.test(line))) {
-    return 'arena'
+    return 'arena';
   }
 
   if (
     headings.some((heading) =>
-      ['mainboard', 'maybeboard', 'considering', 'acquireboard'].includes(
-        heading,
-      ),
+      ['mainboard', 'maybeboard', 'considering', 'acquireboard'].includes(heading),
     ) ||
     uppercaseHeadings.some((heading) =>
-      ['COMMANDER', 'MAINBOARD', 'MAYBEBOARD', 'CONSIDERING'].includes(
-        heading,
-      ),
+      ['COMMANDER', 'MAINBOARD', 'MAYBEBOARD', 'CONSIDERING'].includes(heading),
     ) ||
     lines.some((line) => /^~~.+~~$/.test(line))
   ) {
-    return 'moxfield'
+    return 'moxfield';
   }
 
   if (
@@ -48,10 +43,10 @@ export function detectDecklistFormat(text: string): DecklistFormat {
       ['commander', 'commanders', 'command zone', 'deck'].includes(heading),
     )
   ) {
-    return 'mtgo'
+    return 'mtgo';
   }
 
-  return 'generic'
+  return 'generic';
 }
 
 export function getDecklistFormatLabel(format: DecklistFormat): string {
@@ -61,7 +56,7 @@ export function getDecklistFormatLabel(format: DecklistFormat): string {
     archidekt: 'Archidekt',
     arena: 'MTG Arena',
     mtgo: 'Magic Online',
-  }
+  };
 
-  return labels[format]
+  return labels[format];
 }

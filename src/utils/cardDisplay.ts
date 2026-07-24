@@ -1,9 +1,6 @@
-import type {
-  ScryfallCard,
-  ScryfallImageUris,
-} from '../types/card'
+import type { ScryfallCard, ScryfallImageUris } from '../types/card';
 
-export type CardImageSize = keyof ScryfallImageUris
+export type CardImageSize = keyof ScryfallImageUris;
 
 /**
  * Scryfall stores images on the card for normal layouts and on each face for
@@ -14,20 +11,15 @@ export function getCardImage(
   card: ScryfallCard,
   preferredSize: CardImageSize = 'normal',
 ): string | undefined {
-  const images = card.image_uris ?? card.card_faces?.[0]?.image_uris
+  const images = card.image_uris ?? card.card_faces?.[0]?.image_uris;
 
   if (!images) {
-    return undefined
+    return undefined;
   }
 
   // Fall back toward smaller images because older or unusual records may not
   // expose every size even though the initial model marks common sizes present.
-  return (
-    images[preferredSize] ??
-    images.normal ??
-    images.small ??
-    images.large
-  )
+  return images[preferredSize] ?? images.normal ?? images.small ?? images.large;
 }
 
 /** Returns a specific printed face image without falling back to another face. */
@@ -36,15 +28,10 @@ export function getCardFaceImage(
   faceIndex: number,
   preferredSize: CardImageSize = 'normal',
 ): string | undefined {
-  const images = card.card_faces?.[faceIndex]?.image_uris
-  if (!images) return undefined
+  const images = card.card_faces?.[faceIndex]?.image_uris;
+  if (!images) return undefined;
 
-  return (
-    images[preferredSize] ??
-    images.normal ??
-    images.small ??
-    images.large
-  )
+  return images[preferredSize] ?? images.normal ?? images.small ?? images.large;
 }
 
 /**
@@ -53,32 +40,29 @@ export function getCardFaceImage(
  * the same printing for older saved decks that predate that stored field.
  */
 export function getCardArt(card: ScryfallCard): string | undefined {
-  const images = card.image_uris ?? card.card_faces?.[0]?.image_uris
-  if (!images) return undefined
+  const images = card.image_uris ?? card.card_faces?.[0]?.image_uris;
+  if (!images) return undefined;
 
   return (
-    images.art_crop ??
-    toArtCropUrl(images.large) ??
-    toArtCropUrl(images.normal) ??
-    images.large
-  )
+    images.art_crop ?? toArtCropUrl(images.large) ?? toArtCropUrl(images.normal) ?? images.large
+  );
 }
 
 function toArtCropUrl(value: string): string | undefined {
   try {
-    const url = new URL(value)
-    if (url.hostname !== 'cards.scryfall.io') return undefined
+    const url = new URL(value);
+    if (url.hostname !== 'cards.scryfall.io') return undefined;
 
-    const parts = url.pathname.split('/')
+    const parts = url.pathname.split('/');
     const renditionIndex = parts.findIndex((part) =>
       ['small', 'normal', 'large', 'png', 'border_crop'].includes(part),
-    )
-    if (renditionIndex === -1) return undefined
+    );
+    if (renditionIndex === -1) return undefined;
 
-    parts[renditionIndex] = 'art_crop'
-    url.pathname = parts.join('/').replace(/\.png$/i, '.jpg')
-    return url.toString()
+    parts[renditionIndex] = 'art_crop';
+    url.pathname = parts.join('/').replace(/\.png$/i, '.jpg');
+    return url.toString();
   } catch {
-    return undefined
+    return undefined;
   }
 }

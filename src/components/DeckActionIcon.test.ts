@@ -1,6 +1,7 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
-import DeckActionIcon from './DeckActionIcon.vue'
+import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+
+import DeckActionIcon from './DeckActionIcon.vue';
 
 const iconNames = [
   'settings',
@@ -14,17 +15,15 @@ const iconNames = [
   'increase',
   'move',
   'delete',
-] as const
+] as const;
 
 describe('DeckActionIcon', () => {
   it.each(iconNames)('renders the shared %s action icon', (name) => {
     const wrapper = mount(DeckActionIcon, {
       props: { compact: true, name },
-    })
+    });
 
-    expect(wrapper.get('path').attributes('d')).toBeTruthy()
-    expect(wrapper.get('svg').classes()).toContain(
-      'deck-action-icon--compact',
-    )
-  })
-})
+    expect(wrapper.get('path').attributes('d')).toBeTruthy();
+    expect(wrapper.get('svg').classes()).toContain('deck-action-icon--compact');
+  });
+});

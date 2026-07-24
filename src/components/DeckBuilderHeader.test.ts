@@ -1,40 +1,46 @@
-import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
-import DeckBuilderHeader from './DeckBuilderHeader.vue'
-import vuetify from '../plugins/vuetify'
-import { useDeckStore } from '../stores/deck'
-import { useUserPreferencesStore } from '../stores/userPreferences'
+import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }))
+import vuetify from '../plugins/vuetify';
+import { useDeckStore } from '../stores/deck';
+import { useUserPreferencesStore } from '../stores/userPreferences';
+
+import DeckBuilderHeader from './DeckBuilderHeader.vue';
+
+import type * as VueRouter from 'vue-router';
+
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
 
 vi.mock('vue-router', async (importOriginal) => {
-  const original = await importOriginal<typeof import('vue-router')>()
+  const original = await importOriginal<typeof VueRouter>();
   return {
     ...original,
     useRouter: () => ({ push: routerPush }),
-  }
-})
+  };
+});
 
 beforeEach(() => {
-  localStorage.clear()
-  setActivePinia(createPinia())
-  useDeckStore().createDeck('Invalid Deck')
-  routerPush.mockReset()
-})
+  localStorage.clear();
+  setActivePinia(createPinia());
+  useDeckStore().createDeck('Invalid Deck');
+  routerPush.mockReset();
+});
 
 describe('DeckBuilderHeader', () => {
   it('shows deck validity beside visibility', () => {
-    useDeckStore().deck.cards = [{
-      card: {
-        id: 'priced-card',
-        name: 'Priced Card',
-        type_line: 'Artifact',
-        color_identity: [],
-        prices: { usd: '3.25' },
+    useDeckStore().deck.cards = [
+      {
+        card: {
+          id: 'priced-card',
+          name: 'Priced Card',
+          type_line: 'Artifact',
+          color_identity: [],
+          prices: { usd: '3.25' },
+        },
+        quantity: 2,
       },
-      quantity: 2,
-    }]
+    ];
     const wrapper = mount(DeckBuilderHeader, {
       global: {
         plugins: [vuetify],
@@ -42,51 +48,50 @@ describe('DeckBuilderHeader', () => {
           RouterLink: true,
         },
       },
-    })
+    });
 
-    const metadata = wrapper.find('.deck-header-metadata')
-    expect(metadata.text()).toContain('public')
-    expect(metadata.text()).toContain('Warning')
-    expect(metadata.text()).toContain('Deck total $6.50')
-    wrapper.unmount()
-  })
+    const metadata = wrapper.find('.deck-header-metadata');
+    expect(metadata.text()).toContain('public');
+    expect(metadata.text()).toContain('Warning');
+    expect(metadata.text()).toContain('Deck total $6.50');
+    wrapper.unmount();
+  });
 
   it('uses the selected foil Commander price in the Deck total', () => {
-    const store = useDeckStore()
+    const store = useDeckStore();
     store.setCommander({
       id: 'priced-commander',
       name: 'Priced Commander',
       type_line: 'Legendary Creature',
       color_identity: [],
       prices: { usd: '2.00', usd_foil: '8.50' },
-    })
-    store.deck.commanderFoil = true
+    });
+    store.deck.commanderFoil = true;
     const wrapper = mount(DeckBuilderHeader, {
       global: {
         plugins: [vuetify],
         stubs: { RouterLink: true },
       },
-    })
+    });
 
-    expect(wrapper.find('.deck-header-metadata').text())
-      .toContain('Deck total $8.50')
-    wrapper.unmount()
-  })
+    expect(wrapper.find('.deck-header-metadata').text()).toContain('Deck total $8.50');
+    wrapper.unmount();
+  });
 
   it('swaps the header columns when search is preferred on the left', () => {
-    useUserPreferencesStore().values.deckBuilderSearchSide = 'left'
+    useUserPreferencesStore().values.deckBuilderSearchSide = 'left';
     const wrapper = mount(DeckBuilderHeader, {
       global: {
         plugins: [vuetify],
         stubs: { RouterLink: true },
       },
-    })
+    });
 
     expect(wrapper.find('.deck-builder-header').classes()).toContain(
       'deck-builder-header--search-left',
-    )
-    wrapper.unmount()
-  })
+    );
+    wrapper.unmount();
+  });
 
   it('edits and saves the deck title inline', async () => {
     const wrapper = mount(DeckBuilderHeader, {
@@ -95,26 +100,24 @@ describe('DeckBuilderHeader', () => {
         plugins: [vuetify],
         stubs: { RouterLink: true },
       },
-    })
+    });
 
-    await wrapper.find('[aria-label="Edit deck title"]').trigger('click')
-    const input = wrapper.find('input[aria-label="Deck title"]')
-    expect(input.exists()).toBe(true)
-    expect(input.element).toBe(document.activeElement)
-    expect(
-      wrapper.find('[aria-label="Edit deck title"]').classes(),
-    ).toContain('editable-deck-title--editing')
+    await wrapper.find('[aria-label="Edit deck title"]').trigger('click');
+    const input = wrapper.find('input[aria-label="Deck title"]');
+    expect(input.exists()).toBe(true);
+    expect(input.element).toBe(document.activeElement);
+    expect(wrapper.find('[aria-label="Edit deck title"]').classes()).toContain(
+      'editable-deck-title--editing',
+    );
 
-    await input.setValue('Updated Deck')
-    await input.trigger('keydown', { key: 'Enter' })
+    await input.setValue('Updated Deck');
+    await input.trigger('keydown', { key: 'Enter' });
 
-    expect(useDeckStore().deck.name).toBe('Updated Deck')
-    expect(wrapper.find('input[aria-label="Deck title"]').exists()).toBe(false)
-    expect(wrapper.find('[aria-label="Edit deck title"]').text()).toBe(
-      'Updated Deck',
-    )
-    wrapper.unmount()
-  })
+    expect(useDeckStore().deck.name).toBe('Updated Deck');
+    expect(wrapper.find('input[aria-label="Deck title"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Edit deck title"]').text()).toBe('Updated Deck');
+    wrapper.unmount();
+  });
 
   it('confirms deletion from settings and returns to the deck library', async () => {
     const wrapper = mount(DeckBuilderHeader, {
@@ -125,26 +128,27 @@ describe('DeckBuilderHeader', () => {
           VDialog: { template: '<div><slot /></div>' },
         },
       },
-    })
+    });
 
-    await wrapper.findAll('.v-btn')
+    await wrapper
+      .findAll('.v-btn')
       .find((button) => button.text().includes('Settings'))
-      ?.trigger('click')
-    await wrapper.findAll('.v-btn')
+      ?.trigger('click');
+    await wrapper
+      .findAll('.v-btn')
       .find((button) => button.text().includes('Delete deck'))
-      ?.trigger('click')
+      ?.trigger('click');
 
-    expect(wrapper.text()).toContain('Delete this deck?')
-    expect(wrapper.text()).toContain(
-      'permanently removes “Invalid Deck” from this browser',
-    )
+    expect(wrapper.text()).toContain('Delete this deck?');
+    expect(wrapper.text()).toContain('permanently removes “Invalid Deck” from this browser');
 
-    const deleteButtons = wrapper.findAll('.v-btn')
-      .filter((button) => button.text().trim() === 'Delete')
-    await deleteButtons.at(-1)?.trigger('click')
+    const deleteButtons = wrapper
+      .findAll('.v-btn')
+      .filter((button) => button.text().trim() === 'Delete');
+    await deleteButtons.at(-1)?.trigger('click');
 
-    expect(useDeckStore().decks).toEqual([])
-    expect(routerPush).toHaveBeenCalledWith({ name: 'deck-library' })
-    wrapper.unmount()
-  })
-})
+    expect(useDeckStore().decks).toEqual([]);
+    expect(routerPush).toHaveBeenCalledWith({ name: 'deck-library' });
+    wrapper.unmount();
+  });
+});

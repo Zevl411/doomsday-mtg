@@ -49,6 +49,12 @@ jobs:
             supabase/functions/ingest-tournaments/tournamentRelevance.test.ts \
             supabase/functions/ingest-tournament-decks/normalizer.test.ts
 
+      - name: Lint source
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Run tests
         run: npm run test
 

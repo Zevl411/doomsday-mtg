@@ -4,37 +4,31 @@
 
 <style scoped>
 .foil-card-overlay {
-  background:
-    linear-gradient(
-      118deg,
-      transparent 10%,
-      rgba(91, 225, 255, 0.24) 25%,
-      rgba(255, 111, 229, 0.42) 42%,
-      rgba(255, 237, 126, 0.32) 57%,
-      rgba(111, 255, 201, 0.36) 72%,
-      transparent 90%
-    );
-  background-size: 220% 220%;
-  background-position: 0% 40%;
-  filter: saturate(1.25);
+  position: absolute;
   inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    118deg,
+    transparent 10%,
+    rgb(91 225 255 / 24%) 25%,
+    rgb(255 111 229 / 42%) 42%,
+    rgb(255 237 126 / 32%) 57%,
+    rgb(111 255 201 / 36%) 72%,
+    transparent 90%
+  );
+  background-position: 0% 40%;
+  background-size: 220% 220%;
   mix-blend-mode: screen;
   opacity: 0.68;
-  pointer-events: none;
-  position: absolute;
-  z-index: 1;
+  filter: saturate(1.25);
 }
 
 .foil-card-overlay::after {
-  background:
-    radial-gradient(
-      circle at 72% 18%,
-      rgba(255, 255, 255, 0.52),
-      transparent 28%
-    );
-  content: '';
-  inset: 0;
   position: absolute;
+  inset: 0;
+  content: '';
+  background: radial-gradient(circle at 72% 18%, rgb(255 255 255 / 52%), transparent 28%);
 }
 
 @keyframes foil-card-shimmer {

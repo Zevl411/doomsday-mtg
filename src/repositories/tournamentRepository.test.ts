@@ -1,67 +1,76 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   parseCommanderInclusionRows,
   parseCardInclusionHistoryRows,
   tournamentRepository,
-} from './tournamentRepository'
+} from './tournamentRepository';
 
 const { rpc, from } = vi.hoisted(() => ({
   rpc: vi.fn(),
   from: vi.fn(),
-}))
+}));
 
 vi.mock('../lib/supabase', () => ({
   supabase: { rpc, from },
-}))
+}));
 
 beforeEach(() => {
-  rpc.mockReset()
+  rpc.mockReset();
   from.mockReset().mockReturnValue({
     select: () => ({
       in: () => Promise.resolve({ data: [], error: null }),
     }),
-  })
-  tournamentRepository.clearCache()
-})
+  });
+  tournamentRepository.clearCache();
+});
 
 describe('tournamentRepository', () => {
   it('validates successful Commander inclusion responses', () => {
-    const valid = [{
-      normalized_card_key: 'sol-ring',
-      oracle_id: null,
-      card_name: 'Sol Ring',
-      type_line: 'Artifact',
-      color_identity: [],
-      mana_value: 1,
-      deck_count: 8,
-      total_eligible_decks: 10,
-      inclusion_rate: 0.8,
-      average_quantity: 1,
-      top16_deck_count: 4,
-      top16_inclusion_rate: 0.8,
-      first_place_deck_count: 1,
-      first_place_inclusion_rate: 1,
-    }]
+    const valid = [
+      {
+        normalized_card_key: 'sol-ring',
+        oracle_id: null,
+        card_name: 'Sol Ring',
+        type_line: 'Artifact',
+        color_identity: [],
+        mana_value: 1,
+        deck_count: 8,
+        total_eligible_decks: 10,
+        inclusion_rate: 0.8,
+        average_quantity: 1,
+        top16_deck_count: 4,
+        top16_inclusion_rate: 0.8,
+        first_place_deck_count: 1,
+        first_place_inclusion_rate: 1,
+      },
+    ];
     expect(parseCommanderInclusionRows(valid)[0]).toMatchObject({
       cardName: 'Sol Ring',
       totalEligibleDecks: 10,
-    })
-    expect(() => parseCommanderInclusionRows([{
-      ...valid[0],
-      inclusion_rate: 'invalid',
-    }])).toThrow('deck comparison response was invalid')
-  })
+    });
+    expect(() =>
+      parseCommanderInclusionRows([
+        {
+          ...valid[0],
+          inclusion_rate: 'invalid',
+        },
+      ]),
+    ).toThrow('deck comparison response was invalid');
+  });
 
   it('validates card inclusion history responses', () => {
-    const valid = [{
-      period_start: '2026-07-06',
-      deck_count: 3,
-      total_eligible_decks: 5,
-      event_count: 2,
-      card_event_count: 2,
-      inclusion_rate: 0.6,
-      event_inclusion_rate: 1,
-    }]
+    const valid = [
+      {
+        period_start: '2026-07-06',
+        deck_count: 3,
+        total_eligible_decks: 5,
+        event_count: 2,
+        card_event_count: 2,
+        inclusion_rate: 0.6,
+        event_inclusion_rate: 1,
+      },
+    ];
     expect(parseCardInclusionHistoryRows(valid)[0]).toEqual({
       periodStart: '2026-07-06',
       deckCount: 3,
@@ -70,15 +79,19 @@ describe('tournamentRepository', () => {
       cardEventCount: 2,
       inclusionRate: 0.6,
       eventInclusionRate: 1,
-    })
-    expect(() => parseCardInclusionHistoryRows([{
-      ...valid[0],
-      deck_count: 'invalid',
-    }])).toThrow('card inclusion history response was invalid')
-  })
+    });
+    expect(() =>
+      parseCardInclusionHistoryRows([
+        {
+          ...valid[0],
+          deck_count: 'invalid',
+        },
+      ]),
+    ).toThrow('card inclusion history response was invalid');
+  });
 
   it('passes time bucket, card identity, and event filters to inclusion history', async () => {
-    rpc.mockResolvedValue({ data: [], error: null })
+    rpc.mockResolvedValue({ data: [], error: null });
 
     await tournamentRepository.getCardInclusionOverTime(
       'kinnan',
@@ -90,52 +103,51 @@ describe('tournamentRepository', () => {
         minimumPlayers: 16,
         maximumStanding: 16,
       },
-    )
+    );
 
-    expect(rpc).toHaveBeenCalledWith(
-      'get_commander_card_inclusion_over_time',
-      {
-        target_commander_key: 'kinnan',
-        target_oracle_id: 'oracle-id',
-        target_normalized_card_key: 'sol-ring',
-        time_bucket: 'month',
-        start_date: '2026-01-01',
-        end_date: '2026-01-31',
-        minimum_tournament_size: 16,
-        country_filter: null,
-        state_filter: null,
-        region_filter: null,
-        online_filter: null,
-        maximum_standing: 16,
-      },
-    )
-  })
+    expect(rpc).toHaveBeenCalledWith('get_commander_card_inclusion_over_time', {
+      target_commander_key: 'kinnan',
+      target_oracle_id: 'oracle-id',
+      target_normalized_card_key: 'sol-ring',
+      time_bucket: 'month',
+      start_date: '2026-01-01',
+      end_date: '2026-01-31',
+      minimum_tournament_size: 16,
+      country_filter: null,
+      state_filter: null,
+      region_filter: null,
+      online_filter: null,
+      maximum_standing: 16,
+    });
+  });
 
   it('maps normalized filters and database rows', async () => {
     rpc.mockResolvedValue({
-      data: [{
-        commander_key: 'kinnan',
-        commander_name: 'Kinnan',
-        color_identity: ['G', 'U'],
-        entries: 10,
-        tournaments: 4,
-        wins: 20,
-        losses: 10,
-        draws: 2,
-        match_win_rate: 0.625,
-        top16_finishes: 5,
-        top_cut_rate: 0.5,
-        first_place_finishes: 1,
-        meta_share: 0.2,
-      }],
+      data: [
+        {
+          commander_key: 'kinnan',
+          commander_name: 'Kinnan',
+          color_identity: ['G', 'U'],
+          entries: 10,
+          tournaments: 4,
+          wins: 20,
+          losses: 10,
+          draws: 2,
+          match_win_rate: 0.625,
+          top16_finishes: 5,
+          top_cut_rate: 0.5,
+          first_place_finishes: 1,
+          meta_share: 0.2,
+        },
+      ],
       error: null,
-    })
+    });
 
     const result = await tournamentRepository.getCommanderMetagame({
       startDate: '2026-01-01',
       minimumPlayers: 32,
       minimumEntries: 3,
-    })
+    });
 
     expect(rpc).toHaveBeenCalledWith('get_commander_metagame', {
       start_date: '2026-01-01',
@@ -147,147 +159,155 @@ describe('tournamentRepository', () => {
       state_filter: null,
       region_filter: null,
       online_filter: null,
-    })
+    });
     expect(result[0]).toMatchObject({
       commanderKey: 'kinnan',
       entries: 10,
       matchWinRate: 0.625,
-    })
-  })
+    });
+  });
 
   it('caches identical aggregate requests', async () => {
-    rpc.mockResolvedValue({ data: [], error: null })
-    await tournamentRepository.getCommanderMetagame()
-    await tournamentRepository.getCommanderMetagame()
-    expect(rpc).toHaveBeenCalledOnce()
-  })
+    rpc.mockResolvedValue({ data: [], error: null });
+    await tournamentRepository.getCommanderMetagame();
+    await tournamentRepository.getCommanderMetagame();
+    expect(rpc).toHaveBeenCalledOnce();
+  });
 
   it('resolves retired Commander names through canonical aliases', async () => {
     rpc.mockResolvedValue({
-      data: [{
-        commander_key: 'will-the-wise',
-        commander_name: 'Will the Wise',
-        color_identity: [],
-        entries: 2,
-        tournaments: 1,
-        wins: 1,
-        losses: 1,
-        draws: 0,
-        match_win_rate: 0.5,
-        top16_finishes: 1,
-        top_cut_rate: 0.5,
-        first_place_finishes: 0,
-        meta_share: 0.1,
-      }],
+      data: [
+        {
+          commander_key: 'will-the-wise',
+          commander_name: 'Will the Wise',
+          color_identity: [],
+          entries: 2,
+          tournaments: 1,
+          wins: 1,
+          losses: 1,
+          draws: 0,
+          match_win_rate: 0.5,
+          top16_finishes: 1,
+          top_cut_rate: 0.5,
+          first_place_finishes: 0,
+          meta_share: 0.1,
+        },
+      ],
       error: null,
-    })
+    });
     from.mockReturnValue({
       select: () => ({
-        in: () => Promise.resolve({
-          data: [{
-            normalized_card_key: 'will the wise',
-            canonical_cards: {
-              scryfall_id: 'wernog-printing',
-              color_identity: ['W', 'B'],
-            },
-          }],
-          error: null,
-        }),
+        in: () =>
+          Promise.resolve({
+            data: [
+              {
+                normalized_card_key: 'will the wise',
+                canonical_cards: {
+                  scryfall_id: 'wernog-printing',
+                  color_identity: ['W', 'B'],
+                },
+              },
+            ],
+            error: null,
+          }),
       }),
-    })
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
 
-    const result = await tournamentRepository.getCommanderMetagame()
+    const result = await tournamentRepository.getCommanderMetagame();
 
     expect(result[0]).toMatchObject({
       colorIdentity: ['W', 'B'],
-      imageUrls: [
-        'https://api.scryfall.com/cards/wernog-printing?format=image&version=art_crop',
-      ],
-    })
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+      imageUrls: ['https://api.scryfall.com/cards/wernog-printing?format=image&version=art_crop'],
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it('renders the front and back art for two aliases of one DFC', async () => {
     rpc.mockResolvedValue({
-      data: [{
-        commander_key: 'valki-tibalt',
-        commander_name: 'Valki, God of Lies // Tibalt, Cosmic Impostor',
-        color_identity: ['B', 'R'],
-        entries: 2,
-        tournaments: 1,
-        wins: 1,
-        losses: 1,
-        draws: 0,
-        match_win_rate: 0.5,
-        top16_finishes: 1,
-        top_cut_rate: 0.5,
-        first_place_finishes: 0,
-        meta_share: 0.1,
-      }],
+      data: [
+        {
+          commander_key: 'valki-tibalt',
+          commander_name: 'Valki, God of Lies // Tibalt, Cosmic Impostor',
+          color_identity: ['B', 'R'],
+          entries: 2,
+          tournaments: 1,
+          wins: 1,
+          losses: 1,
+          draws: 0,
+          match_win_rate: 0.5,
+          top16_finishes: 1,
+          top_cut_rate: 0.5,
+          first_place_finishes: 0,
+          meta_share: 0.1,
+        },
+      ],
       error: null,
-    })
+    });
     from.mockReturnValue({
       select: () => ({
-        in: () => Promise.resolve({
-          data: [
-            {
-              normalized_card_key: 'valki, god of lies',
-              canonical_cards: {
-                scryfall_id: 'valki-printing',
-                color_identity: ['B', 'R'],
+        in: () =>
+          Promise.resolve({
+            data: [
+              {
+                normalized_card_key: 'valki, god of lies',
+                canonical_cards: {
+                  scryfall_id: 'valki-printing',
+                  color_identity: ['B', 'R'],
+                },
               },
-            },
-            {
-              normalized_card_key: 'tibalt, cosmic impostor',
-              canonical_cards: {
-                scryfall_id: 'valki-printing',
-                color_identity: ['B', 'R'],
+              {
+                normalized_card_key: 'tibalt, cosmic impostor',
+                canonical_cards: {
+                  scryfall_id: 'valki-printing',
+                  color_identity: ['B', 'R'],
+                },
               },
-            },
-          ],
-          error: null,
-        }),
+            ],
+            error: null,
+          }),
       }),
-    })
+    });
 
-    const result = await tournamentRepository.getCommanderMetagame()
+    const result = await tournamentRepository.getCommanderMetagame();
 
     expect(result[0]?.imageUrls).toEqual([
       'https://api.scryfall.com/cards/valki-printing?format=image&version=art_crop&face=front',
       'https://api.scryfall.com/cards/valki-printing?format=image&version=art_crop&face=back',
-    ])
-  })
+    ]);
+  });
 
   it('omits unresolved Commander placeholders from metagame lists', async () => {
     rpc.mockResolvedValue({
-      data: [{
-        commander_key: 'unknown-commander',
-        commander_name: 'Unknown Commander',
-        color_identity: [],
-        entries: 50,
-        tournaments: 10,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        match_win_rate: 0,
-        top16_finishes: 0,
-        top_cut_rate: 0,
-        first_place_finishes: 0,
-        meta_share: 0.5,
-      }],
+      data: [
+        {
+          commander_key: 'unknown-commander',
+          commander_name: 'Unknown Commander',
+          color_identity: [],
+          entries: 50,
+          tournaments: 10,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          match_win_rate: 0,
+          top16_finishes: 0,
+          top_cut_rate: 0,
+          first_place_finishes: 0,
+          meta_share: 0.5,
+        },
+      ],
       error: null,
-    })
+    });
 
-    await expect(tournamentRepository.getCommanderMetagame()).resolves.toEqual([])
-  })
+    await expect(tournamentRepository.getCommanderMetagame()).resolves.toEqual([]);
+  });
 
   it('maps provider errors to a friendly message', async () => {
-    rpc.mockResolvedValue({ data: null, error: new Error('private detail') })
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    await expect(
-      tournamentRepository.getCommanderMetagame(),
-    ).rejects.toThrow('Unable to load Commander metagame')
-  })
-})
+    rpc.mockResolvedValue({ data: null, error: new Error('private detail') });
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await expect(tournamentRepository.getCommanderMetagame()).rejects.toThrow(
+      'Unable to load Commander metagame',
+    );
+  });
+});

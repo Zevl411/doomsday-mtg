@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
-import type { ScryfallCard } from '../types/card'
-import {
-  guestDraftRepository,
-  memoryDeckRepository,
-} from '../repositories/localDeckRepository'
-import { useDeckStore } from './deck'
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { guestDraftRepository, memoryDeckRepository } from '../repositories/localDeckRepository';
+
+import { useDeckStore } from './deck';
+
+import type { ScryfallCard } from '../types/card';
 
 function createCard(
   id: string,
@@ -20,7 +20,7 @@ function createCard(
     name,
     type_line: typeLine,
     color_identity: colorIdentity,
-  }
+  };
 }
 
 const commander = createCard(
@@ -29,307 +29,269 @@ const commander = createCard(
   'commander-oracle',
   'Legendary Creature',
   ['U'],
-)
-const artifact = createCard(
-  'artifact-printing',
-  'Artifact',
-  'artifact-oracle',
-)
-const island = createCard(
-  'island-printing',
-  'Island',
-  'island-oracle',
-  'Basic Land — Island',
-  ['U'],
-)
+);
+const artifact = createCard('artifact-printing', 'Artifact', 'artifact-oracle');
+const island = createCard('island-printing', 'Island', 'island-oracle', 'Basic Land — Island', [
+  'U',
+]);
 
 beforeEach(() => {
-  localStorage.clear()
-  setActivePinia(createPinia())
+  localStorage.clear();
+  setActivePinia(createPinia());
   // Authenticated mode supports a multi-deck library without a local cache.
-  useDeckStore().useRepository(memoryDeckRepository, 'cloud')
-})
+  useDeckStore().useRepository(memoryDeckRepository, 'cloud');
+});
 
 describe('deck library store', () => {
   it('creates and opens decks', () => {
-    const store = useDeckStore()
-    const first = store.createDeck(' First ')
-    const second = store.createDeck('Second')
+    const store = useDeckStore();
+    const first = store.createDeck(' First ');
+    const second = store.createDeck('Second');
 
-    expect(store.library.decks).toHaveLength(2)
-    expect(store.deck.id).toBe(second.id)
-    expect(store.openDeck(first.id)).toBe(true)
-    expect(store.deck.name).toBe('First')
-  })
+    expect(store.library.decks).toHaveLength(2);
+    expect(store.deck.id).toBe(second.id);
+    expect(store.openDeck(first.id)).toBe(true);
+    expect(store.deck.name).toBe('First');
+  });
 
   it('increments the default name for each unnamed deck', () => {
-    const store = useDeckStore()
+    const store = useDeckStore();
 
-    expect(store.createDeck().name).toBe('Untitled Deck')
-    expect(store.createDeck().name).toBe('Untitled Deck 2')
-    expect(store.createDeck('   ').name).toBe('Untitled Deck 3')
-    expect(store.createDeck('Named Deck').name).toBe('Named Deck')
-    expect(store.createDeck().name).toBe('Untitled Deck 4')
-  })
+    expect(store.createDeck().name).toBe('Untitled Deck');
+    expect(store.createDeck().name).toBe('Untitled Deck 2');
+    expect(store.createDeck('   ').name).toBe('Untitled Deck 3');
+    expect(store.createDeck('Named Deck').name).toBe('Named Deck');
+    expect(store.createDeck().name).toBe('Untitled Deck 4');
+  });
 
   it('renames a deck, trims its name, and rejects an empty name', () => {
-    const store = useDeckStore()
-    const deck = store.createDeck('Original')
-    const oldUpdatedAt = deck.updatedAt
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2027-01-01T00:00:00.000Z'))
+    const store = useDeckStore();
+    const deck = store.createDeck('Original');
+    const oldUpdatedAt = deck.updatedAt;
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2027-01-01T00:00:00.000Z'));
 
-    expect(store.renameDeck(deck.id, '  Renamed  ')).toBe(true)
-    expect(deck.name).toBe('Renamed')
-    expect(deck.updatedAt).not.toBe(oldUpdatedAt)
-    expect(store.renameDeck(deck.id, '   ')).toBe(false)
-    expect(deck.name).toBe('Renamed')
-    vi.useRealTimers()
-  })
+    expect(store.renameDeck(deck.id, '  Renamed  ')).toBe(true);
+    expect(deck.name).toBe('Renamed');
+    expect(deck.updatedAt).not.toBe(oldUpdatedAt);
+    expect(store.renameDeck(deck.id, '   ')).toBe(false);
+    expect(deck.name).toBe('Renamed');
+    vi.useRealTimers();
+  });
 
   it('duplicates without sharing mutable board data', () => {
-    const store = useDeckStore()
-    const source = store.createDeck('Source')
-    store.addCardToBoard(artifact, 'sideboard', 2)
-    source.sideboard[0]!.foil = true
+    const store = useDeckStore();
+    const source = store.createDeck('Source');
+    store.addCardToBoard(artifact, 'sideboard', 2);
+    source.sideboard[0]!.foil = true;
 
-    const duplicate = store.duplicateDeck(source.id)
+    const duplicate = store.duplicateDeck(source.id);
 
-    expect(duplicate?.id).not.toBe(source.id)
-    expect(duplicate?.name).toBe('Source Copy')
-    expect(duplicate?.sideboard).not.toBe(source.sideboard)
-    expect(duplicate?.sideboard[0]?.foil).toBe(true)
-    duplicate!.sideboard[0]!.quantity = 9
-    expect(source.sideboard[0]?.quantity).toBe(2)
-  })
+    expect(duplicate?.id).not.toBe(source.id);
+    expect(duplicate?.name).toBe('Source Copy');
+    expect(duplicate?.sideboard).not.toBe(source.sideboard);
+    expect(duplicate?.sideboard[0]?.foil).toBe(true);
+    duplicate!.sideboard[0]!.quantity = 9;
+    expect(source.sideboard[0]?.quantity).toBe(2);
+  });
 
   it('deletes a non-active deck without changing the active deck', () => {
-    const store = useDeckStore()
-    const first = store.createDeck('First')
-    const second = store.createDeck('Second')
+    const store = useDeckStore();
+    const first = store.createDeck('First');
+    const second = store.createDeck('Second');
 
-    expect(store.deleteDeck(first.id)).toBe(true)
-    expect(store.deck.id).toBe(second.id)
-    expect(store.library.decks).toHaveLength(1)
-  })
+    expect(store.deleteDeck(first.id)).toBe(true);
+    expect(store.deck.id).toBe(second.id);
+    expect(store.library.decks).toHaveLength(1);
+  });
 
   it('selects a fallback after deleting the active deck', () => {
-    const store = useDeckStore()
-    const first = store.createDeck('First')
-    const second = store.createDeck('Second')
+    const store = useDeckStore();
+    const first = store.createDeck('First');
+    const second = store.createDeck('Second');
 
-    store.deleteDeck(second.id)
-    expect(store.deck.id).toBe(first.id)
+    store.deleteDeck(second.id);
+    expect(store.deck.id).toBe(first.id);
 
-    store.deleteDeck(first.id)
-    expect(store.hasActiveDeck).toBe(false)
-  })
+    store.deleteDeck(first.id);
+    expect(store.hasActiveDeck).toBe(false);
+  });
 
   it('deletes multiple selected decks in one operation', () => {
-    const store = useDeckStore()
-    const first = store.createDeck('First')
-    const second = store.createDeck('Second')
-    const third = store.createDeck('Third')
+    const store = useDeckStore();
+    const first = store.createDeck('First');
+    const second = store.createDeck('Second');
+    const third = store.createDeck('Third');
 
-    expect(store.deleteDecks([first.id, third.id])).toBe(2)
-    expect(store.library.decks.map((deck) => deck.id)).toEqual([second.id])
-    expect(store.deck.id).toBe(second.id)
-  })
+    expect(store.deleteDecks([first.id, third.id])).toBe(2);
+    expect(store.library.decks.map((deck) => deck.id)).toEqual([second.id]);
+    expect(store.deck.id).toBe(second.id);
+  });
 
   it('changes visibility for multiple selected decks in one operation', () => {
-    const store = useDeckStore()
-    const first = store.createDeck('First')
-    const second = store.createDeck('Second')
-    const third = store.createDeck('Third')
+    const store = useDeckStore();
+    const first = store.createDeck('First');
+    const second = store.createDeck('Second');
+    const third = store.createDeck('Third');
 
-    expect(store.updateDeckVisibilities(
-      [first.id, third.id],
-      'unlisted',
-    )).toBe(2)
-    expect(first.visibility).toBe('unlisted')
-    expect(second.visibility).toBe('public')
-    expect(third.visibility).toBe('unlisted')
-  })
+    expect(store.updateDeckVisibilities([first.id, third.id], 'unlisted')).toBe(2);
+    expect(first.visibility).toBe('unlisted');
+    expect(second.visibility).toBe('public');
+    expect(third.visibility).toBe('unlisted');
+  });
 
   it('editor actions affect only the active deck', () => {
-    const store = useDeckStore()
-    const first = store.createDeck('First')
-    store.setCommander(commander)
-    const second = store.createDeck('Second')
+    const store = useDeckStore();
+    const first = store.createDeck('First');
+    store.setCommander(commander);
+    const second = store.createDeck('Second');
 
-    store.setCommander(commander)
-    store.addCard(artifact)
+    store.setCommander(commander);
+    store.addCard(artifact);
 
-    expect(second.cards).toHaveLength(1)
-    expect(first.cards).toHaveLength(0)
-  })
+    expect(second.cards).toHaveLength(1);
+    expect(first.cards).toHaveLength(0);
+  });
 
   it('handles quantities, board moves, and removal on the active deck', () => {
-    const store = useDeckStore()
-    store.createDeck()
-    store.setCommander(commander)
-    store.addCard(island)
-    store.addCard({ ...island, id: 'another-island' })
-    expect(store.deck.cards[0]?.quantity).toBe(2)
+    const store = useDeckStore();
+    store.createDeck();
+    store.setCommander(commander);
+    store.addCard(island);
+    store.addCard({ ...island, id: 'another-island' });
+    expect(store.deck.cards[0]?.quantity).toBe(2);
 
-    store.addCardToBoard(artifact, 'sideboard', 2)
-    store.moveCardBetweenBoards('artifact-oracle', 'sideboard', 'maybeboard')
-    expect(store.deck.sideboard).toHaveLength(0)
-    expect(store.deck.maybeboard[0]?.quantity).toBe(2)
+    store.addCardToBoard(artifact, 'sideboard', 2);
+    store.moveCardBetweenBoards('artifact-oracle', 'sideboard', 'maybeboard');
+    expect(store.deck.sideboard).toHaveLength(0);
+    expect(store.deck.maybeboard[0]?.quantity).toBe(2);
 
-    store.removeCardFromBoard('artifact-oracle', 'maybeboard')
-    expect(store.deck.maybeboard).toHaveLength(0)
-  })
+    store.removeCardFromBoard('artifact-oracle', 'maybeboard');
+    expect(store.deck.maybeboard).toHaveLength(0);
+  });
 
   it('changes only a card printing while retaining its board and quantity', () => {
-    const store = useDeckStore()
-    store.createDeck()
-    store.addCardToBoard(artifact, 'sideboard', 3)
-    store.selectPreviewCard(artifact)
+    const store = useDeckStore();
+    store.createDeck();
+    store.addCardToBoard(artifact, 'sideboard', 3);
+    store.selectPreviewCard(artifact);
     const alternatePrinting = {
       ...artifact,
       id: 'artifact-retro-printing',
       set: 'retro',
       set_name: 'Retro Artifacts',
-    }
+    };
 
-    expect(store.replaceCardPrinting(
-      'artifact-oracle',
-      'sideboard',
-      alternatePrinting,
-    )).toBe(true)
-    expect(store.deck.sideboard).toEqual([
-      { card: alternatePrinting, quantity: 3 },
-    ])
-    expect(store.selectedPreviewCard).toEqual(alternatePrinting)
-    expect(store.previewCard).toEqual(alternatePrinting)
-  })
+    expect(store.replaceCardPrinting('artifact-oracle', 'sideboard', alternatePrinting)).toBe(true);
+    expect(store.deck.sideboard).toEqual([{ card: alternatePrinting, quantity: 3 }]);
+    expect(store.selectedPreviewCard).toEqual(alternatePrinting);
+    expect(store.previewCard).toEqual(alternatePrinting);
+  });
 
   it('changes a Commander printing without changing its Oracle identity', () => {
-    const store = useDeckStore()
-    store.createDeck()
-    store.setCommander(commander)
-    store.selectPreviewCard(commander)
+    const store = useDeckStore();
+    store.createDeck();
+    store.setCommander(commander);
+    store.selectPreviewCard(commander);
     const alternatePrinting = {
       ...commander,
       id: 'commander-showcase-printing',
       set: 'showcase',
       finishes: ['nonfoil', 'foil'],
       foil: true,
-    }
+    };
 
-    expect(store.replaceCommanderPrinting(
-      'commander',
-      alternatePrinting,
-      true,
-    )).toBe(true)
-    expect(store.deck.commander).toEqual(alternatePrinting)
-    expect(store.deck.commanderFoil).toBe(true)
-    expect(store.selectedPreviewCard).toEqual(alternatePrinting)
-    expect(store.replaceCommanderPrinting(
-      'commander',
-      artifact,
-    )).toBe(false)
-    expect(store.deck.commander).toEqual(alternatePrinting)
-  })
+    expect(store.replaceCommanderPrinting('commander', alternatePrinting, true)).toBe(true);
+    expect(store.deck.commander).toEqual(alternatePrinting);
+    expect(store.deck.commanderFoil).toBe(true);
+    expect(store.selectedPreviewCard).toEqual(alternatePrinting);
+    expect(store.replaceCommanderPrinting('commander', artifact)).toBe(false);
+    expect(store.deck.commander).toEqual(alternatePrinting);
+  });
 
   it('sets a foil finish without changing the card or quantity', () => {
-    const store = useDeckStore()
-    store.createDeck()
-    store.addCardToBoard({
-      ...artifact,
-      finishes: ['nonfoil', 'foil'],
-      foil: true,
-    }, 'sideboard', 1)
-
-    expect(store.setCardFoil(
-      'artifact-oracle',
+    const store = useDeckStore();
+    store.createDeck();
+    store.addCardToBoard(
+      {
+        ...artifact,
+        finishes: ['nonfoil', 'foil'],
+        foil: true,
+      },
       'sideboard',
-      true,
-    )).toBe(true)
+      1,
+    );
+
+    expect(store.setCardFoil('artifact-oracle', 'sideboard', true)).toBe(true);
     expect(store.deck.sideboard[0]).toEqual({
       card: expect.objectContaining({ id: 'artifact-printing' }),
       quantity: 1,
       foil: true,
-    })
+    });
 
-    expect(store.setCardFoil(
-      'artifact-oracle',
-      'sideboard',
-      false,
-    )).toBe(true)
-    expect(store.deck.sideboard[0]?.foil).toBeUndefined()
-  })
+    expect(store.setCardFoil('artifact-oracle', 'sideboard', false)).toBe(true);
+    expect(store.deck.sideboard[0]?.foil).toBeUndefined();
+  });
 
   it('rejects foil for a printing that is only available nonfoil', () => {
-    const store = useDeckStore()
-    store.createDeck()
-    store.addCardToBoard({
-      ...artifact,
-      finishes: ['nonfoil'],
-      foil: false,
-    }, 'sideboard', 1)
-
-    expect(store.setCardFoil(
-      'artifact-oracle',
+    const store = useDeckStore();
+    store.createDeck();
+    store.addCardToBoard(
+      {
+        ...artifact,
+        finishes: ['nonfoil'],
+        foil: false,
+      },
       'sideboard',
-      true,
-    )).toBe(false)
-    expect(store.deck.sideboard[0]?.foil).toBeUndefined()
-  })
+      1,
+    );
+
+    expect(store.setCardFoil('artifact-oracle', 'sideboard', true)).toBe(false);
+    expect(store.deck.sideboard[0]?.foil).toBeUndefined();
+  });
 
   it('rejects a printing with a different Oracle identity', () => {
-    const store = useDeckStore()
-    store.createDeck()
-    store.addCardToBoard(artifact, 'sideboard', 1)
+    const store = useDeckStore();
+    store.createDeck();
+    store.addCardToBoard(artifact, 'sideboard', 1);
 
-    expect(store.replaceCardPrinting(
-      'artifact-oracle',
-      'sideboard',
-      island,
-    )).toBe(false)
-    expect(store.deck.sideboard[0]?.card).toEqual(artifact)
-  })
+    expect(store.replaceCardPrinting('artifact-oracle', 'sideboard', island)).toBe(false);
+    expect(store.deck.sideboard[0]?.card).toEqual(artifact);
+  });
 
   it('merges matching auxiliary entries when moving without losing quantity', () => {
-    const store = useDeckStore()
-    store.createDeck()
-    store.addCardToBoard(artifact, 'sideboard', 2)
-    store.addCardToBoard(artifact, 'maybeboard', 3)
+    const store = useDeckStore();
+    store.createDeck();
+    store.addCardToBoard(artifact, 'sideboard', 2);
+    store.addCardToBoard(artifact, 'maybeboard', 3);
 
-    const result = store.moveCardBetweenBoards(
-      'artifact-oracle',
-      'sideboard',
-      'maybeboard',
-    )
+    const result = store.moveCardBetweenBoards('artifact-oracle', 'sideboard', 'maybeboard');
 
-    expect(result.allowed).toBe(true)
-    expect(store.deck.sideboard).toEqual([])
-    expect(store.deck.maybeboard).toEqual([
-      { card: artifact, quantity: 5 },
-    ])
-  })
+    expect(result.allowed).toBe(true);
+    expect(store.deck.sideboard).toEqual([]);
+    expect(store.deck.maybeboard).toEqual([{ card: artifact, quantity: 5 }]);
+  });
 
   it('reset preserves identity and name but clears content', () => {
-    const store = useDeckStore()
-    const deck = store.createDeck('Keep Me')
-    store.setCommander(commander)
-    store.addCard(artifact)
+    const store = useDeckStore();
+    const deck = store.createDeck('Keep Me');
+    store.setCommander(commander);
+    store.addCard(artifact);
 
-    store.resetActiveDeck()
+    store.resetActiveDeck();
 
-    expect(store.deck.id).toBe(deck.id)
-    expect(store.deck.createdAt).toBe(deck.createdAt)
-    expect(store.deck.name).toBe('Keep Me')
-    expect(store.deck.commander).toBeNull()
-    expect(store.deck.cards).toEqual([])
-  })
+    expect(store.deck.id).toBe(deck.id);
+    expect(store.deck.createdAt).toBe(deck.createdAt);
+    expect(store.deck.name).toBe('Keep Me');
+    expect(store.deck.commander).toBeNull();
+    expect(store.deck.cards).toEqual([]);
+  });
 
   it('replaces only the active deck while preserving its identity', () => {
-    const store = useDeckStore()
-    const original = store.createDeck('Original')
-    const other = store.createDeck('Other')
-    store.openDeck(original.id)
+    const store = useDeckStore();
+    const original = store.createDeck('Original');
+    const other = store.createDeck('Other');
+    store.openDeck(original.id);
 
     store.replaceActiveDeck({
       ...original,
@@ -337,92 +299,90 @@ describe('deck library store', () => {
       name: 'Imported',
       commander,
       cards: [{ card: artifact, quantity: 1 }],
-    })
+    });
 
-    expect(store.deck.id).toBe(original.id)
-    expect(store.deck.createdAt).toBe(original.createdAt)
-    expect(store.deck.name).toBe('Imported')
-    expect(
-      store.library.decks.find((deck) => deck.id === other.id),
-    ).toEqual(other)
-  })
+    expect(store.deck.id).toBe(original.id);
+    expect(store.deck.createdAt).toBe(original.createdAt);
+    expect(store.deck.name).toBe('Imported');
+    expect(store.library.decks.find((deck) => deck.id === other.id)).toEqual(other);
+  });
 
   it('does not persist temporary preview state', () => {
-    const store = useDeckStore()
-    store.createDeck()
-    store.setPreviewCard(artifact)
-    store.setCommander(commander)
+    const store = useDeckStore();
+    store.createDeck();
+    store.setPreviewCard(artifact);
+    store.setCommander(commander);
 
-    expect(localStorage.length).toBe(0)
-    store.clearPreviewCard()
-    expect(store.previewCard).toEqual(commander)
-  })
+    expect(localStorage.length).toBe(0);
+    store.clearPreviewCard();
+    expect(store.previewCard).toEqual(commander);
+  });
 
   it('restores the selected card after a temporary preview', () => {
-    const store = useDeckStore()
-    store.createDeck()
+    const store = useDeckStore();
+    store.createDeck();
 
-    store.selectPreviewCard(artifact)
-    store.setPreviewCard(commander)
-    expect(store.previewCard).toEqual(commander)
+    store.selectPreviewCard(artifact);
+    store.setPreviewCard(commander);
+    expect(store.previewCard).toEqual(commander);
 
-    store.restoreSelectedPreviewCard()
-    expect(store.previewCard).toEqual(artifact)
-    expect(store.selectedPreviewCard).toEqual(artifact)
-  })
+    store.restoreSelectedPreviewCard();
+    expect(store.previewCard).toEqual(artifact);
+    expect(store.selectedPreviewCard).toEqual(artifact);
+  });
 
   it('deselects the active preview while retaining it as the fallback', () => {
-    const store = useDeckStore()
-    store.createDeck()
+    const store = useDeckStore();
+    store.createDeck();
 
-    store.selectPreviewCard(artifact)
-    store.selectPreviewCard(artifact)
+    store.selectPreviewCard(artifact);
+    store.selectPreviewCard(artifact);
 
-    expect(store.selectedPreviewCard).toBeNull()
-    expect(store.previewCard).toEqual(artifact)
+    expect(store.selectedPreviewCard).toBeNull();
+    expect(store.previewCard).toEqual(artifact);
 
-    store.setPreviewCard(commander)
-    store.restoreSelectedPreviewCard()
-    expect(store.previewCard).toEqual(commander)
-  })
+    store.setPreviewCard(commander);
+    store.restoreSelectedPreviewCard();
+    expect(store.previewCard).toEqual(commander);
+  });
 
   it('keeps the preview empty when the deck has no commander or shown card', () => {
-    const store = useDeckStore()
-    const deck = store.createDeck('Commanderless')
+    const store = useDeckStore();
+    const deck = store.createDeck('Commanderless');
 
-    expect(deck.commander).toBeNull()
-    store.clearPreviewCard()
+    expect(deck.commander).toBeNull();
+    store.clearPreviewCard();
 
-    expect(store.previewCard).toBeNull()
-    expect(store.lastPreviewCard).toBeNull()
-  })
+    expect(store.previewCard).toBeNull();
+    expect(store.lastPreviewCard).toBeNull();
+  });
 
   it('does not update timestamps for no-op editor and selection actions', () => {
-    const store = useDeckStore()
-    const deck = store.createDeck('Stable')
-    const updatedAt = deck.updatedAt
+    const store = useDeckStore();
+    const deck = store.createDeck('Stable');
+    const updatedAt = deck.updatedAt;
 
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2028-01-01T00:00:00.000Z'))
-    store.openDeck(deck.id)
-    store.renameDeck(deck.id, ' Stable ')
-    store.clearCommander()
-    store.removeCardFromBoard('missing-card', 'mainboard')
-    store.removeIllegalCards()
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2028-01-01T00:00:00.000Z'));
+    store.openDeck(deck.id);
+    store.renameDeck(deck.id, ' Stable ');
+    store.clearCommander();
+    store.removeCardFromBoard('missing-card', 'mainboard');
+    store.removeIllegalCards();
 
-    expect(deck.updatedAt).toBe(updatedAt)
-    vi.useRealTimers()
-  })
+    expect(deck.updatedAt).toBe(updatedAt);
+    vi.useRealTimers();
+  });
 
   it('reports persistence failures without throwing', () => {
-    const store = useDeckStore()
-    store.useRepository(guestDraftRepository, 'guest')
+    const store = useDeckStore();
+    store.useRepository(guestDraftRepository, 'guest');
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('Storage unavailable')
-    })
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      throw new Error('Storage unavailable');
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    store.createDeck()
-    expect(store.saveSucceeded).toBe(false)
-  })
-})
+    store.createDeck();
+    expect(store.saveSucceeded).toBe(false);
+  });
+});

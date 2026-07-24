@@ -1,14 +1,13 @@
-import { supabase } from '../lib/supabase'
-import type {
-  DeckComparisonFilters,
-  TournamentDeckSimilarity,
-} from '../models/deckComparison'
-import type { CommanderCardInclusion } from '../models/tournament'
-import { parseCommanderInclusionRows } from './tournamentRepository'
+import { supabase } from '../lib/supabase';
+
+import { parseCommanderInclusionRows } from './tournamentRepository';
+
+import type { DeckComparisonFilters, TournamentDeckSimilarity } from '../models/deckComparison';
+import type { CommanderCardInclusion } from '../models/tournament';
 
 export interface DeckComparisonData {
-  inclusion: CommanderCardInclusion[]
-  similarities: TournamentDeckSimilarity[]
+  inclusion: CommanderCardInclusion[];
+  similarities: TournamentDeckSimilarity[];
 }
 
 /**
@@ -23,9 +22,7 @@ export const deckComparisonRepository = {
     filters: DeckComparisonFilters,
   ): Promise<DeckComparisonData> {
     if (!supabase) {
-      throw new Error(
-        'Deck comparison is unavailable because Supabase is not configured.',
-      )
+      throw new Error('Deck comparison is unavailable because Supabase is not configured.');
     }
 
     const aggregatePromise = supabase.rpc('get_deck_comparison_aggregate', {
@@ -38,11 +35,8 @@ export const deckComparisonRepository = {
       p_state_region: null,
       p_region_key: null,
       p_is_online: null,
-      p_minimum_complete_decks: Math.max(
-        1,
-        filters.minimumCompleteDecks ?? 1,
-      ),
-    })
+      p_minimum_complete_decks: Math.max(1, filters.minimumCompleteDecks ?? 1),
+    });
     const similarityPromise = supabase.rpc('get_similar_tournament_decks', {
       p_commander_key: commanderKey,
       p_card_keys: [...new Set(cardKeys)],
@@ -54,42 +48,34 @@ export const deckComparisonRepository = {
       p_state_region: null,
       p_region_key: null,
       p_is_online: null,
-      p_minimum_complete_decks: Math.max(
-        1,
-        filters.minimumCompleteDecks ?? 1,
-      ),
+      p_minimum_complete_decks: Math.max(1, filters.minimumCompleteDecks ?? 1),
       p_similarity_limit: 20,
-    })
+    });
 
     const [aggregateResult, similarityResult] = await Promise.all([
       aggregatePromise,
       similarityPromise,
-    ])
+    ]);
     if (aggregateResult.error) {
-      console.warn('Deck comparison aggregate request failed.', aggregateResult.error)
-      throw new Error('Unable to load the Deck comparison sample.')
+      console.warn('Deck comparison aggregate request failed.', aggregateResult.error);
+      throw new Error('Unable to load the Deck comparison sample.');
     }
     if (similarityResult.error) {
-      console.warn(
-        'Tournament similarity request failed.',
-        similarityResult.error,
-      )
-      throw new Error('Unable to compare similar tournament Decks.')
+      console.warn('Tournament similarity request failed.', similarityResult.error);
+      throw new Error('Unable to compare similar tournament Decks.');
     }
 
     return {
       inclusion: parseCommanderInclusionRows(aggregateResult.data),
       similarities: parseTournamentSimilarityRows(similarityResult.data),
-    }
+    };
   },
-}
+};
 
 /** Validates the successful RPC payload before it reaches comparison views. */
-export function parseTournamentSimilarityRows(
-  value: unknown,
-): TournamentDeckSimilarity[] {
+export function parseTournamentSimilarityRows(value: unknown): TournamentDeckSimilarity[] {
   if (!Array.isArray(value)) {
-    throw new Error('The tournament similarity response was invalid.')
+    throw new Error('The tournament similarity response was invalid.');
   }
 
   return value.map((row) => {
@@ -107,7 +93,7 @@ export function parseTournamentSimilarityRows(
       (row.source !== 'topdeck' && row.source !== 'edhtop16') ||
       !isNullableString(row.source_url)
     ) {
-      throw new Error('The tournament similarity response was invalid.')
+      throw new Error('The tournament similarity response was invalid.');
     }
 
     return {
@@ -122,19 +108,18 @@ export function parseTournamentSimilarityRows(
       similarityRate: row.similarity_rate,
       source: row.source,
       sourceUrl: row.source_url ?? undefined,
-    }
-  })
+    };
+  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+  return typeof value === 'object' && value !== null;
 }
 
 function isNullableString(value: unknown): value is string | null {
-  return value === null || typeof value === 'string'
+  return value === null || typeof value === 'string';
 }
 
 function isNullableNumber(value: unknown): value is number | null {
-  return value === null ||
-    (typeof value === 'number' && Number.isFinite(value))
+  return value === null || (typeof value === 'number' && Number.isFinite(value));
 }

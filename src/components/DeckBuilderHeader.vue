@@ -3,8 +3,7 @@
     border
     class="deck-builder-header"
     :class="{
-      'deck-builder-header--search-left':
-        preferencesStore.values.deckBuilderSearchSide === 'left',
+      'deck-builder-header--search-left': preferencesStore.values.deckBuilderSearchSide === 'left',
     }"
     color="surface-bright"
     rounded="lg"
@@ -23,7 +22,7 @@
               @blur="saveInlineTitle"
               @keydown.enter.prevent="saveInlineTitle"
               @keydown.esc.prevent="cancelInlineTitle"
-            >
+            />
             <h1
               aria-label="Edit deck title"
               :aria-hidden="editingTitle || undefined"
@@ -43,28 +42,18 @@
           <span class="text-h5 text-medium-emphasis">|</span>
           <ColorIdentitySymbols :colors="deckColorIdentity" size="medium" />
         </div>
-        <div
-          class="
-            deck-header-metadata
-            d-flex flex-wrap align-center ga-2 mt-1
-          "
-        >
+        <div class="deck-header-metadata d-flex flex-wrap align-center ga-2 mt-1">
           <p class="text-caption text-medium-emphasis">
             Created by {{ deck.creatorUsername ?? 'Unknown' }}
           </p>
           <v-chip size="small" variant="outlined">
             {{ deck.visibility ?? 'private' }}
           </v-chip>
-          <v-chip
-            class="deck-price-chip"
-            color="primary"
-            size="small"
-            variant="outlined"
-          >
+          <v-chip class="deck-price-chip" color="primary" size="small" variant="outlined">
             Deck total {{ formattedDeckPrice }}
             <v-tooltip activator="parent" location="bottom" max-width="260">
-              Commander and Mainboard prices for the selected printings and
-              finishes. Cards without a current TCGplayer price are excluded.
+              Commander and Mainboard prices for the selected printings and finishes. Cards without
+              a current TCGplayer price are excluded.
             </v-tooltip>
           </v-chip>
           <v-chip
@@ -74,19 +63,12 @@
             size="small"
             variant="outlined"
           >
-            <svg
-              aria-hidden="true"
-              class="validity-icon mr-1"
-              viewBox="0 0 24 24"
-            >
+            <svg aria-hidden="true" class="validity-icon mr-1" viewBox="0 0 24 24">
               <path
                 v-if="validitySeverity === 'error'"
                 d="M7.1 2h9.8L22 7.1v9.8L16.9 22H7.1L2 16.9V7.1L7.1 2ZM11 6v8h2V6h-2Zm0 10v2h2v-2h-2Z"
               />
-              <path
-                v-else
-                d="M12 2 1 21h22L12 2Zm-1 6h2v7h-2V8Zm0 9h2v2h-2v-2Z"
-              />
+              <path v-else d="M12 2 1 21h22L12 2Zm-1 6h2v7h-2V8Zm0 9h2v2h-2v-2Z" />
             </svg>
             {{ validitySeverity === 'error' ? 'Error' : 'Warning' }}
             ({{ validityIssues.length }})
@@ -112,22 +94,15 @@
       </div>
       <div class="deck-header-tools">
         <v-btn-group class="deck-header-actions" divided variant="outlined">
-          <v-btn @click="openSettings">
-            <DeckActionIcon name="settings" />Settings
-          </v-btn>
+          <v-btn @click="openSettings"> <DeckActionIcon name="settings" />Settings </v-btn>
           <v-btn
             :disabled="!canCompare"
             :to="{ name: 'deck-comparison', params: { deckId: deck.id } }"
-          ><DeckActionIcon name="compare" />Compare</v-btn>
-          <v-btn @click="openCopy">
-            <DeckActionIcon name="copy" />Copy
-          </v-btn>
-          <v-btn @click="emit('import')">
-            <DeckActionIcon name="import" />Import
-          </v-btn>
-          <v-btn @click="emit('export')">
-            <DeckActionIcon name="export" />Export
-          </v-btn>
+            ><DeckActionIcon name="compare" />Compare</v-btn
+          >
+          <v-btn @click="openCopy"> <DeckActionIcon name="copy" />Copy </v-btn>
+          <v-btn @click="emit('import')"> <DeckActionIcon name="import" />Import </v-btn>
+          <v-btn @click="emit('export')"> <DeckActionIcon name="export" />Export </v-btn>
         </v-btn-group>
         <div class="deck-header-searches mt-auto">
           <slot name="searches" />
@@ -147,16 +122,10 @@
           label="Description"
           maxlength="500"
         />
-        <v-select
-          v-model="settingsVisibility"
-          :items="visibilityOptions"
-          label="Visibility"
-        />
+        <v-select v-model="settingsVisibility" :items="visibilityOptions" label="Visibility" />
       </v-card-text>
       <v-card-actions>
-        <v-btn color="error" variant="text" @click="openDeleteConfirmation">
-          Delete deck
-        </v-btn>
+        <v-btn color="error" variant="text" @click="openDeleteConfirmation"> Delete deck </v-btn>
         <v-spacer />
         <v-btn @click="showSettings = false">Cancel</v-btn>
         <v-btn color="primary" variant="flat" @click="saveSettings">Save</v-btn>
@@ -173,12 +142,8 @@
       </v-card-text>
       <v-card-actions class="px-5 pb-5">
         <v-spacer />
-        <v-btn variant="text" @click="showDeleteConfirmation = false">
-          Cancel
-        </v-btn>
-        <v-btn color="error" variant="flat" @click="deleteDeck">
-          Delete
-        </v-btn>
+        <v-btn variant="text" @click="showDeleteConfirmation = false"> Cancel </v-btn>
+        <v-btn color="error" variant="flat" @click="deleteDeck"> Delete </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -194,8 +159,8 @@
           variant="tonal"
         >
           This deck currently has {{ validityIssues.length }}
-          {{ validityIssues.length === 1 ? 'validity issue' : 'validity issues' }}.
-          The copy will still be created and saved.
+          {{ validityIssues.length === 1 ? 'validity issue' : 'validity issues' }}. The copy will
+          still be created and saved.
           <ul class="mt-2 pl-5">
             <li v-for="issue in validityIssues" :key="`${issue.rule}-${issue.message}`">
               {{ issue.message }}
@@ -203,107 +168,100 @@
           </ul>
         </v-alert>
         <v-text-field v-model="copyName" label="Copy name" />
-        <v-select
-          v-model="copyVisibility"
-          :items="visibilityOptions"
-          label="Visibility"
-        />
+        <v-select v-model="copyVisibility" :items="visibilityOptions" label="Visibility" />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
         <v-btn @click="showCopy = false">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" @click="copyDeck">
-          Create copy
-        </v-btn>
+        <v-btn color="primary" variant="flat" @click="copyDeck"> Create copy </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import type { DeckVisibility } from '../models/deck'
-import { useAuthStore } from '../stores/auth'
-import { useDeckStore } from '../stores/deck'
-import { useUserPreferencesStore } from '../stores/userPreferences'
-import { useCardPricingStore } from '../stores/cardPricing'
-import ColorIdentitySymbols from './ColorIdentitySymbols.vue'
-import DeckActionIcon from './DeckActionIcon.vue'
-import {
-  getDeckValidityIssues,
-  getDeckValiditySeverity,
-} from '../utils/deckValidity'
-import {
-  formatCardPrice,
-  sumKnownDeckEntryPrices,
-} from '../utils/cardPrice'
+import { computed, nextTick, ref, watch } from 'vue';
 
-const emit = defineEmits<{ import: []; export: [] }>()
-const deckStore = useDeckStore()
-const preferencesStore = useUserPreferencesStore()
-const pricingStore = useCardPricingStore()
-const auth = useAuthStore()
-const router = useRouter()
+import { useRouter } from 'vue-router';
+
+import { useAuthStore } from '../stores/auth';
+import { useCardPricingStore } from '../stores/cardPricing';
+import { useDeckStore } from '../stores/deck';
+import { useUserPreferencesStore } from '../stores/userPreferences';
+import { formatCardPrice, sumKnownDeckEntryPrices } from '../utils/cardPrice';
+import { getDeckValidityIssues, getDeckValiditySeverity } from '../utils/deckValidity';
+
+import ColorIdentitySymbols from './ColorIdentitySymbols.vue';
+import DeckActionIcon from './DeckActionIcon.vue';
+
+import type { DeckVisibility } from '../models/deck';
+
+const emit = defineEmits<{ import: []; export: [] }>();
+const deckStore = useDeckStore();
+const preferencesStore = useUserPreferencesStore();
+const pricingStore = useCardPricingStore();
+const auth = useAuthStore();
+const router = useRouter();
 // Deletion clears the active Deck immediately, while route navigation finishes
 // on the next render. Keep the current object long enough for that transition.
-const currentDeck = ref(deckStore.deck)
-const deck = computed(() => deckStore.activeDeck ?? currentDeck.value)
-const showSettings = ref(false)
-const showDeleteConfirmation = ref(false)
-const showCopy = ref(false)
-const settingsName = ref('')
-const settingsDescription = ref('')
-const settingsVisibility = ref<DeckVisibility>('private')
-const copyName = ref('')
-const copyVisibility = ref<DeckVisibility>('unlisted')
-const editingTitle = ref(false)
-const titleDraft = ref('')
-const titleInput = ref<HTMLInputElement | null>(null)
+const currentDeck = ref(deckStore.deck);
+const deck = computed(() => deckStore.activeDeck ?? currentDeck.value);
+const showSettings = ref(false);
+const showDeleteConfirmation = ref(false);
+const showCopy = ref(false);
+const settingsName = ref('');
+const settingsDescription = ref('');
+const settingsVisibility = ref<DeckVisibility>('private');
+const copyName = ref('');
+const copyVisibility = ref<DeckVisibility>('unlisted');
+const editingTitle = ref(false);
+const titleDraft = ref('');
+const titleInput = ref<HTMLInputElement | null>(null);
 const visibilityOptions = [
   { title: 'Private — only you can access it', value: 'private' },
   { title: 'Unlisted — anyone with the link can access it', value: 'unlisted' },
   { title: 'Public — visible and findable', value: 'public' },
-]
-const canCompare = computed(() => Boolean(deck.value.commander))
+];
+const canCompare = computed(() => Boolean(deck.value.commander));
 const deckColorIdentity = computed(() => [
   ...new Set([
     ...(deck.value.commander?.color_identity ?? []),
     ...(deck.value.partnerCommander?.color_identity ?? []),
   ]),
-])
-const validityIssues = computed(() => getDeckValidityIssues(deck.value))
-const validitySeverity = computed(() =>
-  getDeckValiditySeverity(validityIssues.value),
-)
-const deckPrice = computed(() => sumKnownDeckEntryPrices(
-  [
-    ...(deck.value.commander
-      ? [{
-          card: deck.value.commander,
-          quantity: 1,
-          ...(deck.value.commanderFoil === true ? { foil: true } : {}),
-        }]
-      : []),
-    ...(deck.value.partnerCommander
-      ? [{
-          card: deck.value.partnerCommander,
-          quantity: 1,
-          ...(deck.value.partnerCommanderFoil === true ? { foil: true } : {}),
-        }]
-      : []),
-    ...deck.value.cards,
-  ],
-  (card) => pricingStore.resolve(card),
-))
+]);
+const validityIssues = computed(() => getDeckValidityIssues(deck.value));
+const validitySeverity = computed(() => getDeckValiditySeverity(validityIssues.value));
+const deckPrice = computed(() =>
+  sumKnownDeckEntryPrices(
+    [
+      ...(deck.value.commander
+        ? [
+            {
+              card: deck.value.commander,
+              quantity: 1,
+              ...(deck.value.commanderFoil === true ? { foil: true } : {}),
+            },
+          ]
+        : []),
+      ...(deck.value.partnerCommander
+        ? [
+            {
+              card: deck.value.partnerCommander,
+              quantity: 1,
+              ...(deck.value.partnerCommanderFoil === true ? { foil: true } : {}),
+            },
+          ]
+        : []),
+      ...deck.value.cards,
+    ],
+    (card) => pricingStore.resolve(card),
+  ),
+);
 const formattedDeckPrice = computed(() =>
   deckPrice.value === null
     ? '—'
-    : formatCardPrice(
-        deckPrice.value,
-        preferencesStore.values.priceCurrency,
-      ),
-)
+    : formatCardPrice(deckPrice.value, preferencesStore.values.priceCurrency),
+);
 
 watch(
   () => [
@@ -312,73 +270,73 @@ watch(
     deck.value.commanderFoil === true,
     deck.value.partnerCommander?.id,
     deck.value.partnerCommanderFoil === true,
-    ...deck.value.cards.map((entry) =>
-      `${entry.card.id}:${entry.quantity}:${entry.foil === true}`
-    ),
+    ...deck.value.cards.map((entry) => `${entry.card.id}:${entry.quantity}:${entry.foil === true}`),
   ],
   () => {
-    void pricingStore.refreshDeck(deck.value)
+    void pricingStore.refreshDeck(deck.value);
   },
   { immediate: true },
-)
+);
 
 function openSettings() {
-  settingsName.value = deck.value.name
-  settingsDescription.value = deck.value.description ?? ''
-  settingsVisibility.value = deck.value.visibility ?? 'private'
-  showSettings.value = true
+  settingsName.value = deck.value.name;
+  settingsDescription.value = deck.value.description ?? '';
+  settingsVisibility.value = deck.value.visibility ?? 'private';
+  showSettings.value = true;
 }
 function beginTitleEdit() {
-  titleDraft.value = deck.value.name
-  editingTitle.value = true
+  titleDraft.value = deck.value.name;
+  editingTitle.value = true;
   void nextTick(() => {
-    titleInput.value?.focus()
-    titleInput.value?.select()
-  })
+    titleInput.value?.focus();
+    titleInput.value?.select();
+  });
 }
 function saveInlineTitle() {
-  if (!editingTitle.value) return
-  const title = titleDraft.value.trim()
-  if (title) deckStore.renameDeck(deck.value.id, title)
-  editingTitle.value = false
+  if (!editingTitle.value) return;
+  const title = titleDraft.value.trim();
+  if (title) deckStore.renameDeck(deck.value.id, title);
+  editingTitle.value = false;
 }
 function cancelInlineTitle() {
-  titleDraft.value = deck.value.name
-  editingTitle.value = false
+  titleDraft.value = deck.value.name;
+  editingTitle.value = false;
 }
 function saveSettings() {
-  if (deckStore.updateDeckSettings(deck.value.id, {
-    name: settingsName.value,
-    description: settingsDescription.value,
-    visibility: settingsVisibility.value,
-  })) showSettings.value = false
+  if (
+    deckStore.updateDeckSettings(deck.value.id, {
+      name: settingsName.value,
+      description: settingsDescription.value,
+      visibility: settingsVisibility.value,
+    })
+  )
+    showSettings.value = false;
 }
 function openDeleteConfirmation() {
-  showSettings.value = false
-  showDeleteConfirmation.value = true
+  showSettings.value = false;
+  showDeleteConfirmation.value = true;
 }
 function deleteDeck() {
-  const deleted = deckStore.deleteDeck(deck.value.id)
-  showDeleteConfirmation.value = false
-  if (deleted) void router.push({ name: 'deck-library' })
+  const deleted = deckStore.deleteDeck(deck.value.id);
+  showDeleteConfirmation.value = false;
+  if (deleted) void router.push({ name: 'deck-library' });
 }
 function openCopy() {
-  copyName.value =
-    `${deck.value.name} (copied from ${deck.value.creatorUsername ?? 'Unknown'})`
-  copyVisibility.value = 'unlisted'
-  showCopy.value = true
+  copyName.value = `${deck.value.name} (copied from ${deck.value.creatorUsername ?? 'Unknown'})`;
+  copyVisibility.value = 'unlisted';
+  showCopy.value = true;
 }
 function copyDeck() {
   const copy = deckStore.duplicateDeck(deck.value.id, {
     name: copyName.value,
     visibility: copyVisibility.value,
-  })
+  });
   if (copy) {
-    showCopy.value = false
+    showCopy.value = false;
     void router.push({
       name: 'deck-builder',
       params: { deckId: copy.id },
-    })
+    });
   }
 }
 </script>
@@ -386,14 +344,14 @@ function copyDeck() {
 <style scoped>
 .deck-header-content {
   display: grid;
-  gap: 12px 24px;
   grid-template-columns: minmax(280px, 1fr) minmax(520px, 620px);
+  gap: 12px 24px;
 }
 
 .deck-builder-header {
-  overflow: visible;
   position: relative;
   z-index: 100;
+  overflow: visible;
 }
 
 .deck-header-summary {
@@ -401,16 +359,16 @@ function copyDeck() {
 }
 
 .deck-title-editor {
-  min-width: 8ch;
   position: relative;
+  min-width: 8ch;
 }
 
 .editable-deck-title {
-  border-radius: 6px;
-  cursor: text;
-  line-height: 1.25;
-  outline: 1px solid transparent;
   padding: 2px 4px;
+  line-height: 1.25;
+  cursor: text;
+  outline: 1px solid transparent;
+  border-radius: 6px;
   transition:
     background-color 120ms ease,
     outline-color 120ms ease;
@@ -418,8 +376,8 @@ function copyDeck() {
 
 .editable-deck-title:hover,
 .editable-deck-title:focus-visible {
-  background: rgba(var(--v-theme-on-surface), 0.055);
-  outline-color: rgba(var(--v-theme-primary), 0.45);
+  outline-color: rgb(var(--v-theme-primary), 0.45);
+  background: rgb(var(--v-theme-on-surface), 0.055);
 }
 
 .editable-deck-title--editing {
@@ -427,35 +385,35 @@ function copyDeck() {
 }
 
 .inline-deck-title {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 2px 6px;
+  line-height: 1.25;
+  color: inherit;
+  outline: none;
   background: color-mix(
     in srgb,
     rgb(var(--v-theme-background)) 40%,
     rgb(var(--v-theme-surface)) 60%
   );
-  border: 1px solid rgba(var(--v-theme-primary), 0.7);
+  border: 1px solid rgb(var(--v-theme-primary), 0.7);
   border-radius: 6px;
-  color: inherit;
-  inset: 0;
-  line-height: 1.25;
-  outline: none;
-  padding: 2px 6px;
-  position: absolute;
-  width: 100%;
 }
 
 .deck-header-tools {
-  align-items: end;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  align-items: end;
   justify-self: end;
-  min-width: 0;
   width: 100%;
+  min-width: 0;
 }
 
 .deck-builder-header--search-left .deck-header-summary {
-  grid-column: 2;
   grid-row: 1;
+  grid-column: 2;
   text-align: right;
 }
 
@@ -469,8 +427,8 @@ function copyDeck() {
 }
 
 .deck-builder-header--search-left .deck-header-tools {
-  grid-column: 1;
   grid-row: 1;
+  grid-column: 1;
   justify-self: start;
 }
 
@@ -497,16 +455,16 @@ function copyDeck() {
 }
 
 .validity-icon {
-  fill: currentColor;
-  height: 17px;
   width: 17px;
+  height: 17px;
+  fill: currentcolor;
 }
 
 .validity-chip {
   flex: 0 0 auto;
 }
 
-@media (max-width: 1100px) {
+@media (width <= 1100px) {
   .deck-header-content {
     grid-template-columns: 1fr;
   }
@@ -518,8 +476,8 @@ function copyDeck() {
 
   .deck-builder-header--search-left .deck-header-summary,
   .deck-builder-header--search-left .deck-header-tools {
-    grid-column: 1;
     grid-row: auto;
+    grid-column: 1;
   }
 
   .deck-builder-header--search-left .deck-header-content {
@@ -527,7 +485,7 @@ function copyDeck() {
   }
 }
 
-@media (max-width: 599px) {
+@media (width <= 599px) {
   .deck-header-content {
     gap: 12px;
     padding: 10px !important;
@@ -540,9 +498,9 @@ function copyDeck() {
   .deck-title-editor,
   .editable-deck-title,
   .inline-deck-title {
-    max-width: 100%;
-    min-width: 0;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .editable-deck-title,
@@ -558,14 +516,14 @@ function copyDeck() {
   .deck-header-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    height: auto;
     width: 100%;
+    height: auto;
   }
 
   .deck-header-actions :deep(.v-btn) {
-    border-radius: 0;
     min-width: 0;
     padding-inline: 6px;
+    border-radius: 0;
   }
 
   .description-box {

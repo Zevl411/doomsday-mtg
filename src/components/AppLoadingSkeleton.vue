@@ -7,11 +7,7 @@
     role="status"
   >
     <template v-if="variant === 'cards'">
-      <div
-        v-for="index in count"
-        :key="index"
-        class="app-skeleton__card"
-      >
+      <div v-for="index in count" :key="index" class="app-skeleton__card">
         <div class="app-skeleton__media app-skeleton__pulse" />
         <div class="app-skeleton__line app-skeleton__line--wide app-skeleton__pulse" />
         <div class="app-skeleton__line app-skeleton__line--short app-skeleton__pulse" />
@@ -39,15 +35,8 @@
     </template>
 
     <template v-else>
-      <div
-        v-for="index in count"
-        :key="index"
-        class="app-skeleton__row"
-      >
-        <div
-          v-if="variant === 'list'"
-          class="app-skeleton__thumb app-skeleton__pulse"
-        />
+      <div v-for="index in count" :key="index" class="app-skeleton__row">
+        <div v-if="variant === 'list'" class="app-skeleton__thumb app-skeleton__pulse" />
         <div class="app-skeleton__row-copy">
           <div class="app-skeleton__line app-skeleton__line--wide app-skeleton__pulse" />
           <div
@@ -68,27 +57,30 @@
  * component communicates busy state without coupling data-fetching behavior
  * to a particular route or repository.
  */
-withDefaults(defineProps<{
-  count?: number
-  label?: string
-  variant?: 'cards' | 'chart' | 'compact' | 'detail' | 'list' | 'table'
-}>(), {
-  count: 5,
-  label: 'Loading content',
-  variant: 'table',
-})
+withDefaults(
+  defineProps<{
+    count?: number;
+    label?: string;
+    variant?: 'cards' | 'chart' | 'compact' | 'detail' | 'list' | 'table';
+  }>(),
+  {
+    count: 5,
+    label: 'Loading content',
+    variant: 'table',
+  },
+);
 </script>
 
 <style scoped>
 .app-skeleton {
-  min-width: 0;
   width: 100%;
+  min-width: 0;
 }
 
 .app-skeleton--cards {
   display: grid;
-  gap: 12px;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
 }
 
 .app-skeleton__card,
@@ -96,50 +88,50 @@ withDefaults(defineProps<{
 .app-skeleton--detail,
 .app-skeleton--list,
 .app-skeleton--table {
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 6px;
   padding: 12px;
+  border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 6px;
 }
 
 .app-skeleton__media {
   aspect-ratio: 1.55;
-  border-radius: 4px;
   margin-bottom: 12px;
+  border-radius: 4px;
 }
 
 .app-skeleton__hero {
-  border-radius: 4px;
   height: 58px;
   margin-bottom: 12px;
+  border-radius: 4px;
 }
 
 .app-skeleton__detail-grid {
   display: grid;
-  gap: 16px;
   grid-template-columns: minmax(150px, 0.3fr) 1fr;
+  gap: 16px;
 }
 
 .app-skeleton__preview {
+  max-height: 300px;
   aspect-ratio: 0.716;
   border-radius: 4px;
-  max-height: 300px;
 }
 
 .app-skeleton__detail-copy,
 .app-skeleton__row-copy {
-  align-content: center;
   display: grid;
   gap: 8px;
+  align-content: center;
   min-width: 0;
 }
 
 .app-skeleton__row {
-  align-items: center;
-  border-bottom: 1px solid rgba(var(--v-border-color), 0.28);
   display: flex;
   gap: 12px;
+  align-items: center;
   min-height: 48px;
   padding: 7px 4px;
+  border-bottom: 1px solid rgb(var(--v-border-color), 0.28);
 }
 
 .app-skeleton__row:last-of-type {
@@ -147,9 +139,9 @@ withDefaults(defineProps<{
 }
 
 .app-skeleton__thumb {
-  border-radius: 3px;
   flex: 0 0 38px;
   height: 52px;
+  border-radius: 3px;
 }
 
 .app-skeleton__line,
@@ -162,9 +154,9 @@ withDefaults(defineProps<{
 }
 
 .app-skeleton__line {
-  border-radius: 3px;
-  height: 10px;
   width: 72%;
+  height: 10px;
+  border-radius: 3px;
 }
 
 .app-skeleton__line--wide {
@@ -176,9 +168,9 @@ withDefaults(defineProps<{
 }
 
 .app-skeleton__chart {
-  border-radius: 4px;
   height: 220px;
   margin-top: 12px;
+  border-radius: 4px;
 }
 
 .app-skeleton__pulse {
@@ -186,11 +178,11 @@ withDefaults(defineProps<{
 }
 
 .app-skeleton__sr-only {
+  position: absolute;
+  width: 1px;
   height: 1px;
   margin: -1px;
   overflow: hidden;
-  position: absolute;
-  width: 1px;
   clip: rect(0, 0, 0, 0);
 }
 
@@ -204,7 +196,7 @@ withDefaults(defineProps<{
   }
 }
 
-@media (max-width: 599px) {
+@media (width <= 599px) {
   .app-skeleton__detail-grid {
     grid-template-columns: 1fr;
   }

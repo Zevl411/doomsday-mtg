@@ -1,167 +1,141 @@
 <template>
-  <div
-    ref="searchRoot"
-    class="card-search"
-    :class="{ 'card-search--elevated': elevatedResults }"
-  >
-  <v-text-field
-    :id="searchInputId"
-    v-model="query"
-    autocomplete="off"
-    color="primary"
-    :density="compact ? 'compact' : 'default'"
-    :hide-details="compact"
-    :label="hasSelectedCards ? undefined : 'Search for a Magic card'"
-    :placeholder="hasSelectedCards ? undefined : 'Card name'"
-    type="search"
-    variant="outlined"
-    :clearable="showClearButton"
-    @click:clear="emit('cleared')"
-    @focus="openResults"
-  >
-    <template v-if="hasSelectedCards" #prepend-inner>
-      <v-chip
-        v-for="card in displayedSelectedCards"
-        :key="card.id"
-        class="selected-card-chip"
-        color="primary"
-        size="small"
-        variant="outlined"
+  <div ref="searchRoot" class="card-search" :class="{ 'card-search--elevated': elevatedResults }">
+    <v-text-field
+      :id="searchInputId"
+      v-model="query"
+      autocomplete="off"
+      color="primary"
+      :density="compact ? 'compact' : 'default'"
+      :hide-details="compact"
+      :label="hasSelectedCards ? undefined : 'Search for a Magic card'"
+      :placeholder="hasSelectedCards ? undefined : 'Card name'"
+      type="search"
+      variant="outlined"
+      :clearable="showClearButton"
+      @click:clear="emit('cleared')"
+      @focus="openResults"
+    >
+      <template v-if="hasSelectedCards" #prepend-inner>
+        <v-chip
+          v-for="card in displayedSelectedCards"
+          :key="card.id"
+          class="selected-card-chip"
+          color="primary"
+          size="small"
+          variant="outlined"
+        >
+          <span class="selected-card-chip__label">{{ selectedCardLabel(card) }}</span>
+          <button
+            :aria-label="`Clear ${card.name}`"
+            class="selected-card-chip__close"
+            type="button"
+            @click.stop="removeSelectedCard(card)"
+          >
+            ×
+          </button>
+        </v-chip>
+      </template>
+      <template v-if="$slots.actions" #append>
+        <slot name="actions" />
+      </template>
+    </v-text-field>
+
+    <div
+      v-show="resultsVisible && (isLoading || errorMessage || fallbackMessage || cards.length)"
+      class="search-results"
+      aria-live="polite"
+    >
+      <AppLoadingSkeleton v-if="isLoading" :count="3" label="Searching cards" variant="list" />
+
+      <v-alert v-else-if="errorMessage" density="comfortable" type="error" variant="tonal">
+        {{ errorMessage }}
+      </v-alert>
+
+      <v-alert
+        v-if="!isLoading && !errorMessage && fallbackMessage"
+        class="mb-3"
+        density="comfortable"
+        type="warning"
+        variant="tonal"
       >
-        <span class="selected-card-chip__label">{{
-          selectedCardLabel(card)
-        }}</span>
-        <button
-          :aria-label="`Clear ${card.name}`"
-          class="selected-card-chip__close"
+        {{ fallbackMessage }}
+      </v-alert>
+
+      <v-list
+        v-if="!isLoading && !errorMessage && cards.length"
+        class="search-results-list pa-0"
+        bg-color="transparent"
+      >
+        <v-list-item
+          v-for="card in cards"
+          :key="card.id"
+          :aria-pressed="isCardSelected(card)"
+          border
+          class="card-result mb-3"
+          :class="{ 'card-result--selected': isCardSelected(card) }"
+          rounded="lg"
+          tag="button"
           type="button"
-          @click.stop="removeSelectedCard(card)"
+          @click="selectCard(card)"
+          @focus="emit('card-hovered', card)"
+          @mouseenter="emit('card-hovered', card)"
         >
-          ×
-        </button>
-      </v-chip>
-    </template>
-    <template v-if="$slots.actions" #append>
-      <slot name="actions" />
-    </template>
-  </v-text-field>
+          <template v-if="getCardImage(card, 'small')" #prepend>
+            <v-img
+              :alt="`${card.name} card art`"
+              class="card-result-image full-card-image mr-4 rounded"
+              cover
+              height="100"
+              :src="getCardImage(card, 'small')"
+              width="72"
+            />
+          </template>
 
-  <div
-    v-show="
-      resultsVisible
-      && (isLoading || errorMessage || fallbackMessage || cards.length)
-    "
-    class="search-results"
-    aria-live="polite"
-  >
-    <AppLoadingSkeleton
-      v-if="isLoading"
-      :count="3"
-      label="Searching cards"
-      variant="list"
-    />
-
-    <v-alert
-      v-else-if="errorMessage"
-      density="comfortable"
-      type="error"
-      variant="tonal"
-    >
-      {{ errorMessage }}
-    </v-alert>
-
-    <v-alert
-      v-if="!isLoading && !errorMessage && fallbackMessage"
-      class="mb-3"
-      density="comfortable"
-      type="warning"
-      variant="tonal"
-    >
-      {{ fallbackMessage }}
-    </v-alert>
-
-    <v-list
-      v-if="!isLoading && !errorMessage && cards.length"
-      class="search-results-list pa-0"
-      bg-color="transparent"
-    >
-      <v-list-item
-        v-for="card in cards"
-        :key="card.id"
-        :aria-pressed="isCardSelected(card)"
-        border
-        class="card-result mb-3"
-        :class="{ 'card-result--selected': isCardSelected(card) }"
-        rounded="lg"
-        tag="button"
-        type="button"
-        @click="selectCard(card)"
-        @focus="emit('card-hovered', card)"
-        @mouseenter="emit('card-hovered', card)"
-      >
-        <template v-if="getCardImage(card, 'small')" #prepend>
-          <v-img
-            :alt="`${card.name} card art`"
-            class="card-result-image full-card-image mr-4 rounded"
-            cover
-            height="100"
-            :src="getCardImage(card, 'small')"
-            width="72"
-          />
-        </template>
-
-        <v-list-item-title
-          class="card-result-name d-flex flex-column align-start ga-2 font-weight-bold"
-        >
-          <span>{{ card.name }}</span>
-          <ManaCost
-            v-if="getCastingCost(card)"
-            class="card-result-mana-cost flex-shrink-0"
-            :cost="getCastingCost(card)"
-          />
-        </v-list-item-title>
-      </v-list-item>
-    </v-list>
-  </div>
+          <v-list-item-title
+            class="card-result-name d-flex flex-column align-start ga-2 font-weight-bold"
+          >
+            <span>{{ card.name }}</span>
+            <ManaCost
+              v-if="getCastingCost(card)"
+              class="card-result-mana-cost flex-shrink-0"
+              :cost="getCastingCost(card)"
+            />
+          </v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  onMounted,
-  onUnmounted,
-  ref,
-  useId,
-  watch,
-} from 'vue'
-import {
-  searchCards,
-  type ScryfallSearchUniqueMode,
-} from '../api/scryfall'
-import AppLoadingSkeleton from './AppLoadingSkeleton.vue'
-import { searchCanonicalCards } from '../repositories/canonicalCardRepository'
-import type { ScryfallCard } from '../types/card'
-import ManaCost from './ManaCost.vue'
-import { getCardImage } from '../utils/cardDisplay'
-import { getCompactCardName } from '../utils/cardName'
+import { computed, onMounted, onUnmounted, ref, useId, watch } from 'vue';
+
+import { searchCards, type ScryfallSearchUniqueMode } from '../api/scryfall';
+import { searchCanonicalCards } from '../repositories/canonicalCardRepository';
+import { getCardImage } from '../utils/cardDisplay';
+import { getCompactCardName } from '../utils/cardName';
+
+import AppLoadingSkeleton from './AppLoadingSkeleton.vue';
+import ManaCost from './ManaCost.vue';
+
+import type { ScryfallCard } from '../types/card';
 
 // Props are values a parent component can pass into this component.
 const props = withDefaults(
   defineProps<{
-    commanderOnly?: boolean
-    searchFilter?: string
-    selectedCardIds?: string[]
-    modelValue?: string
-    clearable?: boolean
-    compact?: boolean
-    elevatedResults?: boolean
-    clearOnSelect?: boolean
-    retainSelectedName?: boolean
-    resultFilter?: (card: ScryfallCard) => boolean
-    selectedCard?: ScryfallCard | null
-    selectedCards?: ScryfallCard[]
-    searchUnique?: ScryfallSearchUniqueMode
+    commanderOnly?: boolean;
+    searchFilter?: string;
+    selectedCardIds?: string[];
+    modelValue?: string;
+    clearable?: boolean;
+    compact?: boolean;
+    elevatedResults?: boolean;
+    clearOnSelect?: boolean;
+    retainSelectedName?: boolean;
+    resultFilter?: (card: ScryfallCard) => boolean;
+    selectedCard?: ScryfallCard | null;
+    selectedCards?: ScryfallCard[];
+    searchUnique?: ScryfallSearchUniqueMode;
   }>(),
   {
     commanderOnly: false,
@@ -178,98 +152,89 @@ const props = withDefaults(
     selectedCards: () => [],
     searchUnique: 'cards',
   },
-)
+);
 
 // Emits describe events this component can send back to its parent. The tuple
 // says that card-selected sends one value named card with the ScryfallCard type.
 const emit = defineEmits<{
-  'card-hovered': [card: ScryfallCard]
-  'card-selected': [card: ScryfallCard]
-  'update:modelValue': [value: string]
-  cleared: []
-  'card-removed': [card: ScryfallCard]
-}>()
+  'card-hovered': [card: ScryfallCard];
+  'card-selected': [card: ScryfallCard];
+  'update:modelValue': [value: string];
+  cleared: [];
+  'card-removed': [card: ScryfallCard];
+}>();
 
 // useId() gives each CardSearch instance its own accessible input and label ID.
-const searchInputId = useId()
+const searchInputId = useId();
 
 // ref() makes a value reactive, so Vue updates the page when it changes.
-const query = ref(props.modelValue)
-const cards = ref<ScryfallCard[]>([])
-const searchRoot = ref<HTMLElement | null>(null)
-const errorMessage = ref('')
-const fallbackMessage = ref('')
-const isLoading = ref(false)
-const resultsVisible = ref(false)
+const query = ref(props.modelValue);
+const cards = ref<ScryfallCard[]>([]);
+const searchRoot = ref<HTMLElement | null>(null);
+const errorMessage = ref('');
+const fallbackMessage = ref('');
+const isLoading = ref(false);
+const resultsVisible = ref(false);
 // A Set provides constant-time selection checks for every rendered result.
-const selectedCardIdSet = computed(() => new Set(props.selectedCardIds))
+const selectedCardIdSet = computed(() => new Set(props.selectedCardIds));
 const displayedSelectedCards = computed(() =>
-  props.selectedCards.length
-    ? props.selectedCards
-    : props.selectedCard
-      ? [props.selectedCard]
-      : [],
-)
-const hasSelectedCards = computed(() => displayedSelectedCards.value.length > 0)
-const showClearButton = computed(
-  () => !props.commanderOnly && !hasSelectedCards.value,
-)
-let searchTimer: number | undefined
-let suppressNextSearch = false
+  props.selectedCards.length ? props.selectedCards : props.selectedCard ? [props.selectedCard] : [],
+);
+const hasSelectedCards = computed(() => displayedSelectedCards.value.length > 0);
+const showClearButton = computed(() => !props.commanderOnly && !hasSelectedCards.value);
+let searchTimer: number | undefined;
+let suppressNextSearch = false;
 // AbortController lets us intentionally cancel a fetch that is no longer needed.
-let activeController: AbortController | null = null
+let activeController: AbortController | null = null;
 
 // Watching both values also refreshes results when a parent changes the filter.
 watch([query, () => props.searchFilter], ([newQuery]) => {
-  resultsVisible.value = Boolean(newQuery.trim())
-  emit('update:modelValue', newQuery)
-  window.clearTimeout(searchTimer)
-  activeController?.abort()
-  activeController = null
-  errorMessage.value = ''
-  fallbackMessage.value = ''
+  resultsVisible.value = Boolean(newQuery.trim());
+  emit('update:modelValue', newQuery);
+  window.clearTimeout(searchTimer);
+  activeController?.abort();
+  activeController = null;
+  errorMessage.value = '';
+  fallbackMessage.value = '';
 
   if (suppressNextSearch) {
-    suppressNextSearch = false
-    cards.value = []
-    resultsVisible.value = false
-    isLoading.value = false
-    return
+    suppressNextSearch = false;
+    cards.value = [];
+    resultsVisible.value = false;
+    isLoading.value = false;
+    return;
   }
 
   if (!newQuery.trim()) {
-    cards.value = []
-    isLoading.value = false
-    return
+    cards.value = [];
+    isLoading.value = false;
+    return;
   }
 
   searchTimer = window.setTimeout(async () => {
-    const controller = new AbortController()
-    activeController = controller
-    isLoading.value = true
+    const controller = new AbortController();
+    activeController = controller;
+    isLoading.value = true;
 
     try {
-      const commanderFilter = 'is:commander legal:commander'
+      const commanderFilter = 'is:commander legal:commander';
       const scryfallQuery = props.commanderOnly
         ? `${newQuery} ${commanderFilter} ${props.searchFilter}`.trim()
-        : `${newQuery} ${props.searchFilter}`.trim()
+        : `${newQuery} ${props.searchFilter}`.trim();
 
       try {
-        const results = props.searchUnique === 'cards'
-          ? await searchCards(scryfallQuery, controller.signal)
-          : await searchCards(
-            scryfallQuery,
-            controller.signal,
-            props.searchUnique,
-          )
-        cards.value = filterResults(results)
+        const results =
+          props.searchUnique === 'cards'
+            ? await searchCards(scryfallQuery, controller.signal)
+            : await searchCards(scryfallQuery, controller.signal, props.searchUnique);
+        cards.value = filterResults(results);
       } catch (error) {
         if (
           controller.signal.aborted ||
           !(error instanceof Error) ||
           error.name !== 'ScryfallUnavailableError'
         ) {
-          throw error
+          throw error;
         }
 
         cards.value = filterResults(
@@ -277,117 +242,114 @@ watch([query, () => props.searchFilter], ([newQuery]) => {
             commanderOnly: props.commanderOnly,
             allowedColorIdentity: getFallbackColorIdentity(props.searchFilter),
           }),
-        )
-        if (controller.signal.aborted) return
+        );
+        if (controller.signal.aborted) return;
         fallbackMessage.value = cards.value.length
           ? 'Scryfall is unavailable. Showing cached tournament cards.'
-          : 'Scryfall is unavailable, and no cached matching cards were found.'
+          : 'Scryfall is unavailable, and no cached matching cards were found.';
       }
     } catch (error) {
       if (controller.signal.aborted) {
-        return
+        return;
       }
 
-      cards.value = []
-      errorMessage.value =
-        error instanceof Error ? error.message : 'Card search failed.'
+      cards.value = [];
+      errorMessage.value = error instanceof Error ? error.message : 'Card search failed.';
     } finally {
       if (activeController === controller) {
-        activeController = null
-        isLoading.value = false
+        activeController = null;
+        isLoading.value = false;
       }
     }
-  }, 250)
-})
+  }, 250);
+});
 
 watch(
   () => props.modelValue,
   (value) => {
-    if (value !== query.value) query.value = value
+    if (value !== query.value) query.value = value;
   },
-)
+);
 
 watch(
   () => displayedSelectedCards.value.map((card) => card.id).join(','),
   () => {
-    if (!hasSelectedCards.value || !query.value) return
-    suppressNextSearch = true
-    query.value = ''
+    if (!hasSelectedCards.value || !query.value) return;
+    suppressNextSearch = true;
+    query.value = '';
   },
   { immediate: true },
-)
+);
 
 // onUnmounted() runs cleanup when Vue removes this component from the page.
 onMounted(() => {
-  document.addEventListener('pointerdown', closeResultsWhenClickingOutside)
-})
+  document.addEventListener('pointerdown', closeResultsWhenClickingOutside);
+});
 
 onUnmounted(() => {
-  window.clearTimeout(searchTimer)
-  activeController?.abort()
-  document.removeEventListener('pointerdown', closeResultsWhenClickingOutside)
-})
+  window.clearTimeout(searchTimer);
+  activeController?.abort();
+  document.removeEventListener('pointerdown', closeResultsWhenClickingOutside);
+});
 
 function isCardSelected(card: ScryfallCard): boolean {
-  return selectedCardIdSet.value.has(card.id)
+  return selectedCardIdSet.value.has(card.id);
 }
 
 function selectedCardLabel(card: ScryfallCard): string {
-  return props.commanderOnly
-    ? getCompactCardName(card.name)
-    : card.name.trim()
+  return props.commanderOnly ? getCompactCardName(card.name) : card.name.trim();
 }
 
 function selectCard(card: ScryfallCard) {
-  emit('card-selected', card)
+  emit('card-selected', card);
   if (props.clearOnSelect) {
-    query.value = ''
+    query.value = '';
   } else if (props.retainSelectedName) {
-    suppressNextSearch = true
-    query.value = card.name
-    cards.value = []
+    suppressNextSearch = true;
+    query.value = card.name;
+    cards.value = [];
   }
 }
 
 function removeSelectedCard(card: ScryfallCard) {
-  if (props.selectedCards.length) emit('card-removed', card)
+  if (props.selectedCards.length) emit('card-removed', card);
   else {
-    query.value = ''
-    emit('cleared')
+    query.value = '';
+    emit('cleared');
   }
 }
 
 function closeResultsWhenClickingOutside(event: PointerEvent) {
-  const target = event.target
-  if (!(target instanceof Node) || searchRoot.value?.contains(target)) return
+  const target = event.target;
+  if (!(target instanceof Node) || searchRoot.value?.contains(target)) return;
 
-  window.clearTimeout(searchTimer)
-  activeController?.abort()
-  activeController = null
-  resultsVisible.value = false
-  isLoading.value = false
+  window.clearTimeout(searchTimer);
+  activeController?.abort();
+  activeController = null;
+  resultsVisible.value = false;
+  isLoading.value = false;
 }
 
 function openResults() {
-  if (query.value.trim()) resultsVisible.value = true
+  if (query.value.trim()) resultsVisible.value = true;
 }
 
 function filterResults(results: ScryfallCard[]): ScryfallCard[] {
-  return props.resultFilter ? results.filter(props.resultFilter) : results
+  return props.resultFilter ? results.filter(props.resultFilter) : results;
 }
 
 function getCastingCost(card: ScryfallCard): string {
-  if (card.mana_cost) return card.mana_cost
+  if (card.mana_cost) return card.mana_cost;
   return (card.card_faces ?? [])
     .map((face) => face.mana_cost)
     .filter((cost): cost is string => Boolean(cost))
-    .join(' // ')
+    .join(' // ');
 }
 
 function getFallbackColorIdentity(searchFilter: string): string[] | undefined {
-  if (/\bid:c\b/i.test(searchFilter)) return []
-  const match = searchFilter.match(/\bid<=([wubrg]+)\b/i)
-  return match?.[1]?.toUpperCase().split('')
+  if (/\bid:c\b/i.test(searchFilter)) return [];
+  const match = searchFilter.match(/\bid<=([wubrg]+)\b/i);
+  return match?.[1]?.toUpperCase().split('');
 }
 </script>
 
@@ -402,17 +364,17 @@ function getFallbackColorIdentity(searchFilter: string): string[] | undefined {
 }
 
 .card-search--elevated .search-results {
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.18);
-  border-radius: 8px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
   left: 0;
+  z-index: 30;
   min-height: 0;
   padding: 8px;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 30;
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgb(var(--v-theme-on-surface), 0.18);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 38%);
 }
 
 .selected-card-chip {
@@ -432,8 +394,8 @@ function getFallbackColorIdentity(searchFilter: string): string[] | undefined {
 }
 
 .card-result-name > span:first-child {
-  max-width: 100%;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -451,38 +413,38 @@ function getFallbackColorIdentity(searchFilter: string): string[] | undefined {
 .selected-card-chip__label {
   display: block;
   overflow: hidden;
-  text-align: center;
   text-overflow: ellipsis;
+  text-align: center;
   white-space: nowrap;
 }
 
 .selected-card-chip__close {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: currentColor;
-  cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 1rem;
-  height: 18px;
+  align-items: center;
   justify-content: center;
-  line-height: 1;
-  margin-inline-start: 4px;
-  opacity: 0.82;
-  padding: 0;
   width: 18px;
+  height: 18px;
+  padding: 0;
+  margin-inline-start: 4px;
+  font-size: 1rem;
+  line-height: 1;
+  color: currentcolor;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  opacity: 0.82;
 }
 
 .selected-card-chip__close:hover,
 .selected-card-chip__close:focus-visible {
-  opacity: 1;
   outline: none;
+  opacity: 1;
 }
 
 .selected-card-chip:has(.selected-card-chip__close:hover),
 .selected-card-chip:has(.selected-card-chip__close:focus-visible) {
-  border-color: rgb(var(--v-theme-error)) !important;
   color: rgb(var(--v-theme-error)) !important;
+  border-color: rgb(var(--v-theme-error)) !important;
 }
 </style>

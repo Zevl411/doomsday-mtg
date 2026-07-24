@@ -1,6 +1,6 @@
 function configuredValue(value: string | undefined, fallback: string) {
-  const trimmed = value?.trim()
-  return trimmed || fallback
+  const trimmed = value?.trim();
+  return trimmed || fallback;
 }
 
 /**
@@ -10,8 +10,5 @@ function configuredValue(value: string | undefined, fallback: string) {
  */
 export const appConfig = {
   name: configuredValue(import.meta.env.VITE_APP_NAME, 'DoomsdayMTG'),
-  tagline: configuredValue(
-    import.meta.env.VITE_APP_TAGLINE,
-    'Competitive Commander Deck Builder',
-  ),
-}
+  tagline: configuredValue(import.meta.env.VITE_APP_TAGLINE, 'Competitive Commander Deck Builder'),
+};

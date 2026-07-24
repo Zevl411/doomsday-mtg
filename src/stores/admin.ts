@@ -1,7 +1,8 @@
-import { defineStore } from 'pinia'
-import { dataHealthRepository } from '../repositories/dataHealthRepository'
+import { defineStore } from 'pinia';
 
-let adminCheckPromise: Promise<void> | null = null
+import { dataHealthRepository } from '../repositories/dataHealthRepository';
+
+let adminCheckPromise: Promise<void> | null = null;
 
 /**
  * Operational messages are useful to administrators but distracting to
@@ -16,24 +17,23 @@ export const useAdminStore = defineStore('admin', {
 
   actions: {
     async initialize(userId: string | null) {
-      if (this.initialized && this.userId === userId) return
-      if (adminCheckPromise) return adminCheckPromise
+      if (this.initialized && this.userId === userId) return;
+      if (adminCheckPromise) return adminCheckPromise;
 
-      this.userId = userId
-      this.isAdmin = false
-      this.initialized = false
+      this.userId = userId;
+      this.isAdmin = false;
+      this.initialized = false;
       adminCheckPromise = (async () => {
         if (userId) {
-          this.isAdmin =
-            await dataHealthRepository.isCurrentUserAdmin()
+          this.isAdmin = await dataHealthRepository.isCurrentUserAdmin();
         }
-        this.initialized = true
-      })()
+        this.initialized = true;
+      })();
       try {
-        await adminCheckPromise
+        await adminCheckPromise;
       } finally {
-        adminCheckPromise = null
+        adminCheckPromise = null;
       }
     },
   },
-})
+});

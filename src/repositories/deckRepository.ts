@@ -1,4 +1,4 @@
-import type { StoredDeckLibrary } from '../models/deckLibrary'
+import type { StoredDeckLibrary } from '../models/deckLibrary';
 
 /**
  * A repository describes the persistence operations the deck store needs
@@ -10,7 +10,7 @@ import type { StoredDeckLibrary } from '../models/deckLibrary'
  * or deck-building rules.
  */
 export interface DeckRepository {
-  loadLibrary(): StoredDeckLibrary
-  saveLibrary(library: StoredDeckLibrary): boolean
-  clearLibrary(): boolean
+  loadLibrary(): StoredDeckLibrary;
+  saveLibrary(library: StoredDeckLibrary): boolean;
+  clearLibrary(): boolean;
 }

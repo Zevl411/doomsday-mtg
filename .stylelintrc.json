@@ -1,0 +1,9 @@
+{
+  "extends": ["stylelint-config-standard-vue", "stylelint-config-recess-order"],
+  "ignoreFiles": ["coverage/**", "dist/**", "node_modules/**", "public/**"],
+  "rules": {
+    "custom-property-pattern": null,
+    "keyframes-name-pattern": null,
+    "selector-class-pattern": null
+  }
+}

@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import type { ScryfallCard } from '../types/card'
-import { getCardManaValue } from './cardManaValue'
+import { describe, expect, it } from 'vitest';
+
+import { getCardManaValue } from './cardManaValue';
+
+import type { ScryfallCard } from '../types/card';
 
 function card(overrides: Partial<ScryfallCard>): ScryfallCard {
   return {
@@ -9,17 +11,17 @@ function card(overrides: Partial<ScryfallCard>): ScryfallCard {
     type_line: 'Instant',
     color_identity: [],
     ...overrides,
-  }
+  };
 }
 
 describe('getCardManaValue', () => {
   it('prefers the numeric mana value when provided', () => {
-    expect(getCardManaValue(card({ cmc: 7, mana_cost: '{1}{U}' }))).toBe(7)
-  })
+    expect(getCardManaValue(card({ cmc: 7, mana_cost: '{1}{U}' }))).toBe(7);
+  });
 
   it('derives mana value from generic, colored, and hybrid symbols', () => {
-    expect(getCardManaValue(card({ mana_cost: '{2}{W/U}{U/P}{X}' }))).toBe(4)
-  })
+    expect(getCardManaValue(card({ mana_cost: '{2}{W/U}{U/P}{X}' }))).toBe(4);
+  });
 
   it('adds multiple face casting costs when no numeric value exists', () => {
     expect(
@@ -31,6 +33,6 @@ describe('getCardManaValue', () => {
           ],
         }),
       ),
-    ).toBe(5)
-  })
-})
+    ).toBe(5);
+  });
+});

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, vi } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest';
 
 class ResizeObserverStub {
   observe() {}
@@ -13,25 +13,25 @@ const visualViewportStub = {
   offsetTop: 0,
   addEventListener() {},
   removeEventListener() {},
-}
+};
 
-vi.stubGlobal('ResizeObserver', ResizeObserverStub)
-vi.stubGlobal('visualViewport', visualViewportStub)
+vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+vi.stubGlobal('visualViewport', visualViewportStub);
 
 beforeEach(() => {
   if (typeof localStorage.clear === 'function') {
-    localStorage.clear()
+    localStorage.clear();
   }
-})
+});
 
 afterEach(() => {
-  vi.useRealTimers()
-  vi.restoreAllMocks()
-  vi.unstubAllGlobals()
-  vi.stubGlobal('ResizeObserver', ResizeObserverStub)
-  vi.stubGlobal('visualViewport', visualViewportStub)
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+  vi.stubGlobal('visualViewport', visualViewportStub);
 
   if (typeof localStorage.clear === 'function') {
-    localStorage.clear()
+    localStorage.clear();
   }
-})
+});

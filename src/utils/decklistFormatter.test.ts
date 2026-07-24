@@ -1,13 +1,15 @@
-import { describe, expect, it } from 'vitest'
-import type { Deck } from '../models/deck'
-import type { ScryfallCard } from '../types/card'
-import { formatDecklist } from './decklistFormatter'
+import { describe, expect, it } from 'vitest';
+
+import { formatDecklist } from './decklistFormatter';
+
+import type { Deck } from '../models/deck';
+import type { ScryfallCard } from '../types/card';
 
 const deckMetadata = {
   id: 'test-deck',
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
-}
+};
 
 function createCard(id: string, name: string): ScryfallCard {
   return {
@@ -15,7 +17,7 @@ function createCard(id: string, name: string): ScryfallCard {
     name,
     type_line: 'Artifact',
     color_identity: [],
-  }
+  };
 }
 
 describe('formatDecklist', () => {
@@ -32,7 +34,7 @@ describe('formatDecklist', () => {
       sideboard: [],
       maybeboard: [],
       considering: [],
-    }
+    };
 
     expect(formatDecklist(deck)).toBe(
       [
@@ -44,8 +46,8 @@ describe('formatDecklist', () => {
         '12 Island',
         '1 Sol Ring',
       ].join('\n'),
-    )
-  })
+    );
+  });
 
   it('omits the Commander section when no Commander exists', () => {
     const deck: Deck = {
@@ -56,10 +58,10 @@ describe('formatDecklist', () => {
       sideboard: [],
       maybeboard: [],
       considering: [],
-    }
+    };
 
-    expect(formatDecklist(deck)).toBe('Mainboard\n1 Sol Ring')
-  })
+    expect(formatDecklist(deck)).toBe('Mainboard\n1 Sol Ring');
+  });
 
   it('does not mutate deck entry order while sorting output', () => {
     const deck: Deck = {
@@ -73,15 +75,12 @@ describe('formatDecklist', () => {
       sideboard: [],
       maybeboard: [],
       considering: [],
-    }
+    };
 
-    formatDecklist(deck)
+    formatDecklist(deck);
 
-    expect(deck.cards.map((entry) => entry.card.name)).toEqual([
-      'Sol Ring',
-      'Island',
-    ])
-  })
+    expect(deck.cards.map((entry) => entry.card.name)).toEqual(['Sol Ring', 'Island']);
+  });
 
   it('preserves and sorts every non-empty tracked board', () => {
     const deck: Deck = {
@@ -93,13 +92,9 @@ describe('formatDecklist', () => {
         { card: createCard('z', 'Zed'), quantity: 1 },
         { card: createCard('a', 'Alpha'), quantity: 2 },
       ],
-      maybeboard: [
-        { card: createCard('silence', 'Silence'), quantity: 1 },
-      ],
-      considering: [
-        { card: createCard('swan', 'Swan Song'), quantity: 3 },
-      ],
-    }
+      maybeboard: [{ card: createCard('silence', 'Silence'), quantity: 1 }],
+      considering: [{ card: createCard('swan', 'Swan Song'), quantity: 3 }],
+    };
 
     expect(formatDecklist(deck)).toBe(
       [
@@ -113,6 +108,6 @@ describe('formatDecklist', () => {
         'Considering',
         '3 Swan Song',
       ].join('\n'),
-    )
-  })
-})
+    );
+  });
+});

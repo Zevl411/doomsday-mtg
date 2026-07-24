@@ -1,5 +1,6 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
-import { dataHealthRepository } from '../repositories/dataHealthRepository'
+import { createRouter, createWebHashHistory } from 'vue-router';
+
+import { dataHealthRepository } from '../repositories/dataHealthRepository';
 
 // Router configuration belongs separately from the route-level view components.
 const router = createRouter({
@@ -107,15 +108,13 @@ const router = createRouter({
       component: () => import('../views/NotFoundView.vue'),
     },
   ],
-})
+});
 
 // Database RPCs remain the authorization boundary; this guard also prevents
 // non-admin users from entering an operational route in the first place.
 router.beforeEach(async (to) => {
-  if (!to.meta.requiresAdmin) return true
-  return await dataHealthRepository.isCurrentUserAdmin()
-    ? true
-    : { name: 'auth' }
-})
+  if (!to.meta.requiresAdmin) return true;
+  return (await dataHealthRepository.isCurrentUserAdmin()) ? true : { name: 'auth' };
+});
 
-export default router
+export default router;

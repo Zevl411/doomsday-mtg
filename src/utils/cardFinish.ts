@@ -1,4 +1,4 @@
-import type { ScryfallCard } from '../types/card'
+import type { ScryfallCard } from '../types/card';
 
 /**
  * Older saved cards do not include finish metadata, so they remain permissive.
@@ -6,7 +6,7 @@ import type { ScryfallCard } from '../types/card'
  * with a traditional foil treatment.
  */
 export function supportsFoil(card: ScryfallCard): boolean {
-  if (card.finishes) return card.finishes.includes('foil')
-  if (typeof card.foil === 'boolean') return card.foil
-  return true
+  if (card.finishes) return card.finishes.includes('foil');
+  if (typeof card.foil === 'boolean') return card.foil;
+  return true;
 }

@@ -1,31 +1,25 @@
-import {
-  getCardsByExactNames,
-  isCommanderEligible,
-} from '../api/scryfall'
-import type { Deck, DeckCard } from '../models/deck'
+import { getCardsByExactNames, isCommanderEligible } from '../api/scryfall';
+import { getCardIdentity } from '../utils/cardIdentity';
+import { validateCommanderPairing } from '../utils/commanderPairing';
+import { isBasicLand, validateCardAddition } from '../utils/deckLegality';
+import { parseDecklist } from '../utils/decklistParser';
+
+import type { Deck, DeckCard } from '../models/deck';
+import type { ScryfallCard } from '../types/card';
 import type {
   DeckBoard,
   DeckImportIssue,
   DecklistFormat,
   ParsedDeckLine,
   PreparedDeckImport,
-} from '../types/deckImport'
-import type { ScryfallCard } from '../types/card'
-import { getCardIdentity } from '../utils/cardIdentity'
-import { isBasicLand, validateCardAddition } from '../utils/deckLegality'
-import { validateCommanderPairing } from '../utils/commanderPairing'
-import { parseDecklist } from '../utils/decklistParser'
+} from '../types/deckImport';
 
-type ImportCardBoard =
-  | 'mainboard'
-  | 'sideboard'
-  | 'maybeboard'
-  | 'considering'
+type ImportCardBoard = 'mainboard' | 'sideboard' | 'maybeboard' | 'considering';
 
 interface CombinedCard {
-  card: ScryfallCard
-  quantity: number
-  firstLine: ParsedDeckLine
+  card: ScryfallCard;
+  quantity: number;
+  firstLine: ParsedDeckLine;
 }
 
 /**
@@ -40,57 +34,43 @@ export async function prepareDeckImport(
   signal?: AbortSignal,
   selectedFormat?: DecklistFormat,
 ): Promise<PreparedDeckImport> {
-  const parsed = parseDecklist(text, selectedFormat)
-  const issues: DeckImportIssue[] = [...parsed.issues]
-  let importedCards = 0
-  let skippedCards = parsed.issues.length
+  const parsed = parseDecklist(text, selectedFormat);
+  const issues: DeckImportIssue[] = [...parsed.issues];
+  let importedCards = 0;
+  let skippedCards = parsed.issues.length;
   const resolvableBoards = new Set<DeckBoard>([
     'commander',
     'mainboard',
     'sideboard',
     'maybeboard',
     'considering',
-  ])
-  const importableLines = parsed.lines.filter((line) =>
-    resolvableBoards.has(line.section),
-  )
+  ]);
+  const importableLines = parsed.lines.filter((line) => resolvableBoards.has(line.section));
   const lookupNames = Array.from(
     new Map(
-      importableLines.map((line) => [
-        line.cardName.trim().toLowerCase(),
-        line.cardName,
-      ]),
+      importableLines.map((line) => [line.cardName.trim().toLowerCase(), line.cardName]),
     ).values(),
-  )
+  );
 
   // All tracked boards share one deduplicated lookup set. This both reduces API
   // load and guarantees that the same name resolves consistently everywhere.
-  const resolvedBatch = await getCardsByExactNames(lookupNames, signal)
-  const resolvedCards = createResolvedCardMap(resolvedBatch)
-  let commander = parsed.hasCommanderSection
-    ? null
-    : currentDeck.commander
-  let partnerCommander = parsed.hasCommanderSection
-    ? null
-    : currentDeck.partnerCommander ?? null
-  let commanderSource:
-    | 'imported'
-    | 'inferred'
-    | 'retained'
-    | 'required'
-    | 'none' = commander ? 'retained' : 'none'
+  const resolvedBatch = await getCardsByExactNames(lookupNames, signal);
+  const resolvedCards = createResolvedCardMap(resolvedBatch);
+  let commander = parsed.hasCommanderSection ? null : currentDeck.commander;
+  let partnerCommander = parsed.hasCommanderSection ? null : (currentDeck.partnerCommander ?? null);
+  let commanderSource: 'imported' | 'inferred' | 'retained' | 'required' | 'none' = commander
+    ? 'retained'
+    : 'none';
 
-  const commanderLines = parsed.lines.filter(
-    (line) => line.section === 'commander',
-  )
+  const commanderLines = parsed.lines.filter((line) => line.section === 'commander');
 
   for (const line of commanderLines) {
-    const card = getResolvedCard(line, resolvedCards)
+    const card = getResolvedCard(line, resolvedCards);
 
     if (!card) {
-      issues.push(createUnknownCardIssue(line))
-      skippedCards += line.quantity
-      continue
+      issues.push(createUnknownCardIssue(line));
+      skippedCards += line.quantity;
+      continue;
     }
 
     if (commander && partnerCommander) {
@@ -98,29 +78,28 @@ export async function prepareDeckImport(
         lineNumber: line.lineNumber,
         input: line.cardName,
         message: 'Only two paired Commanders are supported.',
-      })
-      skippedCards += line.quantity
-      continue
+      });
+      skippedCards += line.quantity;
+      continue;
     }
 
     if (!commander) {
-      commander = card
-      commanderSource = 'imported'
-      importedCards += 1
+      commander = card;
+      commanderSource = 'imported';
+      importedCards += 1;
     } else {
-      const pairing = validateCommanderPairing(commander, card)
+      const pairing = validateCommanderPairing(commander, card);
       if (!pairing.allowed) {
         issues.push({
           lineNumber: line.lineNumber,
           input: line.cardName,
-          message:
-            pairing.reason ?? 'These cards cannot be paired as Commanders.',
-        })
-        skippedCards += line.quantity
-        continue
+          message: pairing.reason ?? 'These cards cannot be paired as Commanders.',
+        });
+        skippedCards += line.quantity;
+        continue;
       }
-      partnerCommander = card
-      importedCards += 1
+      partnerCommander = card;
+      importedCards += 1;
     }
 
     if (line.quantity > 1) {
@@ -128,38 +107,34 @@ export async function prepareDeckImport(
         lineNumber: line.lineNumber,
         input: line.cardName,
         message: 'Only one copy of the Commander was imported.',
-      })
-      skippedCards += line.quantity - 1
+      });
+      skippedCards += line.quantity - 1;
     }
   }
 
-  let mainboardLines = parsed.lines.filter(
-    (line) => line.section === 'mainboard',
-  )
+  let mainboardLines = parsed.lines.filter((line) => line.section === 'mainboard');
 
   if (
     parsed.commanderInferenceMayBeRequired &&
     isPlausibleCommanderList(mainboardLines, parsed.format)
   ) {
-    const firstLine = mainboardLines[0]
-    const firstCard = firstLine
-      ? getResolvedCard(firstLine, resolvedCards)
-      : null
+    const firstLine = mainboardLines[0];
+    const firstCard = firstLine ? getResolvedCard(firstLine, resolvedCards) : null;
 
     if (
       firstLine?.quantity === 1 &&
       firstCard &&
-      await isCommanderEligible(firstCard.name, signal)
+      (await isCommanderEligible(firstCard.name, signal))
     ) {
-      commander = firstCard
-      commanderSource = 'inferred'
-      importedCards += 1
-      mainboardLines = mainboardLines.slice(1)
+      commander = firstCard;
+      commanderSource = 'inferred';
+      importedCards += 1;
+      mainboardLines = mainboardLines.slice(1);
     }
   }
 
   if (!commander && !parsed.hasCommanderSection) {
-    commanderSource = 'required'
+    commanderSource = 'required';
   }
 
   const deck: Deck = {
@@ -173,41 +148,37 @@ export async function prepareDeckImport(
     sideboard: [],
     maybeboard: [],
     considering: [],
-  }
+  };
 
   const boardLines: Record<ImportCardBoard, ParsedDeckLine[]> = {
     mainboard: mainboardLines,
     sideboard: parsed.lines.filter((line) => line.section === 'sideboard'),
     maybeboard: parsed.lines.filter((line) => line.section === 'maybeboard'),
     considering: parsed.lines.filter((line) => line.section === 'considering'),
-  }
+  };
 
   // Object.keys() returns string[] in TypeScript. The assertion is safe because
   // boardLines was created immediately above with every ImportCardBoard key.
   for (const board of Object.keys(boardLines) as ImportCardBoard[]) {
-    const combinedCards = combineBoardCards(
-      boardLines[board],
-      resolvedCards,
-      issues,
-    )
+    const combinedCards = combineBoardCards(boardLines[board], resolvedCards, issues);
 
     for (const combinedCard of combinedCards.values()) {
       if (board === 'mainboard') {
-        const added = addMainboardCard(deck, combinedCard, issues)
-        importedCards += added.imported
-        skippedCards += added.skipped
+        const added = addMainboardCard(deck, combinedCard, issues);
+        importedCards += added.imported;
+        skippedCards += added.skipped;
       } else {
         getDeckBoard(deck, board).push({
           card: combinedCard.card,
           quantity: combinedCard.quantity,
-        })
-        importedCards += combinedCard.quantity
+        });
+        importedCards += combinedCard.quantity;
       }
     }
 
     skippedCards += boardLines[board]
       .filter((line) => !getResolvedCard(line, resolvedCards))
-      .reduce((total, line) => total + line.quantity, 0)
+      .reduce((total, line) => total + line.quantity, 0);
   }
 
   return {
@@ -221,53 +192,48 @@ export async function prepareDeckImport(
       ignoredSections: parsed.ignoredSections,
       commanderSource,
     },
-  }
+  };
 }
 
-function createResolvedCardMap(
-  cards: ScryfallCard[],
-): Map<string, ScryfallCard> {
-  const resolvedCards = new Map<string, ScryfallCard>()
+function createResolvedCardMap(cards: ScryfallCard[]): Map<string, ScryfallCard> {
+  const resolvedCards = new Map<string, ScryfallCard>();
 
   for (const card of cards) {
     const aliases = [
       card.name,
       card.flavor_name,
       card.printed_name,
-      ...(card.card_faces?.flatMap((face) => [
-        face.name,
-        face.printed_name,
-      ]) ?? []),
-    ]
+      ...(card.card_faces?.flatMap((face) => [face.name, face.printed_name]) ?? []),
+    ];
 
     for (const alias of aliases) {
       if (alias) {
-        resolvedCards.set(normalizeResolvedName(alias), card)
+        resolvedCards.set(normalizeResolvedName(alias), card);
       }
     }
 
     // A front-face-only input should resolve to the complete card object.
-    const frontFaceName = card.name.split('//')[0]
+    const frontFaceName = card.name.split('//')[0];
     if (frontFaceName) {
-      resolvedCards.set(normalizeResolvedName(frontFaceName), card)
+      resolvedCards.set(normalizeResolvedName(frontFaceName), card);
     }
   }
 
-  return resolvedCards
+  return resolvedCards;
 }
 
 function getResolvedCard(
   line: ParsedDeckLine,
   cards: Map<string, ScryfallCard>,
 ): ScryfallCard | null {
-  return cards.get(normalizeResolvedName(line.cardName)) ?? null
+  return cards.get(normalizeResolvedName(line.cardName)) ?? null;
 }
 
 function normalizeResolvedName(name: string): string {
   return name
     .replace(/\s*\/{1,2}\s*/g, ' // ')
     .trim()
-    .toLowerCase()
+    .toLowerCase();
 }
 
 function combineBoardCards(
@@ -275,30 +241,30 @@ function combineBoardCards(
   resolvedCards: Map<string, ScryfallCard>,
   issues: DeckImportIssue[],
 ): Map<string, CombinedCard> {
-  const combinedCards = new Map<string, CombinedCard>()
+  const combinedCards = new Map<string, CombinedCard>();
 
   for (const line of lines) {
-    const card = getResolvedCard(line, resolvedCards)
+    const card = getResolvedCard(line, resolvedCards);
 
     if (!card) {
-      issues.push(createUnknownCardIssue(line))
-      continue
+      issues.push(createUnknownCardIssue(line));
+      continue;
     }
 
-    const identity = getCardIdentity(card)
-    const existing = combinedCards.get(identity)
+    const identity = getCardIdentity(card);
+    const existing = combinedCards.get(identity);
     if (existing) {
-      existing.quantity += line.quantity
+      existing.quantity += line.quantity;
     } else {
       combinedCards.set(identity, {
         card,
         quantity: line.quantity,
         firstLine: line,
-      })
+      });
     }
   }
 
-  return combinedCards
+  return combinedCards;
 }
 
 function addMainboardCard(
@@ -311,57 +277,46 @@ function addMainboardCard(
       lineNumber: combinedCard.firstLine.lineNumber,
       input: combinedCard.firstLine.cardName,
       message: 'Choose a Commander before importing main-deck cards.',
-    })
-    return { imported: 0, skipped: combinedCard.quantity }
+    });
+    return { imported: 0, skipped: combinedCard.quantity };
   }
 
-  const validation = validateCardAddition(combinedCard.card, deck)
+  const validation = validateCardAddition(combinedCard.card, deck);
   if (!validation.allowed) {
     issues.push({
       lineNumber: combinedCard.firstLine.lineNumber,
       input: combinedCard.firstLine.cardName,
-      message:
-        validation.reason ?? 'This card could not be imported into the deck.',
-    })
-    return { imported: 0, skipped: combinedCard.quantity }
+      message: validation.reason ?? 'This card could not be imported into the deck.',
+    });
+    return { imported: 0, skipped: combinedCard.quantity };
   }
 
-  const quantity = isBasicLand(combinedCard.card)
-    ? combinedCard.quantity
-    : 1
-  deck.cards.push({ card: combinedCard.card, quantity })
+  const quantity = isBasicLand(combinedCard.card) ? combinedCard.quantity : 1;
+  deck.cards.push({ card: combinedCard.card, quantity });
 
   if (!isBasicLand(combinedCard.card) && combinedCard.quantity > 1) {
-    const skipped = combinedCard.quantity - 1
+    const skipped = combinedCard.quantity - 1;
     issues.push({
       lineNumber: combinedCard.firstLine.lineNumber,
       input: combinedCard.firstLine.cardName,
       message: `${skipped} duplicate copies were skipped.`,
-    })
-    return { imported: 1, skipped }
+    });
+    return { imported: 1, skipped };
   }
 
-  return { imported: quantity, skipped: 0 }
+  return { imported: quantity, skipped: 0 };
 }
 
-function getDeckBoard(
-  deck: Deck,
-  board: Exclude<ImportCardBoard, 'mainboard'>,
-): DeckCard[] {
-  return deck[board]
+function getDeckBoard(deck: Deck, board: Exclude<ImportCardBoard, 'mainboard'>): DeckCard[] {
+  return deck[board];
 }
 
-function isPlausibleCommanderList(
-  lines: ParsedDeckLine[],
-  format: DecklistFormat,
-): boolean {
-  const total = lines.reduce((sum, line) => sum + line.quantity, 0)
+function isPlausibleCommanderList(lines: ParsedDeckLine[], format: DecklistFormat): boolean {
+  const total = lines.reduce((sum, line) => sum + line.quantity, 0);
 
   // A selected/detected Moxfield list can be a useful partial export. For an
   // otherwise generic list, stay close to the expected 100-card shape.
-  return format === 'moxfield'
-    ? total >= 60 && total <= 120
-    : total >= 90 && total <= 110
+  return format === 'moxfield' ? total >= 60 && total <= 120 : total >= 90 && total <= 110;
 }
 
 function createUnknownCardIssue(line: ParsedDeckLine): DeckImportIssue {
@@ -369,5 +324,5 @@ function createUnknownCardIssue(line: ParsedDeckLine): DeckImportIssue {
     lineNumber: line.lineNumber,
     input: line.cardName,
     message: 'No matching Scryfall card was found.',
-  }
+  };
 }

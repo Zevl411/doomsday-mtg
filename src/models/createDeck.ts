@@ -1,16 +1,16 @@
-import type { Deck, DeckCard, DeckVisibility } from './deck'
-import type { ScryfallCard } from '../types/card'
+import type { Deck, DeckCard, DeckVisibility } from './deck';
+import type { ScryfallCard } from '../types/card';
 
-export const DEFAULT_DECK_NAME = 'Untitled Deck'
+export const DEFAULT_DECK_NAME = 'Untitled Deck';
 
 export function createDeckId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID()
+    return crypto.randomUUID();
   }
 
   // The fallback is readable and sufficiently unique for an offline,
   // browser-local library. Modern production browsers use randomUUID().
-  return `deck-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `deck-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function createEmptyDeck(
@@ -18,7 +18,7 @@ export function createEmptyDeck(
   creatorUsername = 'Guest',
   visibility: DeckVisibility = 'public',
 ): Deck {
-  const timestamp = new Date().toISOString()
+  const timestamp = new Date().toISOString();
 
   return {
     id: createDeckId(),
@@ -34,7 +34,7 @@ export function createEmptyDeck(
     sideboard: [],
     maybeboard: [],
     considering: [],
-  }
+  };
 }
 
 export function cloneDeck(
@@ -43,7 +43,7 @@ export function cloneDeck(
   visibility: DeckVisibility = 'unlisted',
   creatorUsername = source.creatorUsername,
 ): Deck {
-  const timestamp = new Date().toISOString()
+  const timestamp = new Date().toISOString();
 
   return {
     id: createDeckId(),
@@ -55,21 +55,17 @@ export function cloneDeck(
     updatedAt: timestamp,
     commander: source.commander ? cloneCard(source.commander) : null,
     ...(source.commanderFoil === true ? { commanderFoil: true } : {}),
-    partnerCommander: source.partnerCommander
-      ? cloneCard(source.partnerCommander)
-      : null,
-    ...(source.partnerCommanderFoil === true
-      ? { partnerCommanderFoil: true }
-      : {}),
+    partnerCommander: source.partnerCommander ? cloneCard(source.partnerCommander) : null,
+    ...(source.partnerCommanderFoil === true ? { partnerCommanderFoil: true } : {}),
     cards: cloneBoard(source.cards),
     sideboard: cloneBoard(source.sideboard),
     maybeboard: cloneBoard(source.maybeboard),
     considering: cloneBoard(source.considering),
-  }
+  };
 }
 
 export function normalizeDeckName(name: string): string {
-  return name.trim() || DEFAULT_DECK_NAME
+  return name.trim() || DEFAULT_DECK_NAME;
 }
 
 function cloneBoard(board: DeckCard[]): DeckCard[] {
@@ -77,7 +73,7 @@ function cloneBoard(board: DeckCard[]): DeckCard[] {
     card: cloneCard(entry.card),
     quantity: entry.quantity,
     ...(entry.foil === true ? { foil: true } : {}),
-  }))
+  }));
 }
 
 function cloneCard(card: ScryfallCard): ScryfallCard {
@@ -92,5 +88,5 @@ function cloneCard(card: ScryfallCard): ScryfallCard {
       ...face,
       image_uris: face.image_uris ? { ...face.image_uris } : undefined,
     })),
-  }
+  };
 }

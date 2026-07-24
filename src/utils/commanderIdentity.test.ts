@@ -1,15 +1,13 @@
-import { describe, expect, it } from 'vitest'
-import {
-  getCompactCommanderDisplayName,
-  normalizeCommanderIdentity,
-} from './commanderIdentity'
+import { describe, expect, it } from 'vitest';
+
+import { getCompactCommanderDisplayName, normalizeCommanderIdentity } from './commanderIdentity';
 
 describe('normalizeCommanderIdentity', () => {
   it('normalizes casing and whitespace for a single Commander', () => {
     expect(normalizeCommanderIdentity('  Kinnan,   Bonder Prodigy ').key).toBe(
       'kinnan, bonder prodigy',
-    )
-  })
+    );
+  });
 
   it.each([
     'Tymna the Weaver / Kraum, Ludevic’s Opus',
@@ -17,36 +15,34 @@ describe('normalizeCommanderIdentity', () => {
     'Tymna the Weaver & Kraum, Ludevic’s Opus',
     'Kraum, Ludevic’s Opus with Tymna the Weaver',
   ])('groups partner separator variation: %s', (name) => {
-    expect(normalizeCommanderIdentity(name).key).toBe(
-      'kraum, ludevic’s opus // tymna the weaver',
-    )
-  })
+    expect(normalizeCommanderIdentity(name).key).toBe('kraum, ludevic’s opus // tymna the weaver');
+  });
 
   it('retains punctuation in stable identities', () => {
-    expect(normalizeCommanderIdentity("Kenrith, the Returned King").key).toBe(
+    expect(normalizeCommanderIdentity('Kenrith, the Returned King').key).toBe(
       'kenrith, the returned king',
-    )
-  })
+    );
+  });
 
   it('treats pair order as identical without colliding with either Commander', () => {
-    const forward = normalizeCommanderIdentity('Tymna // Kraum').key
-    const reverse = normalizeCommanderIdentity('Kraum // Tymna').key
-    expect(forward).toBe(reverse)
-    expect(forward).not.toBe(normalizeCommanderIdentity('Tymna').key)
-    expect(forward).not.toBe(normalizeCommanderIdentity('Kraum').key)
-  })
-})
+    const forward = normalizeCommanderIdentity('Tymna // Kraum').key;
+    const reverse = normalizeCommanderIdentity('Kraum // Tymna').key;
+    expect(forward).toBe(reverse);
+    expect(forward).not.toBe(normalizeCommanderIdentity('Tymna').key);
+    expect(forward).not.toBe(normalizeCommanderIdentity('Kraum').key);
+  });
+});
 
 describe('getCompactCommanderDisplayName', () => {
   it('shortens each Commander in a partner pairing', () => {
-    expect(getCompactCommanderDisplayName(
-      "Tymna the Weaver // Kraum, Ludevic's Opus",
-    )).toBe('Tymna/Kraum')
-  })
+    expect(getCompactCommanderDisplayName("Tymna the Weaver // Kraum, Ludevic's Opus")).toBe(
+      'Tymna/Kraum',
+    );
+  });
 
   it('keeps the full name for a single Commander', () => {
-    expect(getCompactCommanderDisplayName(
+    expect(getCompactCommanderDisplayName('Sisay, Weatherlight Captain')).toBe(
       'Sisay, Weatherlight Captain',
-    )).toBe('Sisay, Weatherlight Captain')
-  })
-})
+    );
+  });
+});

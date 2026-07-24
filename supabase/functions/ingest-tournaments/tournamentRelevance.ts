@@ -72,7 +72,7 @@ export const DEFAULT_EXCLUDED_TITLE_KEYWORDS = [
   '프리콘',
   '초보',
   '저파워',
-]
+];
 
 /**
  * Language-specific secrets let operators add regional terminology without
@@ -90,24 +90,23 @@ export const EXCLUDED_TITLE_KEYWORD_CONFIG_KEYS = [
   'TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_ZH',
   'TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_JA',
   'TOURNAMENT_EXCLUDED_TITLE_KEYWORDS_KO',
-]
+];
 
 /** Custom comma-separated terms extend the safe defaults rather than replace them. */
-export function buildExcludedTitleKeywords(
-  configuredValues: Array<string | undefined>,
-): string[] {
-  const configuredKeywords = configuredValues.flatMap((value) =>
-    value?.split(',').map((keyword) => keyword.trim()).filter(Boolean) ?? []
-  )
-  return [...new Set([
-    ...DEFAULT_EXCLUDED_TITLE_KEYWORDS,
-    ...configuredKeywords,
-  ])]
+export function buildExcludedTitleKeywords(configuredValues: Array<string | undefined>): string[] {
+  const configuredKeywords = configuredValues.flatMap(
+    (value) =>
+      value
+        ?.split(',')
+        .map((keyword) => keyword.trim())
+        .filter(Boolean) ?? [],
+  );
+  return [...new Set([...DEFAULT_EXCLUDED_TITLE_KEYWORDS, ...configuredKeywords])];
 }
 
 export interface TournamentRelevance {
-  included: boolean
-  matchedKeyword?: string
+  included: boolean;
+  matchedKeyword?: string;
 }
 
 /**
@@ -118,17 +117,15 @@ export function evaluateTournamentTitle(
   title: string,
   excludedKeywords = DEFAULT_EXCLUDED_TITLE_KEYWORDS,
 ): TournamentRelevance {
-  const normalizedTitle = normalize(title)
-  const bracketSignal = findNonCompetitiveBracket(normalizedTitle)
+  const normalizedTitle = normalize(title);
+  const bracketSignal = findNonCompetitiveBracket(normalizedTitle);
   if (bracketSignal) {
-    return { included: false, matchedKeyword: bracketSignal }
+    return { included: false, matchedKeyword: bracketSignal };
   }
   const matchedKeyword = excludedKeywords.find((keyword) =>
-    containsPhrase(normalizedTitle, normalize(keyword))
-  )
-  return matchedKeyword
-    ? { included: false, matchedKeyword }
-    : { included: true }
+    containsPhrase(normalizedTitle, normalize(keyword)),
+  );
+  return matchedKeyword ? { included: false, matchedKeyword } : { included: true };
 }
 
 function normalize(value: string) {
@@ -137,20 +134,19 @@ function normalize(value: string) {
     .replace(/\p{M}/gu, '')
     .toLocaleLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim()
+    .trim();
 }
 
 function containsPhrase(title: string, phrase: string) {
-  if (!phrase) return false
+  if (!phrase) return false;
 
   // Chinese, Japanese, and Korean titles do not consistently separate words
   // with spaces, so requiring Latin-style word boundaries misses valid terms.
-  if (/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u
-    .test(phrase)) {
-    return title.includes(phrase)
+  if (/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(phrase)) {
+    return title.includes(phrase);
   }
 
-  return (` ${title} `).includes(` ${phrase} `)
+  return ` ${title} `.includes(` ${phrase} `);
 }
 
 /**
@@ -159,11 +155,11 @@ function containsPhrase(title: string, phrase: string) {
  * labels in event titles, including compact forms such as "[CoBr4]".
  */
 function findNonCompetitiveBracket(title: string): string | undefined {
-  const words = ` ${title} `
-  if (/\bco\s*br\s*[1234]\b/.test(words)) return 'Commander Bracket 1–4'
+  const words = ` ${title} `;
+  if (/\bco\s*br\s*[1234]\b/.test(words)) return 'Commander Bracket 1–4';
   if (/\bcommander\s+bracket\s+[1234]\b/.test(words)) {
-    return 'Commander Bracket 1–4'
+    return 'Commander Bracket 1–4';
   }
-  if (/\bbracket\s+[1234]\b/.test(words)) return 'Commander Bracket 1–4'
-  return undefined
+  if (/\bbracket\s+[1234]\b/.test(words)) return 'Commander Bracket 1–4';
+  return undefined;
 }

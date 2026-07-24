@@ -1,26 +1,10 @@
 <template>
-  <v-card
-    border
-    class="preview-panel"
-    color="surface-bright"
-    rounded="lg"
-    variant="flat"
-  >
-    <v-card-title class="widget-header-bar px-5 py-3">
-      Card Preview
-    </v-card-title>
+  <v-card border class="preview-panel" color="surface-bright" rounded="lg" variant="flat">
+    <v-card-title class="widget-header-bar px-5 py-3"> Card Preview </v-card-title>
 
     <template v-if="card">
-      <div
-        v-if="getCardImage(card, 'large')"
-        class="card-preview-image mx-5 mt-4 rounded-lg"
-      >
-        <DoubleFacedCardImage
-          aspect-ratio="0.716"
-          :card="card"
-          cover
-          image-size="large"
-        />
+      <div v-if="getCardImage(card, 'large')" class="card-preview-image mx-5 mt-4 rounded-lg">
+        <DoubleFacedCardImage aspect-ratio="0.716" :card="card" cover image-size="large" />
         <FoilCardOverlay v-if="foil" />
       </div>
 
@@ -40,10 +24,7 @@
               <h3 class="card-preview-copy text-subtitle-1 font-weight-bold">
                 {{ cardFace.name }}
               </h3>
-              <ManaCost
-                v-if="cardFace.mana_cost"
-                :cost="cardFace.mana_cost"
-              />
+              <ManaCost v-if="cardFace.mana_cost" :cost="cardFace.mana_cost" />
             </div>
             <p class="text-body-2 text-medium-emphasis">
               {{ cardFace.type_line }}
@@ -63,11 +44,7 @@
             </p>
             <ManaCost v-if="card.mana_cost" :cost="card.mana_cost" />
           </div>
-          <OracleText
-            v-if="card.oracle_text"
-            class="mt-3 text-body-2"
-            :text="card.oracle_text"
-          />
+          <OracleText v-if="card.oracle_text" class="mt-3 text-body-2" :text="card.oracle_text" />
         </template>
 
         <v-sheet
@@ -79,9 +56,7 @@
           <div class="align-center d-flex ga-2 justify-space-between">
             <div>
               <div class="text-subtitle-2">TCGplayer prices</div>
-              <div class="text-caption text-medium-emphasis">
-                Selected printing · USD
-              </div>
+              <div class="text-caption text-medium-emphasis">Selected printing · USD</div>
             </div>
             <v-btn
               v-if="tcgplayerUrl"
@@ -100,8 +75,9 @@
               :key="price.finish"
               class="card-preview-price"
               :class="{
-                'card-preview-price--selected':
-                  foil ? price.finish === 'Foil' : price.finish === 'Regular',
+                'card-preview-price--selected': foil
+                  ? price.finish === 'Foil'
+                  : price.finish === 'Regular',
               }"
             >
               <span class="text-caption text-medium-emphasis">
@@ -121,76 +97,72 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
-import { getCardById } from '../api/scryfall'
-import type { ScryfallCard } from '../types/card'
-import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
-import ManaCost from './ManaCost.vue'
-import OracleText from './OracleText.vue'
-import { getCardImage } from '../utils/cardDisplay'
-import FoilCardOverlay from './FoilCardOverlay.vue'
-import { useUserPreferencesStore } from '../stores/userPreferences'
-import {
-  formatCardPrice,
-  getCardMarketPrices,
-  getTcgplayerPurchaseUrl,
-} from '../utils/cardPrice'
+import { computed, onUnmounted, ref, watch } from 'vue';
 
-const props = withDefaults(defineProps<{
-  card: ScryfallCard | null
-  foil?: boolean
-}>(), {
-  foil: false,
-})
+import { getCardById } from '../api/scryfall';
+import { useUserPreferencesStore } from '../stores/userPreferences';
+import { getCardImage } from '../utils/cardDisplay';
+import { formatCardPrice, getCardMarketPrices, getTcgplayerPurchaseUrl } from '../utils/cardPrice';
 
-const preferences = useUserPreferencesStore()
-const refreshedCard = ref<ScryfallCard | null>(null)
-let priceController: AbortController | null = null
+import DoubleFacedCardImage from './DoubleFacedCardImage.vue';
+import FoilCardOverlay from './FoilCardOverlay.vue';
+import ManaCost from './ManaCost.vue';
+import OracleText from './OracleText.vue';
 
-const pricingCard = computed(() => refreshedCard.value ?? props.card)
+import type { ScryfallCard } from '../types/card';
+
+const props = withDefaults(
+  defineProps<{
+    card: ScryfallCard | null;
+    foil?: boolean;
+  }>(),
+  {
+    foil: false,
+  },
+);
+
+const preferences = useUserPreferencesStore();
+const refreshedCard = ref<ScryfallCard | null>(null);
+let priceController: AbortController | null = null;
+
+const pricingCard = computed(() => refreshedCard.value ?? props.card);
 const marketPrices = computed(() =>
   pricingCard.value ? getCardMarketPrices(pricingCard.value) : [],
-)
+);
 const tcgplayerUrl = computed(() =>
   pricingCard.value ? getTcgplayerPurchaseUrl(pricingCard.value) : null,
-)
+);
 
 watch(
   () => props.card,
   (card) => {
-    priceController?.abort()
-    refreshedCard.value = null
-    if (
-      !card ||
-      card.prices !== undefined ||
-      !isScryfallPrintingId(card.id)
-    ) {
-      return
+    priceController?.abort();
+    refreshedCard.value = null;
+    if (!card || card.prices !== undefined || !isScryfallPrintingId(card.id)) {
+      return;
     }
 
-    priceController = new AbortController()
-    const activeController = priceController
+    priceController = new AbortController();
+    const activeController = priceController;
     void getCardById(card.id, activeController.signal)
       .then((freshCard) => {
-        if (!activeController.signal.aborted) refreshedCard.value = freshCard
+        if (!activeController.signal.aborted) refreshedCard.value = freshCard;
       })
       // Price refresh is supplementary and must never obstruct card details.
-      .catch(() => undefined)
+      .catch(() => undefined);
   },
   { immediate: true },
-)
+);
 
-onUnmounted(() => priceController?.abort())
+onUnmounted(() => priceController?.abort());
 
 function formatPrice(amount: number): string {
-  return formatCardPrice(amount, preferences.values.priceCurrency)
+  return formatCardPrice(amount, preferences.values.priceCurrency);
 }
 
 function isScryfallPrintingId(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    .test(value)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
-
 </script>
 
 <style scoped>
@@ -204,18 +176,18 @@ function isScryfallPrintingId(value: string): boolean {
 }
 
 .card-preview-image {
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
 }
 
 .card-preview-pricing {
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
 }
 
 .card-preview-price-grid {
   display: grid;
-  gap: 8px;
   grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 8px;
 }
 
 .card-preview-price {

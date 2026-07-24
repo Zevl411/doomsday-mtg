@@ -3,268 +3,237 @@
     v-if="routeDeckReady && deckStore.hasActiveDeck"
     class="deck-builder-page"
     :class="{
-      'deck-builder-page--search-left':
-        preferencesStore.values.deckBuilderSearchSide === 'left',
+      'deck-builder-page--search-left': preferencesStore.values.deckBuilderSearchSide === 'left',
       // The preference remains persisted for a future layout pass. For now,
       // statistics always use the below-boards slot.
       'deck-builder-page--statistics-below': true,
     }"
   >
-  <v-row align="start">
-    <v-col cols="12">
-      <DeckBuilderHeader
-        @export="importExport?.openExportDialog()"
-        @import="importExport?.openImportDialog()"
+    <v-row align="start">
+      <v-col cols="12">
+        <DeckBuilderHeader
+          @export="importExport?.openExportDialog()"
+          @import="importExport?.openImportDialog()"
+        >
+          <template #searches>
+            <div class="text-subtitle-1 mb-2">Mainboard Search</div>
+            <DeckCardSearch board="mainboard" @card-selected="addDeckCard($event, 'mainboard')" />
+          </template>
+        </DeckBuilderHeader>
+      </v-col>
+    </v-row>
+
+    <div class="builder-workspace">
+      <div
+        class="workspace-commander d-flex"
+        :class="{ 'workspace-commander--paired': showPartnerPanel }"
+        :style="commanderPanelStyle"
       >
-        <template #searches>
-          <div class="text-subtitle-1 mb-2">Mainboard Search</div>
-          <DeckCardSearch
-            board="mainboard"
-            @card-selected="addDeckCard($event, 'mainboard')"
-          />
-        </template>
-      </DeckBuilderHeader>
-    </v-col>
+        <div class="workspace-commander-slot">
+          <CommanderPanel :compact-display="showPartnerPanel" display-only />
+        </div>
+        <div v-if="showPartnerPanel" class="workspace-commander-slot">
+          <CommanderPanel compact-display display-only display-target="partner" />
+        </div>
+      </div>
 
-  </v-row>
+      <div class="workspace-statistics d-flex">
+        <DeckRecommendationsPanel
+          @add="addDeckCard"
+          @content-resized="recommendationContentHeight = $event"
+        />
+      </div>
 
-  <div class="builder-workspace">
-    <div
-      class="workspace-commander d-flex"
-      :class="{ 'workspace-commander--paired': showPartnerPanel }"
-      :style="commanderPanelStyle"
+      <div class="workspace-deck">
+        <DeckPanel />
+      </div>
+
+      <div class="workspace-statistics-below d-flex">
+        <DeckStatisticsPanel />
+      </div>
+
+      <div class="workspace-preview">
+        <CardPreview :card="deckStore.previewCard" :foil="previewCardIsFoil" />
+      </div>
+    </div>
+
+    <DeckImportExport ref="importExport" :show-controls="false" />
+
+    <v-dialog
+      :model-value="showIllegalCardDialog"
+      max-width="520"
+      @update:model-value="handleConfirmationVisibility"
     >
-      <div class="workspace-commander-slot">
-        <CommanderPanel
-          :compact-display="showPartnerPanel"
-          display-only
-        />
-      </div>
-      <div v-if="showPartnerPanel" class="workspace-commander-slot">
-        <CommanderPanel
-          compact-display
-          display-only
-          display-target="partner"
-        />
-      </div>
-    </div>
-
-    <div class="workspace-statistics d-flex">
-      <DeckRecommendationsPanel
-        @add="addDeckCard"
-        @content-resized="recommendationContentHeight = $event"
-      />
-    </div>
-
-    <div class="workspace-deck">
-      <DeckPanel />
-    </div>
-
-    <div class="workspace-statistics-below d-flex">
-      <DeckStatisticsPanel />
-    </div>
-
-    <div class="workspace-preview">
-      <CardPreview
-        :card="deckStore.previewCard"
-        :foil="previewCardIsFoil"
-      />
-    </div>
-  </div>
-
-  <DeckImportExport ref="importExport" :show-controls="false" />
-
-  <v-dialog
-    :model-value="showIllegalCardDialog"
-    max-width="520"
-    @update:model-value="handleConfirmationVisibility"
-  >
-    <v-card color="surface" rounded="lg">
-      <v-card-title class="px-5 pt-5">
-        {{
-          validationCanBeOverridden
-            ? 'Add an illegal card?'
-            : 'Card cannot be added'
-        }}
-      </v-card-title>
-      <v-card-text class="px-5">
-        <p>{{ pendingIllegalReason }}</p>
-        <p
-          v-if="validationCanBeOverridden"
-          class="mt-3 text-medium-emphasis"
-        >
-          Adding it will flag the deck as invalid until the card is removed or
-          the Commander changes.
-        </p>
-      </v-card-text>
-      <v-card-actions class="px-5 pb-5">
-        <v-spacer />
-        <v-btn variant="text" @click="cancelIllegalCard">
-          {{ validationCanBeOverridden ? 'Cancel' : 'Close' }}
-        </v-btn>
-        <v-btn
-          v-if="validationCanBeOverridden"
-          color="error"
-          variant="flat"
-          @click="confirmIllegalCard"
-        >
-          Add anyway
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      <v-card color="surface" rounded="lg">
+        <v-card-title class="px-5 pt-5">
+          {{ validationCanBeOverridden ? 'Add an illegal card?' : 'Card cannot be added' }}
+        </v-card-title>
+        <v-card-text class="px-5">
+          <p>{{ pendingIllegalReason }}</p>
+          <p v-if="validationCanBeOverridden" class="mt-3 text-medium-emphasis">
+            Adding it will flag the deck as invalid until the card is removed or the Commander
+            changes.
+          </p>
+        </v-card-text>
+        <v-card-actions class="px-5 pb-5">
+          <v-spacer />
+          <v-btn variant="text" @click="cancelIllegalCard">
+            {{ validationCanBeOverridden ? 'Cancel' : 'Close' }}
+          </v-btn>
+          <v-btn
+            v-if="validationCanBeOverridden"
+            color="error"
+            variant="flat"
+            @click="confirmIllegalCard"
+          >
+            Add anyway
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
   <v-card v-else border class="pa-8 text-center" color="surface" rounded="lg">
     <v-card-title>No deck selected</v-card-title>
-    <v-card-text>
-      Create a deck before opening the deck builder.
-    </v-card-text>
-    <v-btn color="primary" :to="{ name: 'deck-library' }">
-      View decks
-    </v-btn>
+    <v-card-text> Create a deck before opening the deck builder. </v-card-text>
+    <v-btn color="primary" :to="{ name: 'deck-library' }"> View decks </v-btn>
   </v-card>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useDisplay } from 'vuetify'
-import CardPreview from '../components/CardPreview.vue'
-import CommanderPanel from '../components/CommanderPanel.vue'
-import DeckBuilderHeader from '../components/DeckBuilderHeader.vue'
-import DeckCardSearch from '../components/DeckCardSearch.vue'
-import DeckImportExport from '../components/DeckImportExport.vue'
-import DeckPanel from '../components/DeckPanel.vue'
-import DeckRecommendationsPanel from '../components/DeckRecommendationsPanel.vue'
-import DeckStatisticsPanel from '../components/DeckStatisticsPanel.vue'
-import { useDeckStore } from '../stores/deck'
-import { useUserPreferencesStore } from '../stores/userPreferences'
-import type { TrackedDeckBoard } from '../models/deck'
-import type { ScryfallCard } from '../types/card'
-import { canHavePartner } from '../utils/commanderPairing'
-import { getCardIdentity } from '../utils/cardIdentity'
+import { computed, ref, watch } from 'vue';
 
-const deckStore = useDeckStore()
-const preferencesStore = useUserPreferencesStore()
-const route = useRoute()
-const router = useRouter()
-const display = useDisplay()
-const routeDeckReady = ref(false)
+import { useRoute, useRouter } from 'vue-router';
+import { useDisplay } from 'vuetify';
+
+import CardPreview from '../components/CardPreview.vue';
+import CommanderPanel from '../components/CommanderPanel.vue';
+import DeckBuilderHeader from '../components/DeckBuilderHeader.vue';
+import DeckCardSearch from '../components/DeckCardSearch.vue';
+import DeckImportExport from '../components/DeckImportExport.vue';
+import DeckPanel from '../components/DeckPanel.vue';
+import DeckRecommendationsPanel from '../components/DeckRecommendationsPanel.vue';
+import DeckStatisticsPanel from '../components/DeckStatisticsPanel.vue';
+import { useDeckStore } from '../stores/deck';
+import { useUserPreferencesStore } from '../stores/userPreferences';
+import { getCardIdentity } from '../utils/cardIdentity';
+import { canHavePartner } from '../utils/commanderPairing';
+
+import type { TrackedDeckBoard } from '../models/deck';
+import type { ScryfallCard } from '../types/card';
+
+const deckStore = useDeckStore();
+const preferencesStore = useUserPreferencesStore();
+const route = useRoute();
+const router = useRouter();
+const display = useDisplay();
+const routeDeckReady = ref(false);
 const showPartnerPanel = computed(() =>
-  Boolean(
-    deckStore.deck.commander
-    && canHavePartner(deckStore.deck.commander),
-  ),
-)
+  Boolean(deckStore.deck.commander && canHavePartner(deckStore.deck.commander)),
+);
 const previewCardIsFoil = computed(() => {
-  if (!deckStore.previewCard) return false
-  const previewIdentity = getCardIdentity(deckStore.previewCard)
+  if (!deckStore.previewCard) return false;
+  const previewIdentity = getCardIdentity(deckStore.previewCard);
   if (
     deckStore.deck.commanderFoil === true &&
     deckStore.deck.commander &&
     getCardIdentity(deckStore.deck.commander) === previewIdentity
   ) {
-    return true
+    return true;
   }
   if (
     deckStore.deck.partnerCommanderFoil === true &&
     deckStore.deck.partnerCommander &&
     getCardIdentity(deckStore.deck.partnerCommander) === previewIdentity
   ) {
-    return true
+    return true;
   }
   return [
     ...deckStore.deck.cards,
     ...deckStore.deck.sideboard,
     ...deckStore.deck.maybeboard,
     ...deckStore.deck.considering,
-  ].some((entry) =>
-    entry.foil === true &&
-    getCardIdentity(entry.card) === previewIdentity
-  )
-})
-const importExport = ref<InstanceType<typeof DeckImportExport> | null>(null)
-const recommendationContentHeight = ref(0)
+  ].some((entry) => entry.foil === true && getCardIdentity(entry.card) === previewIdentity);
+});
+const importExport = ref<InstanceType<typeof DeckImportExport> | null>(null);
+const recommendationContentHeight = ref(0);
 const commanderPanelStyle = computed(() =>
   display.lgAndUp.value && recommendationContentHeight.value > 0
     ? { height: `${recommendationContentHeight.value}px` }
     : undefined,
-)
+);
 watch(
   () => route.params.deckId,
   (deckId) => {
-    routeDeckReady.value = typeof deckId === 'string'
-      && deckStore.openDeck(deckId)
+    routeDeckReady.value = typeof deckId === 'string' && deckStore.openDeck(deckId);
     if (!routeDeckReady.value) {
-      void router.replace({ name: 'deck-library' })
+      void router.replace({ name: 'deck-library' });
     }
   },
   { immediate: true },
-)
+);
 watch(
   () => deckStore.deck.id,
   () => {
-    deckStore.clearPreviewCard()
+    deckStore.clearPreviewCard();
     if (!deckStore.previewCard && deckStore.deck.commander) {
-      deckStore.setPreviewCard(deckStore.deck.commander)
+      deckStore.setPreviewCard(deckStore.deck.commander);
     }
   },
   { immediate: true },
-)
-const pendingIllegalCard = ref<ScryfallCard | null>(null)
-const pendingIllegalBoard = ref<TrackedDeckBoard>('mainboard')
-const pendingIllegalReason = ref('')
-const showIllegalCardDialog = ref(false)
-const validationCanBeOverridden = ref(false)
+);
+const pendingIllegalCard = ref<ScryfallCard | null>(null);
+const pendingIllegalBoard = ref<TrackedDeckBoard>('mainboard');
+const pendingIllegalReason = ref('');
+const showIllegalCardDialog = ref(false);
+const validationCanBeOverridden = ref(false);
 
 function addDeckCard(card: ScryfallCard, board: TrackedDeckBoard) {
-  const result = deckStore.addCardToBoard(card, board)
+  const result = deckStore.addCardToBoard(card, board);
 
   if (!result.allowed) {
     // Selecting an already-present search result is intentionally a quiet
     // no-op. Quantity overrides require the explicit plus-button workflow.
     if (result.rule === 'duplicate') {
-      deckStore.clearRejectionMessage()
-      return
+      deckStore.clearRejectionMessage();
+      return;
     }
 
-    pendingIllegalCard.value = result.overridable ? card : null
-    pendingIllegalBoard.value = board
-    pendingIllegalReason.value =
-      result.reason ?? 'That card cannot be added to this deck.'
-    validationCanBeOverridden.value = result.overridable ?? false
-    showIllegalCardDialog.value = true
+    pendingIllegalCard.value = result.overridable ? card : null;
+    pendingIllegalBoard.value = board;
+    pendingIllegalReason.value = result.reason ?? 'That card cannot be added to this deck.';
+    validationCanBeOverridden.value = result.overridable ?? false;
+    showIllegalCardDialog.value = true;
   }
 }
 
 function confirmIllegalCard() {
-  const card = pendingIllegalCard.value
+  const card = pendingIllegalCard.value;
 
-  closeIllegalCardDialog()
+  closeIllegalCardDialog();
 
   if (card) {
-    deckStore.addCardToBoard(card, pendingIllegalBoard.value, 1, true)
+    deckStore.addCardToBoard(card, pendingIllegalBoard.value, 1, true);
   }
 }
 
 function cancelIllegalCard() {
-  closeIllegalCardDialog()
+  closeIllegalCardDialog();
 }
 
 function handleConfirmationVisibility(isOpen: boolean) {
   if (isOpen) {
-    showIllegalCardDialog.value = true
+    showIllegalCardDialog.value = true;
   } else {
-    closeIllegalCardDialog()
+    closeIllegalCardDialog();
   }
 }
 
 function closeIllegalCardDialog() {
-  showIllegalCardDialog.value = false
-  pendingIllegalCard.value = null
-  pendingIllegalBoard.value = 'mainboard'
-  pendingIllegalReason.value = ''
-  validationCanBeOverridden.value = false
+  showIllegalCardDialog.value = false;
+  pendingIllegalCard.value = null;
+  pendingIllegalBoard.value = 'mainboard';
+  pendingIllegalReason.value = '';
+  validationCanBeOverridden.value = false;
 }
 </script>
 
@@ -284,28 +253,28 @@ function closeIllegalCardDialog() {
 }
 
 .workspace-commander {
-  align-self: end;
   position: relative;
   z-index: 40;
+  align-self: end;
 }
 
 .workspace-commander-slot {
   display: flex;
-  min-height: 0;
   width: 100%;
+  min-height: 0;
 }
 
-@media (min-width: 1280px) {
+@media (width >= 1280px) {
   .builder-workspace {
     display: grid;
-    gap: 16px;
     grid-template-columns: 3fr 3fr 6fr;
+    gap: 16px;
     margin-top: 16px;
   }
 
   .workspace-commander {
-    grid-column: 2;
     grid-row: 1;
+    grid-column: 2;
     min-width: 0;
   }
 
@@ -314,24 +283,24 @@ function closeIllegalCardDialog() {
   }
 
   .workspace-statistics {
-    grid-column: 3;
     grid-row: 1;
+    grid-column: 3;
     min-width: 0;
   }
 
   .workspace-deck {
-    grid-column: 2 / 4;
     grid-row: 2;
+    grid-column: 2 / 4;
   }
 
   .workspace-preview {
-    align-self: start;
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    max-height: calc(100vh - 116px);
-    overflow-y: auto;
     position: sticky;
     top: 100px;
+    grid-row: 1 / span 2;
+    grid-column: 1;
+    align-self: start;
+    max-height: calc(100vh - 116px);
+    overflow-y: auto;
   }
 
   .workspace-preview :deep(.preview-panel) {
@@ -359,28 +328,26 @@ function closeIllegalCardDialog() {
   }
 
   .deck-builder-page--statistics-below .workspace-statistics {
-    grid-column: 3;
     grid-row: 1;
+    grid-column: 3;
   }
 
   .workspace-statistics-below {
-    grid-column: 2 / 4;
     grid-row: 3;
+    grid-column: 2 / 4;
     min-width: 0;
   }
 
-  .deck-builder-page--search-left.deck-builder-page--statistics-below
-    .workspace-statistics-below {
+  .deck-builder-page--search-left.deck-builder-page--statistics-below .workspace-statistics-below {
     grid-column: 1 / 3;
   }
 
-  .deck-builder-page--search-left.deck-builder-page--statistics-below
-    .workspace-statistics {
+  .deck-builder-page--search-left.deck-builder-page--statistics-below .workspace-statistics {
     grid-column: 2;
   }
 }
 
-@media (max-width: 1279px) {
+@media (width <= 1279px) {
   .builder-workspace {
     display: flex;
     flex-direction: column;
@@ -401,7 +368,7 @@ function closeIllegalCardDialog() {
   }
 }
 
-@media (max-width: 599px) {
+@media (width <= 599px) {
   .builder-workspace {
     gap: 10px;
     margin-top: 10px;
@@ -416,8 +383,8 @@ function closeIllegalCardDialog() {
   .workspace-statistics-below,
   .workspace-deck,
   .workspace-preview {
-    min-width: 0;
     width: 100%;
+    min-width: 0;
   }
 }
 </style>

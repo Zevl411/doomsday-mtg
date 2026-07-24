@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="animated-oracle-logo"
-    :style="{ '--oracle-logo-size': normalizedSize }"
-  >
+  <div class="animated-oracle-logo" :style="{ '--oracle-logo-size': normalizedSize }">
     <img
       :alt="ariaLabel"
       class="animated-oracle-logo__media animated-oracle-logo__static"
@@ -13,22 +10,15 @@
       v-if="shouldAnimate && !reducedMotion && videoFailed && intervalSeconds <= 0"
       class="animated-oracle-logo__animation"
     >
-      <source :srcset="animatedWebpUrl" type="image/webp">
-      <img
-        alt=""
-        class="animated-oracle-logo__media"
-        :src="staticUrl"
-      />
+      <source :srcset="animatedWebpUrl" type="image/webp" />
+      <img alt="" class="animated-oracle-logo__media" :src="staticUrl" />
     </picture>
     <video
       v-else-if="shouldAnimate && !reducedMotion && !videoFailed"
       ref="video"
       aria-hidden="true"
       :autoplay="autoplay && intervalSeconds <= 0"
-      class="
-        animated-oracle-logo__media
-        animated-oracle-logo__animation
-      "
+      class="animated-oracle-logo__media animated-oracle-logo__animation"
       :class="{
         'animated-oracle-logo__animation--active': animationActive,
       }"
@@ -40,170 +30,172 @@
       @ended="finishScheduledAnimation"
       @error="videoFailed = true"
     >
-      <source :src="animatedWebmUrl" type="video/webm">
+      <source :src="animatedWebmUrl" type="video/webm" />
     </video>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useDisplay } from 'vuetify'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const props = withDefaults(defineProps<{
-  size?: number | string
-  autoplay?: boolean
-  loop?: boolean
-  paused?: boolean
-  ariaLabel?: string
-  intervalSeconds?: number
-}>(), {
-  size: '100%',
-  autoplay: true,
-  loop: true,
-  paused: false,
-  ariaLabel: 'Animated DoomsdayMTG Oracle logo',
-  intervalSeconds: 0,
-})
+import { useDisplay } from 'vuetify';
 
-const assetRoot = `${import.meta.env.BASE_URL}brand/oracle-animation`
-const animatedWebmUrl = `${assetRoot}/oracle-animated.webm`
-const animatedWebpUrl = `${assetRoot}/oracle-animated.webp`
-const posterUrl = `${assetRoot}/oracle-poster.png`
-const staticUrl = `${assetRoot}/oracle-static.png`
-const video = ref<HTMLVideoElement | null>(null)
-const videoFailed = ref(false)
-const reducedMotion = ref(false)
-const display = useDisplay()
+const props = withDefaults(
+  defineProps<{
+    size?: number | string;
+    autoplay?: boolean;
+    loop?: boolean;
+    paused?: boolean;
+    ariaLabel?: string;
+    intervalSeconds?: number;
+  }>(),
+  {
+    size: '100%',
+    autoplay: true,
+    loop: true,
+    paused: false,
+    ariaLabel: 'Animated DoomsdayMTG Oracle logo',
+    intervalSeconds: 0,
+  },
+);
+
+const assetRoot = `${import.meta.env.BASE_URL}brand/oracle-animation`;
+const animatedWebmUrl = `${assetRoot}/oracle-animated.webm`;
+const animatedWebpUrl = `${assetRoot}/oracle-animated.webp`;
+const posterUrl = `${assetRoot}/oracle-poster.png`;
+const staticUrl = `${assetRoot}/oracle-static.png`;
+const video = ref<HTMLVideoElement | null>(null);
+const videoFailed = ref(false);
+const reducedMotion = ref(false);
+const display = useDisplay();
 // Phones use the static asset to avoid decoding video during the most
 // constrained layout. Tablets retain the desktop animation when motion is
 // allowed, matching Vuetify's xs breakpoint rather than a device guess.
-const shouldAnimate = computed(() => !display.xs.value)
-const visible = ref(true)
-const animationActive = ref(false)
-let observer: IntersectionObserver | null = null
-let motionQuery: MediaQueryList | null = null
-let animationTimer: ReturnType<typeof setInterval> | null = null
+const shouldAnimate = computed(() => !display.xs.value);
+const visible = ref(true);
+const animationActive = ref(false);
+let observer: IntersectionObserver | null = null;
+let motionQuery: MediaQueryList | null = null;
+let animationTimer: ReturnType<typeof setInterval> | null = null;
 
 const normalizedSize = computed(() =>
   typeof props.size === 'number' ? `${props.size}px` : props.size,
-)
+);
 
 function syncPlayback() {
-  if (!video.value) return
+  if (!video.value) return;
   if (
-    props.paused
-    || !props.autoplay
-    || !visible.value
-    || (props.intervalSeconds > 0 && !animationActive.value)
+    props.paused ||
+    !props.autoplay ||
+    !visible.value ||
+    (props.intervalSeconds > 0 && !animationActive.value)
   ) {
-    video.value.pause()
-    return
+    video.value.pause();
+    return;
   }
-  const playback = video.value.play()
+  const playback = video.value.play();
   void playback?.catch(() => {
     // Browsers may still block autoplay despite muted playback. The poster
     // remains visible and a later intersection change retries playback.
-  })
+  });
 }
 
 function beginScheduledAnimation() {
   if (
     !shouldAnimate.value ||
-    props.intervalSeconds <= 0
-    || props.paused
-    || reducedMotion.value
-    || !visible.value
-    || !video.value
-  ) return
-  video.value.currentTime = 0
-  animationActive.value = true
-  syncPlayback()
+    props.intervalSeconds <= 0 ||
+    props.paused ||
+    reducedMotion.value ||
+    !visible.value ||
+    !video.value
+  )
+    return;
+  video.value.currentTime = 0;
+  animationActive.value = true;
+  syncPlayback();
 }
 
 function finishScheduledAnimation() {
-  if (props.intervalSeconds <= 0) return
-  animationActive.value = false
-  if (video.value) video.value.currentTime = 0
+  if (props.intervalSeconds <= 0) return;
+  animationActive.value = false;
+  if (video.value) video.value.currentTime = 0;
 }
 
 function configureAnimationTimer(playImmediately = false) {
-  if (animationTimer) clearInterval(animationTimer)
-  animationTimer = null
+  if (animationTimer) clearInterval(animationTimer);
+  animationTimer = null;
   if (!shouldAnimate.value || props.paused || reducedMotion.value) {
-    animationActive.value = false
-    return
+    animationActive.value = false;
+    return;
   }
-  animationActive.value = props.intervalSeconds <= 0
+  animationActive.value = props.intervalSeconds <= 0;
   if (props.intervalSeconds > 0 && props.autoplay) {
-    animationTimer = setInterval(
-      beginScheduledAnimation,
-      props.intervalSeconds * 1000,
-    )
-    if (playImmediately) beginScheduledAnimation()
+    animationTimer = setInterval(beginScheduledAnimation, props.intervalSeconds * 1000);
+    if (playImmediately) beginScheduledAnimation();
   }
 }
 
 function updateMotionPreference(event?: MediaQueryListEvent) {
-  reducedMotion.value = event?.matches ?? motionQuery?.matches ?? false
-  if (motionQuery) configureAnimationTimer()
+  reducedMotion.value = event?.matches ?? motionQuery?.matches ?? false;
+  if (motionQuery) configureAnimationTimer();
 }
 
 watch(
   () => [props.autoplay, props.paused, visible.value],
   () => syncPlayback(),
-)
+);
 watch(
   () => [props.intervalSeconds, shouldAnimate.value, reducedMotion.value],
   () => configureAnimationTimer(),
-)
+);
 
 onMounted(() => {
   if (typeof window.matchMedia !== 'function') {
-    configureAnimationTimer(true)
-    syncPlayback()
-    return
+    configureAnimationTimer(true);
+    syncPlayback();
+    return;
   }
-  motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-  updateMotionPreference()
-  motionQuery.addEventListener('change', updateMotionPreference)
+  motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  updateMotionPreference();
+  motionQuery.addEventListener('change', updateMotionPreference);
 
   if ('IntersectionObserver' in window && video.value) {
     observer = new IntersectionObserver(([entry]) => {
-      visible.value = entry?.isIntersecting ?? true
-      syncPlayback()
-    })
-    observer.observe(video.value)
+      visible.value = entry?.isIntersecting ?? true;
+      syncPlayback();
+    });
+    observer.observe(video.value);
   }
-  configureAnimationTimer(true)
-  syncPlayback()
-})
+  configureAnimationTimer(true);
+  syncPlayback();
+});
 
 onBeforeUnmount(() => {
-  if (animationTimer) clearInterval(animationTimer)
-  observer?.disconnect()
-  motionQuery?.removeEventListener('change', updateMotionPreference)
-})
+  if (animationTimer) clearInterval(animationTimer);
+  observer?.disconnect();
+  motionQuery?.removeEventListener('change', updateMotionPreference);
+});
 </script>
 
 <style scoped>
 .animated-oracle-logo {
-  align-items: center;
-  aspect-ratio: 1;
-  display: flex;
-  justify-content: center;
-  max-width: 100%;
-  overflow: visible;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: var(--oracle-logo-size);
+  max-width: 100%;
+  aspect-ratio: 1;
+  overflow: visible;
 }
 
 .animated-oracle-logo__media {
+  position: absolute;
   inset: 0;
   display: block;
+  width: 100%;
   height: 100%;
   object-fit: contain;
-  position: absolute;
-  width: 100%;
 }
 
 .animated-oracle-logo__static {

@@ -1,10 +1,6 @@
 <template>
   <v-container class="pa-0" fluid>
-    <AppLoadingSkeleton
-      v-if="loading"
-      label="Loading tournament"
-      variant="detail"
-    />
+    <AppLoadingSkeleton v-if="loading" label="Loading tournament" variant="detail" />
     <v-alert v-else-if="errorMessage" type="error" variant="tonal">
       {{ errorMessage }}
     </v-alert>
@@ -51,9 +47,7 @@
           :class="getPlacementClass(entry.standing)"
           :value="entry.id"
         >
-          <v-expansion-panel-title
-            :readonly="!hasRegisteredCommander(entry)"
-          >
+          <v-expansion-panel-title :readonly="!hasRegisteredCommander(entry)">
             <v-row align="center" class="py-1" no-gutters>
               <v-col cols="2" sm="1">
                 <v-chip color="secondary" size="small" variant="tonal">
@@ -104,11 +98,7 @@
               variant="list"
             />
 
-            <v-alert
-              v-else-if="decklistErrors[entry.id]"
-              type="warning"
-              variant="tonal"
-            >
+            <v-alert v-else-if="decklistErrors[entry.id]" type="warning" variant="tonal">
               {{ decklistErrors[entry.id] }}
               <template #append>
                 <v-btn
@@ -128,8 +118,7 @@
                   'deck-overview',
                   'mb-5',
                   {
-                    'deck-overview--partners':
-                      (decklists[entry.id]?.commanders.length ?? 0) > 1,
+                    'deck-overview--partners': (decklists[entry.id]?.commanders.length ?? 0) > 1,
                   },
                 ]"
               >
@@ -143,9 +132,7 @@
                     },
                   ]"
                 >
-                  <div class="text-subtitle-1 font-weight-bold mb-2">
-                    Commander
-                  </div>
+                  <div class="text-subtitle-1 font-weight-bold mb-2">Commander</div>
                   <div
                     :class="[
                       'commander-grid',
@@ -161,8 +148,7 @@
                       :class="[
                         'tournament-card-shell',
                         {
-                          'tournament-card-shell--selected':
-                            isSelectedPreview(entry.id, card),
+                          'tournament-card-shell--selected': isSelectedPreview(entry.id, card),
                         },
                       ]"
                       tabindex="0"
@@ -179,9 +165,7 @@
 
                 <section class="deck-statistics">
                   <div class="d-flex align-center flex-wrap ga-2 mb-3">
-                    <div class="text-subtitle-1 font-weight-bold">
-                      Deck Overview
-                    </div>
+                    <div class="text-subtitle-1 font-weight-bold">Deck Overview</div>
                     <v-chip
                       v-if="admin.isAdmin && normalizedDecks[entry.id]"
                       :color="
@@ -211,9 +195,7 @@
                       </div>
                     </v-sheet>
                   </div>
-                  <div class="text-subtitle-2 mt-4 mb-2">
-                    Mainboard mana curve
-                  </div>
+                  <div class="text-subtitle-2 mt-4 mb-2">Mainboard mana curve</div>
                   <div class="mana-curve">
                     <div
                       v-for="bucket in getManaCurve(entry.id)"
@@ -222,10 +204,7 @@
                     >
                       <span class="text-caption">{{ bucket.count }}</span>
                       <div class="mana-curve__track">
-                        <div
-                          class="mana-curve__bar"
-                          :style="{ height: `${bucket.height}%` }"
-                        />
+                        <div class="mana-curve__bar" :style="{ height: `${bucket.height}%` }" />
                       </div>
                       <span class="text-caption text-medium-emphasis">
                         {{ bucket.label }}
@@ -261,9 +240,7 @@
                 </section>
 
                 <section class="preview-column">
-                  <div class="text-subtitle-1 font-weight-bold mb-2">
-                    Card Preview
-                  </div>
+                  <div class="text-subtitle-1 font-weight-bold mb-2">Card Preview</div>
                   <TournamentCardImage
                     v-if="previewCards[entry.id]"
                     :card="previewCards[entry.id]!"
@@ -275,18 +252,13 @@
               </div>
 
               <v-alert
-                v-if="
-                  admin.isAdmin &&
-                  normalizedDecks[entry.id]?.parsingIssues.length
-                "
+                v-if="admin.isAdmin && normalizedDecks[entry.id]?.parsingIssues.length"
                 class="mb-4"
                 type="warning"
                 variant="tonal"
               >
                 {{
-                  normalizedDecks[entry.id]?.parsingIssues
-                    .map((issue) => issue.message)
-                    .join(' ')
+                  normalizedDecks[entry.id]?.parsingIssues.map((issue) => issue.message).join(' ')
                 }}
               </v-alert>
 
@@ -344,30 +316,16 @@
                       mandatory
                       variant="outlined"
                     >
-                      <v-btn
-                        aria-label="Grid view"
-                        density="comfortable"
-                        value="grid"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          class="view-toggle-icon"
-                          viewBox="0 0 24 24"
-                        >
+                      <v-btn aria-label="Grid view" density="comfortable" value="grid">
+                        <svg aria-hidden="true" class="view-toggle-icon" viewBox="0 0 24 24">
                           <path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z" />
                         </svg>
                       </v-btn>
-                      <v-btn
-                        aria-label="List view"
-                        density="comfortable"
-                        value="list"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          class="view-toggle-icon"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M4 5h3v3H4V5Zm5 0h11v3H9V5ZM4 10.5h3v3H4v-3Zm5 0h11v3H9v-3ZM4 16h3v3H4v-3Zm5 0h11v3H9v-3Z" />
+                      <v-btn aria-label="List view" density="comfortable" value="list">
+                        <svg aria-hidden="true" class="view-toggle-icon" viewBox="0 0 24 24">
+                          <path
+                            d="M4 5h3v3H4V5Zm5 0h11v3H9V5ZM4 10.5h3v3H4v-3Zm5 0h11v3H9v-3ZM4 16h3v3H4v-3Zm5 0h11v3H9v-3Z"
+                          />
                         </svg>
                       </v-btn>
                     </v-btn-toggle>
@@ -388,8 +346,7 @@
                       :class="[
                         'tournament-card-shell',
                         {
-                          'tournament-card-shell--selected':
-                            isSelectedPreview(entry.id, card),
+                          'tournament-card-shell--selected': isSelectedPreview(entry.id, card),
                         },
                       ]"
                       tabindex="0"
@@ -409,8 +366,7 @@
                       :class="[
                         'deck-card-list-column',
                         {
-                          'deck-card-list-column--inverted':
-                            columnIndex === 1,
+                          'deck-card-list-column--inverted': columnIndex === 1,
                         },
                       ]"
                       density="comfortable"
@@ -420,8 +376,7 @@
                         :key="card.oracleId ?? card.name"
                         border
                         :class="{
-                          'tournament-list-item--selected':
-                            isSelectedPreview(entry.id, card),
+                          'tournament-list-item--selected': isSelectedPreview(entry.id, card),
                         }"
                         rounded="lg"
                         @click="selectPreview(entry.id, card)"
@@ -432,10 +387,7 @@
                       >
                         <v-list-item-title class="tournament-list-row">
                           <span>{{ card.quantity }}× {{ card.name }}</span>
-                          <ManaCost
-                            v-if="card.manaCost"
-                            :cost="card.manaCost"
-                          />
+                          <ManaCost v-if="card.manaCost" :cost="card.manaCost" />
                           <span class="text-body-2 text-medium-emphasis">
                             {{ card.typeLine }}
                           </span>
@@ -469,181 +421,151 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useAdminStore } from '../stores/admin'
-import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
-import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue'
-import DeckActionIcon from '../components/DeckActionIcon.vue'
-import ManaCost from '../components/ManaCost.vue'
-import TournamentCardImage from '../components/TournamentCardImage.vue'
-import TournamentDecklistExport from '../components/TournamentDecklistExport.vue'
-import {
-  tournamentRepository,
-  type TournamentDetail,
-} from '../repositories/tournamentRepository'
+import { nextTick, onMounted, ref } from 'vue';
+
+import { useRoute, useRouter } from 'vue-router';
+
+import { getCardsByExactNames } from '../api/scryfall';
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue';
+import ColorIdentitySymbols from '../components/ColorIdentitySymbols.vue';
+import DeckActionIcon from '../components/DeckActionIcon.vue';
+import ManaCost from '../components/ManaCost.vue';
+import TournamentCardImage from '../components/TournamentCardImage.vue';
+import TournamentDecklistExport from '../components/TournamentDecklistExport.vue';
+import { createEmptyDeck } from '../models/createDeck';
+import { tournamentRepository, type TournamentDetail } from '../repositories/tournamentRepository';
+import { useAdminStore } from '../stores/admin';
+import { useDeckStore } from '../stores/deck';
+import { createTournamentCardLookup, toCopiedDeckCard } from '../utils/tournamentDeckCopy';
+import { displayTournamentLocation, sourceAttribution } from '../utils/tournamentLocation';
+
 import type {
   TournamentEntry,
   TournamentEntryDecklist,
   NormalizedTournamentDeck,
   TournamentDeckCard,
-} from '../models/tournament'
-import { createEmptyDeck } from '../models/createDeck'
-import { getCardsByExactNames } from '../api/scryfall'
-import { useDeckStore } from '../stores/deck'
-import type { ScryfallCard } from '../types/card'
-import type {
-  DeckGrouping,
-  DeckSecondaryGrouping,
-} from '../models/userPreferences'
-import {
-  displayTournamentLocation,
-  sourceAttribution,
-} from '../utils/tournamentLocation'
-import {
-  createTournamentCardLookup,
-  toCopiedDeckCard,
-} from '../utils/tournamentDeckCopy'
+} from '../models/tournament';
+import type { DeckGrouping, DeckSecondaryGrouping } from '../models/userPreferences';
+import type { ScryfallCard } from '../types/card';
 
-const route = useRoute()
-const router = useRouter()
-const admin = useAdminStore()
-const deckStore = useDeckStore()
-const detail = ref<TournamentDetail | null>(null)
-const loading = ref(true)
-const errorMessage = ref('')
-const expandedEntryIds = ref<string[]>([])
-const decklists = ref<Record<string, TournamentEntryDecklist>>({})
-const decklistLoading = ref<Record<string, boolean>>({})
-const decklistErrors = ref<Record<string, string>>({})
-const normalizedDecks = ref<Record<string, NormalizedTournamentDeck>>({})
-const previewCards = ref<Record<string, TournamentDeckCard | undefined>>({})
-const selectedPreviewCards =
-  ref<Record<string, TournamentDeckCard | undefined>>({})
-const decklistGrouping = ref<DeckGrouping>('type')
-const decklistOrder = ref<DeckSecondaryGrouping>('name')
-const decklistView = ref<'grid' | 'list'>('grid')
+const route = useRoute();
+const router = useRouter();
+const admin = useAdminStore();
+const deckStore = useDeckStore();
+const detail = ref<TournamentDetail | null>(null);
+const loading = ref(true);
+const errorMessage = ref('');
+const expandedEntryIds = ref<string[]>([]);
+const decklists = ref<Record<string, TournamentEntryDecklist>>({});
+const decklistLoading = ref<Record<string, boolean>>({});
+const decklistErrors = ref<Record<string, string>>({});
+const normalizedDecks = ref<Record<string, NormalizedTournamentDeck>>({});
+const previewCards = ref<Record<string, TournamentDeckCard | undefined>>({});
+const selectedPreviewCards = ref<Record<string, TournamentDeckCard | undefined>>({});
+const decklistGrouping = ref<DeckGrouping>('type');
+const decklistOrder = ref<DeckSecondaryGrouping>('name');
+const decklistView = ref<'grid' | 'list'>('grid');
 const groupingOptions = [
   { title: 'Name', value: 'name' },
   { title: 'Mana cost', value: 'mana' },
   { title: 'Card type', value: 'type' },
   { title: 'Color', value: 'color' },
-]
-const orderOptions = [
-  { title: 'None', value: 'none' },
-  ...groupingOptions,
-]
+];
+const orderOptions = [{ title: 'None', value: 'none' }, ...groupingOptions];
 const typeGroupOrder = [
-  'Planeswalker', 'Creature', 'Sorcery', 'Instant',
-  'Artifact', 'Enchantment', 'Land',
-]
+  'Planeswalker',
+  'Creature',
+  'Sorcery',
+  'Instant',
+  'Artifact',
+  'Enchantment',
+  'Land',
+];
 
 function getDeckCardCount(entryId: string): number {
-  return decklists.value[entryId]?.cards.reduce(
-    (total, card) => total + card.quantity,
-    0,
-  ) ?? 0
+  return decklists.value[entryId]?.cards.reduce((total, card) => total + card.quantity, 0) ?? 0;
 }
 
 function groupedDeckCards(entryId: string) {
-  const groups = new Map<string, TournamentDeckCard[]>()
+  const groups = new Map<string, TournamentDeckCard[]>();
   for (const card of decklists.value[entryId]?.cards ?? []) {
-    const label = cardSortValue(card, decklistGrouping.value, true)
-    groups.set(label, [...(groups.get(label) ?? []), card])
+    const label = cardSortValue(card, decklistGrouping.value, true);
+    groups.set(label, [...(groups.get(label) ?? []), card]);
   }
   return [...groups.entries()]
-    .sort(([left], [right]) =>
-      compareGroupLabels(left, right, decklistGrouping.value),
-    )
+    .sort(([left], [right]) => compareGroupLabels(left, right, decklistGrouping.value))
     .map(([label, cards]) => ({
       label,
       count: cards.reduce((total, card) => total + card.quantity, 0),
-      cards: decklistOrder.value === 'none'
-        ? cards
-        : cards.sort((left, right) =>
-          cardSortValue(left, decklistOrder.value as DeckGrouping)
-            .localeCompare(
-              cardSortValue(right, decklistOrder.value as DeckGrouping),
-              undefined,
-              { numeric: true },
-            )
-          || left.name.localeCompare(right.name)),
-    }))
+      cards:
+        decklistOrder.value === 'none'
+          ? cards
+          : cards.sort(
+              (left, right) =>
+                cardSortValue(left, decklistOrder.value as DeckGrouping).localeCompare(
+                  cardSortValue(right, decklistOrder.value as DeckGrouping),
+                  undefined,
+                  { numeric: true },
+                ) || left.name.localeCompare(right.name),
+            ),
+    }));
 }
 
-function cardSortValue(
-  card: TournamentDeckCard,
-  key: DeckGrouping,
-  group = false,
-) {
+function cardSortValue(card: TournamentDeckCard, key: DeckGrouping, group = false) {
   if (key === 'name') {
-    return group ? card.name.charAt(0).toUpperCase() : card.name
+    return group ? card.name.charAt(0).toUpperCase() : card.name;
   }
   if (key === 'mana') {
-    return `${card.manaValue ?? 0}`.padStart(3, '0')
+    return `${card.manaValue ?? 0}`.padStart(3, '0');
   }
   if (key === 'color') {
-    return card.colorIdentity?.slice().sort().join('') || 'Colorless'
+    return card.colorIdentity?.slice().sort().join('') || 'Colorless';
   }
-  const type = getCardTypeGroup(card.typeLine)
-  return group
-    ? type
-    : `${typeOrder(type).toString().padStart(2, '0')}-${type}`
+  const type = getCardTypeGroup(card.typeLine);
+  return group ? type : `${typeOrder(type).toString().padStart(2, '0')}-${type}`;
 }
 
 function listColumns(cards: TournamentDeckCard[]) {
-  const secondColumnStart = Math.ceil(cards.length / 2)
-  return [
-    cards.slice(0, secondColumnStart),
-    cards.slice(secondColumnStart),
-  ]
+  const secondColumnStart = Math.ceil(cards.length / 2);
+  return [cards.slice(0, secondColumnStart), cards.slice(secondColumnStart)];
 }
 
 function getCardTypeGroup(typeLine: string) {
-  const frontFaceTypeLine = typeLine.split('//')[0] ?? typeLine
-  const cardTypes = frontFaceTypeLine.split('—')[0] ?? frontFaceTypeLine
-  if (/\bLand\b/i.test(cardTypes)) return 'Land'
-  if (/\bCreature\b/i.test(cardTypes)) return 'Creature'
-  if (/\bPlaneswalker\b/i.test(cardTypes)) return 'Planeswalker'
-  if (/\bSorcery\b/i.test(cardTypes)) return 'Sorcery'
-  if (/\bInstant\b/i.test(cardTypes)) return 'Instant'
-  if (/\bArtifact\b/i.test(cardTypes)) return 'Artifact'
-  if (/\bEnchantment\b/i.test(cardTypes)) return 'Enchantment'
-  return 'Other'
+  const frontFaceTypeLine = typeLine.split('//')[0] ?? typeLine;
+  const cardTypes = frontFaceTypeLine.split('—')[0] ?? frontFaceTypeLine;
+  if (/\bLand\b/i.test(cardTypes)) return 'Land';
+  if (/\bCreature\b/i.test(cardTypes)) return 'Creature';
+  if (/\bPlaneswalker\b/i.test(cardTypes)) return 'Planeswalker';
+  if (/\bSorcery\b/i.test(cardTypes)) return 'Sorcery';
+  if (/\bInstant\b/i.test(cardTypes)) return 'Instant';
+  if (/\bArtifact\b/i.test(cardTypes)) return 'Artifact';
+  if (/\bEnchantment\b/i.test(cardTypes)) return 'Enchantment';
+  return 'Other';
 }
 
 function typeOrder(type: string) {
-  const index = typeGroupOrder.indexOf(type)
-  return index === -1 ? typeGroupOrder.length : index
+  const index = typeGroupOrder.indexOf(type);
+  return index === -1 ? typeGroupOrder.length : index;
 }
 
-function compareGroupLabels(
-  left: string,
-  right: string,
-  key: DeckGrouping,
-) {
-  if (key === 'type') return typeOrder(left) - typeOrder(right)
-  return left.localeCompare(right, undefined, { numeric: true })
+function compareGroupLabels(left: string, right: string, key: DeckGrouping) {
+  if (key === 'type') return typeOrder(left) - typeOrder(right);
+  return left.localeCompare(right, undefined, { numeric: true });
 }
 
 function getDeckSummary(entryId: string) {
-  const cards = decklists.value[entryId]?.cards ?? []
-  const nonlands = cards.filter((card) => !isCardType(card, 'Land'))
-  const nonlandCount = nonlands.reduce(
-    (total, card) => total + card.quantity,
-    0,
-  )
+  const cards = decklists.value[entryId]?.cards ?? [];
+  const nonlands = cards.filter((card) => !isCardType(card, 'Land'));
+  const nonlandCount = nonlands.reduce((total, card) => total + card.quantity, 0);
   const totalManaValue = nonlands.reduce(
     (total, card) => total + (card.manaValue ?? 0) * card.quantity,
     0,
-  )
+  );
   return [
     { label: 'Mainboard', value: getDeckCardCount(entryId) },
     {
       label: 'Avg. mana value',
-      value: nonlandCount
-        ? (totalManaValue / nonlandCount).toFixed(2)
-        : '0.00',
+      value: nonlandCount ? (totalManaValue / nonlandCount).toFixed(2) : '0.00',
     },
     {
       label: 'Lands',
@@ -651,173 +573,170 @@ function getDeckSummary(entryId: string) {
         .filter((card) => isCardType(card, 'Land'))
         .reduce((total, card) => total + card.quantity, 0),
     },
-  ]
+  ];
 }
 
 function getManaCurve(entryId: string) {
-  const counts = Array.from({ length: 7 }, () => 0)
+  const counts = Array.from({ length: 7 }, () => 0);
   for (const card of decklists.value[entryId]?.cards ?? []) {
-    if (isCardType(card, 'Land')) continue
-    const bucket = Math.min(6, Math.max(0, Math.floor(card.manaValue ?? 0)))
-    counts[bucket] += card.quantity
+    if (isCardType(card, 'Land')) continue;
+    const bucket = Math.min(6, Math.max(0, Math.floor(card.manaValue ?? 0)));
+    counts[bucket] += card.quantity;
   }
-  const maximum = Math.max(...counts, 1)
+  const maximum = Math.max(...counts, 1);
   return counts.map((count, index) => ({
     label: index === 6 ? '6+' : String(index),
     count,
     height: count === 0 ? 0 : Math.max(6, (count / maximum) * 100),
-  }))
+  }));
 }
 
 function getManaCurvePath(entryId: string) {
   const points = getManaCurve(entryId).map((bucket, index) => ({
     x: 50 + index * 100,
     y: 100 - bucket.height,
-  }))
-  const first = points[0]
-  if (!first) return ''
+  }));
+  const first = points[0];
+  if (!first) return '';
 
-  let path = `M ${first.x} ${first.y}`
+  let path = `M ${first.x} ${first.y}`;
   for (let index = 0; index < points.length - 1; index += 1) {
-    const previous = points[index - 1] ?? points[index]
-    const current = points[index]
-    const next = points[index + 1]
-    const following = points[index + 2] ?? next
-    if (!previous || !current || !next || !following) continue
+    const previous = points[index - 1] ?? points[index];
+    const current = points[index];
+    const next = points[index + 1];
+    const following = points[index + 2] ?? next;
+    if (!previous || !current || !next || !following) continue;
 
-    const firstControlX = current.x + (next.x - previous.x) / 6
-    const firstControlY = current.y + (next.y - previous.y) / 6
-    const secondControlX = next.x - (following.x - current.x) / 6
-    const secondControlY = next.y - (following.y - current.y) / 6
+    const firstControlX = current.x + (next.x - previous.x) / 6;
+    const firstControlY = current.y + (next.y - previous.y) / 6;
+    const secondControlX = next.x - (following.x - current.x) / 6;
+    const secondControlY = next.y - (following.y - current.y) / 6;
     path +=
       ` C ${firstControlX} ${firstControlY},` +
-      ` ${secondControlX} ${secondControlY}, ${next.x} ${next.y}`
+      ` ${secondControlX} ${secondControlY}, ${next.x} ${next.y}`;
   }
-  return path
+  return path;
 }
 
 function getTypeCounts(entryId: string) {
   const labels = [
-    'Planeswalker', 'Creature', 'Sorcery', 'Instant',
-    'Artifact', 'Enchantment', 'Land',
-  ]
-  const cards = decklists.value[entryId]?.cards ?? []
-  return labels.map((label) => ({
-    label,
-    count: cards
-      .filter((card) => isCardType(card, label))
-      .reduce((total, card) => total + card.quantity, 0),
-  })).filter((item) => item.count > 0)
+    'Planeswalker',
+    'Creature',
+    'Sorcery',
+    'Instant',
+    'Artifact',
+    'Enchantment',
+    'Land',
+  ];
+  const cards = decklists.value[entryId]?.cards ?? [];
+  return labels
+    .map((label) => ({
+      label,
+      count: cards
+        .filter((card) => isCardType(card, label))
+        .reduce((total, card) => total + card.quantity, 0),
+    }))
+    .filter((item) => item.count > 0);
 }
 
 function isCardType(card: TournamentDeckCard, type: string) {
-  const frontFaceTypeLine = card.typeLine.split('//')[0] ?? card.typeLine
-  return new RegExp(`\\b${type}\\b`, 'i').test(frontFaceTypeLine)
+  const frontFaceTypeLine = card.typeLine.split('//')[0] ?? card.typeLine;
+  return new RegExp(`\\b${type}\\b`, 'i').test(frontFaceTypeLine);
 }
 
 function restorePreview(entryId: string) {
   previewCards.value[entryId] =
     selectedPreviewCards.value[entryId] ??
     decklists.value[entryId]?.commanders[0] ??
-    decklists.value[entryId]?.cards[0]
+    decklists.value[entryId]?.cards[0];
 }
 
 async function copyDeck(entry: TournamentEntry) {
-  const normalized = normalizedDecks.value[entry.id]
-  if (!normalized) return
+  const normalized = normalizedDecks.value[entry.id];
+  if (!normalized) return;
 
-  let resolvedCards: ScryfallCard[] = []
+  let resolvedCards: ScryfallCard[] = [];
   try {
-    resolvedCards = await getCardsByExactNames(
-      normalized.cards.map((card) => card.cardName),
-    )
+    resolvedCards = await getCardsByExactNames(normalized.cards.map((card) => card.cardName));
   } catch (error) {
-    console.warn('Unable to hydrate copied tournament card images.', error)
+    console.warn('Unable to hydrate copied tournament card images.', error);
   }
-  const lookup = createTournamentCardLookup(resolvedCards)
-  const copy = createEmptyDeck(
-    `${normalized.commanderName} — ${normalized.tournament.name}`,
-  )
+  const lookup = createTournamentCardLookup(resolvedCards);
+  const copy = createEmptyDeck(`${normalized.commanderName} — ${normalized.tournament.name}`);
   const copyBoard = (board: NormalizedTournamentDeck['cards'][number]['board']) =>
     normalized.cards
       .filter((card) => card.board === board)
-      .map((card) => toCopiedDeckCard(card, lookup))
-  const commanders = copyBoard('commander')
-  copy.commander = commanders[0]?.card ?? null
-  copy.partnerCommander = commanders[1]?.card ?? null
-  copy.cards = copyBoard('mainboard')
-  copy.sideboard = copyBoard('sideboard')
-  copy.maybeboard = copyBoard('maybeboard')
-  copy.considering = copyBoard('considering')
+      .map((card) => toCopiedDeckCard(card, lookup));
+  const commanders = copyBoard('commander');
+  copy.commander = commanders[0]?.card ?? null;
+  copy.partnerCommander = commanders[1]?.card ?? null;
+  copy.cards = copyBoard('mainboard');
+  copy.sideboard = copyBoard('sideboard');
+  copy.maybeboard = copyBoard('maybeboard');
+  copy.considering = copyBoard('considering');
 
-  deckStore.createDeck(copy.name, 'Tournament import')
-  deckStore.replaceActiveDeck(copy)
+  deckStore.createDeck(copy.name, 'Tournament import');
+  deckStore.replaceActiveDeck(copy);
   if (deckStore.activeDeckId) {
     await router.push({
       name: 'deck-builder',
       params: { deckId: deckStore.activeDeckId },
-    })
+    });
   }
 }
 
 function selectPreview(entryId: string, card: TournamentDeckCard) {
-  const selected = selectedPreviewCards.value[entryId]
+  const selected = selectedPreviewCards.value[entryId];
   selectedPreviewCards.value[entryId] =
-    cardIdentity(selected) === cardIdentity(card) ? undefined : card
-  restorePreview(entryId)
+    cardIdentity(selected) === cardIdentity(card) ? undefined : card;
+  restorePreview(entryId);
 }
 
 function isSelectedPreview(entryId: string, card: TournamentDeckCard) {
-  return cardIdentity(selectedPreviewCards.value[entryId]) ===
-    cardIdentity(card)
+  return cardIdentity(selectedPreviewCards.value[entryId]) === cardIdentity(card);
 }
 
 function cardIdentity(card?: TournamentDeckCard) {
-  return card?.oracleId ?? card?.name.toLocaleLowerCase()
+  return card?.oracleId ?? card?.name.toLocaleLowerCase();
 }
 
 onMounted(async () => {
   try {
-    detail.value = await tournamentRepository.getTournament(
-      String(route.params.tournamentId),
-    )
+    detail.value = await tournamentRepository.getTournament(String(route.params.tournamentId));
     if (!detail.value) {
-      errorMessage.value = 'Tournament not found.'
-      return
+      errorMessage.value = 'Tournament not found.';
+      return;
     }
-    loading.value = false
-    await nextTick()
-    await openLinkedDeck()
+    loading.value = false;
+    await nextTick();
+    await openLinkedDeck();
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Unable to load tournament.'
+    errorMessage.value = error instanceof Error ? error.message : 'Unable to load tournament.';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-})
+});
 
 async function openLinkedDeck() {
-  const entryId = typeof route.query.entryId === 'string'
-    ? route.query.entryId
-    : ''
-  if (!entryId || !detail.value) return
+  const entryId = typeof route.query.entryId === 'string' ? route.query.entryId : '';
+  if (!entryId || !detail.value) return;
 
-  const entry = detail.value.entries.find((item) => item.id === entryId)
-  if (!entry || !hasRegisteredCommander(entry)) return
+  const entry = detail.value.entries.find((item) => item.id === entryId);
+  if (!entry || !hasRegisteredCommander(entry)) return;
 
-  expandedEntryIds.value = [entry.id]
-  void loadDecklist(entry)
-  await nextTick()
+  expandedEntryIds.value = [entry.id];
+  void loadDecklist(entry);
+  await nextTick();
   document
     .getElementById(`tournament-entry-${entry.id}`)
-    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function loadExpandedDecklists(value: unknown) {
-  if (!Array.isArray(value) || !detail.value) return
+  if (!Array.isArray(value) || !detail.value) return;
   for (const entryId of value) {
-    const entry = detail.value.entries.find((item) => item.id === entryId)
-    if (entry && hasRegisteredCommander(entry)) void loadDecklist(entry)
+    const entry = detail.value.entries.find((item) => item.id === entryId);
+    if (entry && hasRegisteredCommander(entry)) void loadDecklist(entry);
   }
 }
 
@@ -826,83 +745,73 @@ async function loadDecklist(entry: TournamentEntry, retry = false) {
     decklistLoading.value[entry.id] ||
     (!retry && (decklists.value[entry.id] || decklistErrors.value[entry.id]))
   ) {
-    return
+    return;
   }
   if (!entry.sourceEntryId) {
-    decklistErrors.value[entry.id] =
-      'No submitted decklist is available for this placing.'
-    return
+    decklistErrors.value[entry.id] = 'No submitted decklist is available for this placing.';
+    return;
   }
 
-  decklistLoading.value[entry.id] = true
-  delete decklistErrors.value[entry.id]
+  decklistLoading.value[entry.id] = true;
+  delete decklistErrors.value[entry.id];
   try {
     const [decklist, normalized] = await Promise.all([
       tournamentRepository.getEntryDecklist(entry),
       entry.tournamentDeckId
-        ? tournamentRepository.getNormalizedTournamentDeck(
-            entry.tournamentDeckId,
-          )
+        ? tournamentRepository.getNormalizedTournamentDeck(entry.tournamentDeckId)
         : Promise.resolve(null),
-    ])
-    decklists.value[entry.id] = decklist
-    if (normalized) normalizedDecks.value[entry.id] = normalized
-    restorePreview(entry.id)
+    ]);
+    decklists.value[entry.id] = decklist;
+    if (normalized) normalizedDecks.value[entry.id] = normalized;
+    restorePreview(entry.id);
   } catch (error) {
     decklistErrors.value[entry.id] =
-      error instanceof Error
-        ? error.message
-        : 'Unable to load this tournament decklist.'
+      error instanceof Error ? error.message : 'Unable to load this tournament decklist.';
   } finally {
-    decklistLoading.value[entry.id] = false
+    decklistLoading.value[entry.id] = false;
   }
 }
 
 function formatStanding(standing?: number): string {
-  return standing ? `#${standing}` : '—'
+  return standing ? `#${standing}` : '—';
 }
 
 function hasRegisteredCommander(entry: TournamentEntry): boolean {
-  const name = entry.commanderName.trim().toLowerCase()
-  const key = entry.commanderKey.trim().toLowerCase()
-  return (
-    name !== '' &&
-    name !== 'unknown commander' &&
-    key !== '' &&
-    key !== 'unknown-commander'
-  )
+  const name = entry.commanderName.trim().toLowerCase();
+  const key = entry.commanderKey.trim().toLowerCase();
+  return name !== '' && name !== 'unknown commander' && key !== '' && key !== 'unknown-commander';
 }
 
 function getPlacementClass(standing?: number): string {
-  if (standing === 1) return 'placement-panel placement-panel--gold'
-  if (standing === 2) return 'placement-panel placement-panel--silver'
+  if (standing === 1) return 'placement-panel placement-panel--gold';
+  if (standing === 2) return 'placement-panel placement-panel--silver';
   if (standing === 3 || standing === 4) {
-    return 'placement-panel placement-panel--bronze'
+    return 'placement-panel placement-panel--bronze';
   }
   if (standing !== undefined && standing >= 5 && standing <= 16) {
-    return 'placement-panel placement-panel--top-cut'
+    return 'placement-panel placement-panel--top-cut';
   }
-  return ''
+  return '';
 }
 </script>
 
 <style scoped>
 .placement-panel {
+  scroll-margin-top: 16px;
   border-style: solid;
   border-width: 2px;
-  scroll-margin-top: 16px;
 }
 
 .view-toggle-icon {
-  fill: currentColor;
-  height: 22px;
   width: 22px;
+  height: 22px;
+  fill: currentcolor;
 }
 
 .board-header {
   display: grid;
-  gap: 8px;
   grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
 }
 
 .board-title {
@@ -912,9 +821,9 @@ function getPlacementClass(standing?: number): string {
 
 .board-controls,
 .decklist-actions {
-  align-items: center;
   display: flex;
   gap: 12px;
+  align-items: center;
 }
 
 .decklist-toolbar-button,
@@ -936,8 +845,8 @@ function getPlacementClass(standing?: number): string {
 
 .decklist-toolbar-select :deep(.v-field__input) {
   min-height: 40px;
-  padding-bottom: 0;
   padding-top: 0;
+  padding-bottom: 0;
 }
 
 .placement-panel--gold {
@@ -958,18 +867,18 @@ function getPlacementClass(standing?: number): string {
 
 .card-grid {
   display: grid;
-  gap: 16px;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
 }
 
 .deck-overview {
-  align-items: stretch;
   display: grid;
-  gap: 20px;
   grid-template-columns:
     minmax(150px, 0.85fr)
     minmax(360px, 1.55fr)
     minmax(150px, 0.85fr);
+  gap: 20px;
+  align-items: stretch;
 }
 
 .deck-overview--partners {
@@ -981,8 +890,8 @@ function getPlacementClass(standing?: number): string {
 
 .commander-column,
 .preview-column {
-  max-width: 220px;
   width: 100%;
+  max-width: 220px;
 }
 
 .commander-column--partners {
@@ -991,8 +900,8 @@ function getPlacementClass(standing?: number): string {
 
 .commander-grid {
   display: grid;
-  gap: 12px;
   grid-template-columns: 1fr;
+  gap: 12px;
 }
 
 .commander-grid--partners {
@@ -1007,77 +916,79 @@ function getPlacementClass(standing?: number): string {
 
 .summary-grid {
   display: grid;
-  gap: 10px;
   grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
 .mana-curve {
-  align-items: end;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(7, 1fr);
-  flex: 1;
-  min-height: 145px;
   position: relative;
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  align-items: end;
+  min-height: 145px;
 }
 
 .mana-curve__column {
-  align-items: center;
   display: flex;
   flex-direction: column;
+  align-items: center;
   height: 100%;
 }
 
 .mana-curve__track {
-  align-items: end;
   display: flex;
   flex: 1;
+  align-items: end;
   width: 72%;
 }
 
 .mana-curve__bar {
+  width: 100%;
   background: rgb(var(--v-theme-primary));
   border-radius: 5px 5px 0 0;
-  width: 100%;
 }
 
 .mana-curve__line {
-  bottom: 20px;
-  color: rgb(var(--v-theme-secondary));
-  height: calc(100% - 38px);
-  left: 0;
-  overflow: visible;
-  pointer-events: none;
   position: absolute;
-  width: 100%;
+  bottom: 20px;
+  left: 0;
   z-index: 2;
+  width: 100%;
+  height: calc(100% - 38px);
+  overflow: visible;
+  color: rgb(var(--v-theme-secondary));
+  pointer-events: none;
 }
 
 .preview-column {
-  align-self: start;
   position: sticky;
   top: 16px;
+  align-self: start;
 }
 
 .tournament-card-shell {
-  border: 2px solid transparent;
-  border-radius: 10px;
+  overflow: hidden;
   cursor: pointer;
   outline: 0;
-  overflow: hidden;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .tournament-card-shell:hover,
 .tournament-card-shell:focus-visible {
-  border-color: rgba(var(--v-theme-primary), 0.7);
-  box-shadow: 0 0 12px rgba(var(--v-theme-primary), 0.25);
+  border-color: rgb(var(--v-theme-primary), 0.7);
+  box-shadow: 0 0 12px rgb(var(--v-theme-primary), 0.25);
 }
 
 .tournament-card-shell--selected,
 .tournament-list-item--selected {
   border-color: rgb(var(--v-theme-primary)) !important;
-  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.25);
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-primary), 0.25);
 }
 
 .tournament-card-shell :deep(.v-card) {
@@ -1086,29 +997,31 @@ function getPlacementClass(standing?: number): string {
 }
 
 .card-grid :deep(.v-card) {
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .card-grid :deep(.v-card:hover) {
   border-color: rgb(var(--v-theme-primary));
-  box-shadow: 0 0 12px rgba(var(--v-theme-primary), 0.25);
+  box-shadow: 0 0 12px rgb(var(--v-theme-primary), 0.25);
 }
 
 .deck-card-list {
-  align-items: start;
   display: grid;
-  gap: 2px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  align-items: start;
 }
 
 .deck-card-list-column {
+  display: grid;
+  grid-auto-rows: 42px;
+  gap: 1px;
   align-content: start;
   align-self: start;
-  background: transparent;
-  display: grid;
-  gap: 1px;
-  grid-auto-rows: 42px;
   height: auto;
+  background: transparent;
 }
 
 .deck-card-list-column :deep(.v-list-item) {
@@ -1121,11 +1034,11 @@ function getPlacementClass(standing?: number): string {
 }
 
 .deck-card-list-column :deep(.v-list-item:nth-child(even)) {
-  background: rgba(var(--v-theme-on-surface), 0.035);
+  background: rgb(var(--v-theme-on-surface), 0.035);
 }
 
 .deck-card-list-column--inverted :deep(.v-list-item:nth-child(odd)) {
-  background: rgba(var(--v-theme-on-surface), 0.035);
+  background: rgb(var(--v-theme-on-surface), 0.035);
 }
 
 .deck-card-list-column--inverted :deep(.v-list-item:nth-child(even)) {
@@ -1133,10 +1046,10 @@ function getPlacementClass(standing?: number): string {
 }
 
 .tournament-list-row {
-  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
+  align-items: center;
   white-space: normal;
 }
 
@@ -1144,7 +1057,7 @@ function getPlacementClass(standing?: number): string {
   margin-top: 20px;
 }
 
-@media (max-width: 960px) {
+@media (width <= 960px) {
   .deck-overview {
     grid-template-columns: minmax(150px, 0.9fr) minmax(360px, 1.5fr);
   }
@@ -1167,7 +1080,7 @@ function getPlacementClass(standing?: number): string {
   }
 }
 
-@media (max-width: 680px) {
+@media (width <= 680px) {
   .deck-overview,
   .summary-grid,
   .deck-card-list {
@@ -1214,8 +1127,8 @@ function getPlacementClass(standing?: number): string {
 
   .board-controls {
     display: grid;
-    gap: 8px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .decklist-actions {
@@ -1225,8 +1138,8 @@ function getPlacementClass(standing?: number): string {
   :deep(.decklist-actions > .v-btn),
   :deep(.decklist-actions > .tournament-export-button),
   :deep(.board-controls > .v-input) {
-    max-width: none !important;
     width: 100%;
+    max-width: none !important;
   }
 
   .decklist-view-toggle {
@@ -1240,8 +1153,8 @@ function getPlacementClass(standing?: number): string {
   }
 
   .card-grid {
-    gap: 8px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .deck-card-group + .deck-card-group {

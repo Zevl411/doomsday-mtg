@@ -32,24 +32,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { TournamentDeckCard } from '../models/tournament'
+import { computed, ref } from 'vue';
+
+import type { TournamentDeckCard } from '../models/tournament';
 
 const props = defineProps<{
-  card: TournamentDeckCard
-}>()
+  card: TournamentDeckCard;
+}>();
 
-const showBack = ref(false)
+const showBack = ref(false);
 const displayedImageUrl = computed(() =>
-  showBack.value && props.card.backImageUrl
-    ? props.card.backImageUrl
-    : props.card.imageUrl,
-)
+  showBack.value && props.card.backImageUrl ? props.card.backImageUrl : props.card.imageUrl,
+);
 const cardAriaLabel = computed(() =>
   props.card.backImageUrl
     ? `${props.card.name}. Focus or hover to view the back face.`
     : props.card.name,
-)
+);
 </script>
 
 <style scoped>

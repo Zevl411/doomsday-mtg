@@ -31,9 +31,7 @@
           variant="outlined"
         />
 
-        <div class="mt-3 text-subtitle-1 font-weight-medium">
-          Commander
-        </div>
+        <div class="mt-3 text-subtitle-1 font-weight-medium">Commander</div>
         <p class="mb-3 text-caption text-medium-emphasis">
           Optional when your pasted decklist identifies its Commander.
         </p>
@@ -69,15 +67,8 @@
       </v-card-text>
       <v-card-actions class="px-5 pb-5">
         <v-spacer />
-        <v-btn :disabled="isCreating" variant="text" @click="close">
-          Cancel
-        </v-btn>
-        <v-btn
-          color="primary"
-          :loading="isCreating"
-          variant="flat"
-          @click="create"
-        >
+        <v-btn :disabled="isCreating" variant="text" @click="close"> Cancel </v-btn>
+        <v-btn color="primary" :loading="isCreating" variant="flat" @click="create">
           Create deck
         </v-btn>
       </v-card-actions>
@@ -86,102 +77,99 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { createEmptyDeck } from '../models/createDeck'
-import type { DeckVisibility } from '../models/deck'
-import { prepareDeckImport } from '../services/deckImport'
-import { useAuthStore } from '../stores/auth'
-import { useDeckStore } from '../stores/deck'
-import { useUserPreferencesStore } from '../stores/userPreferences'
-import type { ScryfallCard } from '../types/card'
-import CardSearch from './CardSearch.vue'
+import { ref, watch } from 'vue';
 
-const props = defineProps<{ modelValue: boolean }>()
+import { createEmptyDeck } from '../models/createDeck';
+import { prepareDeckImport } from '../services/deckImport';
+import { useAuthStore } from '../stores/auth';
+import { useDeckStore } from '../stores/deck';
+import { useUserPreferencesStore } from '../stores/userPreferences';
+
+import CardSearch from './CardSearch.vue';
+
+import type { DeckVisibility } from '../models/deck';
+import type { ScryfallCard } from '../types/card';
+
+const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  created: [deckId: string]
-}>()
+  'update:modelValue': [value: boolean];
+  created: [deckId: string];
+}>();
 
-const auth = useAuthStore()
-const deckStore = useDeckStore()
-const preferences = useUserPreferencesStore()
-const title = ref('')
-const description = ref('')
-const visibility = ref<DeckVisibility>('public')
-const commander = ref<ScryfallCard | null>(null)
-const commanderQuery = ref('')
-const importText = ref('')
-const errorMessage = ref('')
-const isCreating = ref(false)
+const auth = useAuthStore();
+const deckStore = useDeckStore();
+const preferences = useUserPreferencesStore();
+const title = ref('');
+const description = ref('');
+const visibility = ref<DeckVisibility>('public');
+const commander = ref<ScryfallCard | null>(null);
+const commanderQuery = ref('');
+const importText = ref('');
+const errorMessage = ref('');
+const isCreating = ref(false);
 
 const visibilityOptions = [
   { title: 'Private', value: 'private' },
   { title: 'Unlisted', value: 'unlisted' },
   { title: 'Public', value: 'public' },
-]
+];
 
 watch(
   () => props.modelValue,
   (isOpen) => {
-    if (!isOpen) return
-    title.value = ''
-    description.value = ''
-    visibility.value = preferences.values.defaultDeckVisibility
-    commander.value = null
-    commanderQuery.value = ''
-    importText.value = ''
-    errorMessage.value = ''
+    if (!isOpen) return;
+    title.value = '';
+    description.value = '';
+    visibility.value = preferences.values.defaultDeckVisibility;
+    commander.value = null;
+    commanderQuery.value = '';
+    importText.value = '';
+    errorMessage.value = '';
   },
-)
+);
 
 function selectCommander(card: ScryfallCard) {
-  commander.value = card
-  commanderQuery.value = ''
+  commander.value = card;
+  commanderQuery.value = '';
 }
 
 function clearCommander() {
-  commander.value = null
-  commanderQuery.value = ''
+  commander.value = null;
+  commanderQuery.value = '';
 }
 
 function close() {
-  emit('update:modelValue', false)
+  emit('update:modelValue', false);
 }
 
 async function create() {
-  const deckTitle =
-    title.value.trim() || deckStore.getNextAvailableDefaultName()
-  errorMessage.value = ''
-  isCreating.value = true
+  const deckTitle = title.value.trim() || deckStore.getNextAvailableDefaultName();
+  errorMessage.value = '';
+  isCreating.value = true;
 
   try {
-    const draft = createEmptyDeck(
-      deckTitle,
-      auth.username,
-      visibility.value,
-    )
-    draft.description = description.value
-    draft.commander = commander.value
+    const draft = createEmptyDeck(deckTitle, auth.username, visibility.value);
+    draft.description = description.value;
+    draft.commander = commander.value;
 
     const completed = importText.value.trim()
       ? (await prepareDeckImport(importText.value, draft)).deck
-      : draft
+      : draft;
 
     // Import preparation intentionally focuses on cards. Creation metadata
     // remains authoritative regardless of what was pasted.
-    completed.name = deckTitle
-    completed.description = description.value
-    completed.visibility = visibility.value
-    completed.creatorUsername = auth.username
+    completed.name = deckTitle;
+    completed.description = description.value;
+    completed.visibility = visibility.value;
+    completed.creatorUsername = auth.username;
 
-    deckStore.addPreparedDeck(completed)
-    emit('created', completed.id)
-    close()
+    deckStore.addPreparedDeck(completed);
+    emit('created', completed.id);
+    close();
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'The deck could not be created.'
+    errorMessage.value = error instanceof Error ? error.message : 'The deck could not be created.';
   } finally {
-    isCreating.value = false
+    isCreating.value = false;
   }
 }
 </script>

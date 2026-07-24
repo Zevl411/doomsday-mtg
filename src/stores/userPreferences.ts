@@ -1,14 +1,15 @@
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
+
 import {
   DEFAULT_USER_PREFERENCES,
   type AppThemePreference,
   type DeckBuilderSearchSide,
   type UserPreferences,
-} from '../models/userPreferences'
+} from '../models/userPreferences';
 import {
   loadUserPreferences,
   saveUserPreferences,
-} from '../repositories/userPreferencesRepository'
+} from '../repositories/userPreferencesRepository';
 
 export const useUserPreferencesStore = defineStore('userPreferences', {
   state: () => ({
@@ -18,13 +19,13 @@ export const useUserPreferencesStore = defineStore('userPreferences', {
   }),
   actions: {
     async initialize(userId: string | null) {
-      this.userId = userId
-      this.values = await loadUserPreferences(userId)
-      this.initialized = true
+      this.userId = userId;
+      this.values = await loadUserPreferences(userId);
+      this.initialized = true;
     },
     async save(values: UserPreferences) {
-      this.values = { ...values }
-      return saveUserPreferences(this.values, this.userId)
+      this.values = { ...values };
+      return saveUserPreferences(this.values, this.userId);
     },
     /**
      * Search placement is a live layout preference, unlike the remaining
@@ -32,30 +33,30 @@ export const useUserPreferencesStore = defineStore('userPreferences', {
      * remote or browser persistence fails.
      */
     async saveDeckBuilderSearchSide(side: DeckBuilderSearchSide) {
-      if (side === this.values.deckBuilderSearchSide) return true
+      if (side === this.values.deckBuilderSearchSide) return true;
 
-      const previousValues = { ...this.values }
+      const previousValues = { ...this.values };
       this.values = {
         ...this.values,
         deckBuilderSearchSide: side,
-      }
-      const saved = await saveUserPreferences(this.values, this.userId)
-      if (!saved) this.values = previousValues
-      return saved
+      };
+      const saved = await saveUserPreferences(this.values, this.userId);
+      if (!saved) this.values = previousValues;
+      return saved;
     },
     /**
      * Theme choices preview across the entire application, so they persist as
      * soon as the user chooses a card or returns to the Oracle default.
      */
     async saveAppTheme(appTheme: AppThemePreference) {
-      const previousValues = { ...this.values }
+      const previousValues = { ...this.values };
       this.values = {
         ...this.values,
         appTheme,
-      }
-      const saved = await saveUserPreferences(this.values, this.userId)
-      if (!saved) this.values = previousValues
-      return saved
+      };
+      const saved = await saveUserPreferences(this.values, this.userId);
+      if (!saved) this.values = previousValues;
+      return saved;
     },
   },
-})
+});

@@ -2,11 +2,7 @@
   <details class="app-mobile-filter-panel">
     <summary class="app-mobile-filter-panel__summary">
       <span>{{ title }}</span>
-      <svg
-        aria-hidden="true"
-        class="app-mobile-filter-panel__chevron"
-        viewBox="0 0 24 24"
-      >
+      <svg aria-hidden="true" class="app-mobile-filter-panel__chevron" viewBox="0 0 24 24">
         <path d="m7 10 5 5 5-5" />
       </svg>
     </summary>
@@ -22,11 +18,14 @@
  * keyboard-accessible disclosure on phones. Native details elements begin
  * closed without extra breakpoint state or JavaScript.
  */
-withDefaults(defineProps<{
-  title?: string
-}>(), {
-  title: 'Filters',
-})
+withDefaults(
+  defineProps<{
+    title?: string;
+  }>(),
+  {
+    title: 'Filters',
+  },
+);
 </script>
 
 <style scoped>
@@ -34,24 +33,24 @@ withDefaults(defineProps<{
   display: none;
 }
 
-@media (min-width: 600px) {
+@media (width >= 600px) {
   /* The closed state is mobile-only; desktop preserves the existing cards. */
   .app-mobile-filter-panel__content {
     display: block;
   }
 }
 
-@media (max-width: 599px) {
+@media (width <= 599px) {
   .app-mobile-filter-panel__summary {
-    align-items: center;
-    cursor: pointer;
     display: flex;
-    font-size: 1rem;
-    font-weight: 600;
+    align-items: center;
     justify-content: space-between;
-    list-style: none;
     min-height: 44px;
     padding: 2px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
   }
 
   .app-mobile-filter-panel__summary::-webkit-details-marker {
@@ -59,14 +58,14 @@ withDefaults(defineProps<{
   }
 
   .app-mobile-filter-panel__chevron {
-    fill: none;
+    width: 24px;
     height: 24px;
-    stroke: currentColor;
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 2;
     transition: transform 150ms ease;
-    width: 24px;
   }
 
   .app-mobile-filter-panel[open] .app-mobile-filter-panel__chevron {
@@ -74,8 +73,8 @@ withDefaults(defineProps<{
   }
 
   .app-mobile-filter-panel__content {
-    border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
     padding-top: 12px;
+    border-top: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
   }
 }
 </style>

@@ -7,9 +7,7 @@
     rounded="lg"
     variant="flat"
   >
-    <v-card-title
-      class="widget-header-bar d-flex align-center justify-space-between px-5 py-2"
-    >
+    <v-card-title class="widget-header-bar d-flex align-center justify-space-between px-5 py-2">
       <span>Top Recommendations</span>
       <div class="d-flex align-center ga-2">
         <v-select
@@ -31,11 +29,7 @@
           variant="text"
           @click="reload"
         >
-          <svg
-            aria-hidden="true"
-            class="recommendations-reload__icon"
-            viewBox="0 0 24 24"
-          >
+          <svg aria-hidden="true" class="recommendations-reload__icon" viewBox="0 0 24 24">
             <path
               d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.1A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"
             />
@@ -44,16 +38,8 @@
       </div>
     </v-card-title>
     <v-card-text class="recommendations-content pa-4">
-      <div
-        v-if="loading"
-        aria-label="Loading recommendations"
-        class="recommendation-grid"
-      >
-        <div
-          v-for="index in 3"
-          :key="index"
-          class="recommendation-skeleton"
-        >
+      <div v-if="loading" aria-label="Loading recommendations" class="recommendation-grid">
+        <div v-for="index in 3" :key="index" class="recommendation-skeleton">
           <div class="recommendation-skeleton__image skeleton-pulse" />
           <div
             class="recommendation-skeleton__controls"
@@ -62,10 +48,7 @@
             }"
           >
             <div class="recommendation-skeleton__metrics skeleton-pulse" />
-            <div
-              v-if="!readOnly"
-              class="recommendation-skeleton__action skeleton-pulse"
-            />
+            <div v-if="!readOnly" class="recommendation-skeleton__action skeleton-pulse" />
           </div>
         </div>
       </div>
@@ -76,8 +59,8 @@
         v-else-if="!canLoad"
         class="d-flex h-100 align-center justify-center text-center text-medium-emphasis"
       >
-        Add a Commander and Oracle-identified mainboard cards to view observed
-        tournament associations.
+        Add a Commander and Oracle-identified mainboard cards to view observed tournament
+        associations.
       </div>
       <div
         v-else-if="!suggestions.length"
@@ -141,11 +124,7 @@
               variant="text"
               @click.stop="addToBoard(suggestion, 'mainboard')"
             >
-              <svg
-                aria-hidden="true"
-                class="recommendation-card__add-icon"
-                viewBox="0 0 24 24"
-              >
+              <svg aria-hidden="true" class="recommendation-card__add-icon" viewBox="0 0 24 24">
                 <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" />
               </svg>
             </v-btn>
@@ -165,10 +144,7 @@
             }"
           >
             <div class="recommendation-skeleton__metrics skeleton-pulse" />
-            <div
-              v-if="!readOnly"
-              class="recommendation-skeleton__action skeleton-pulse"
-            />
+            <div v-if="!readOnly" class="recommendation-skeleton__action skeleton-pulse" />
           </div>
         </div>
       </div>
@@ -221,21 +197,12 @@
               </v-chip>
             </div>
             <div class="d-flex flex-wrap align-center ga-2 mb-3">
-              <v-btn
-                :to="tournamentDecksLink(selectedSuggestion)"
-                size="small"
-                variant="outlined"
-              >
+              <v-btn :to="tournamentDecksLink(selectedSuggestion)" size="small" variant="outlined">
                 View Tournament Decks
               </v-btn>
               <v-menu v-if="!readOnly" location="bottom" open-on-hover>
-                <template #activator="{ props }">
-                  <v-btn
-                    color="primary"
-                    size="small"
-                    v-bind="props"
-                    variant="flat"
-                  >
+                <template #activator="{ props: activatorProps }">
+                  <v-btn color="primary" size="small" v-bind="activatorProps" variant="flat">
                     Add to board
                   </v-btn>
                 </template>
@@ -264,12 +231,7 @@
               label="Loading tournament history"
               variant="chart"
             />
-            <v-alert
-              v-else-if="historyError"
-              density="comfortable"
-              type="error"
-              variant="tonal"
-            >
+            <v-alert v-else-if="historyError" density="comfortable" type="error" variant="tonal">
               {{ historyError }}
             </v-alert>
             <v-alert
@@ -288,15 +250,8 @@
               >
                 <g class="recommendation-history__grid">
                   <template v-for="tick in historyYTicks" :key="tick.value">
-                    <line
-                      x1="42"
-                      x2="588"
-                      :y1="tick.y"
-                      :y2="tick.y"
-                    />
-                    <text x="35" :y="tick.y + 4" text-anchor="end">
-                      {{ tick.value }}%
-                    </text>
+                    <line x1="42" x2="588" :y1="tick.y" :y2="tick.y" />
+                    <text x="35" :y="tick.y + 4" text-anchor="end">{{ tick.value }}%</text>
                   </template>
                 </g>
                 <path
@@ -307,10 +262,7 @@
                   class="recommendation-history__line recommendation-history__line--event"
                   :d="eventHistoryPath"
                 />
-                <g
-                  v-for="point in historyChartPoints"
-                  :key="point.periodStart"
-                >
+                <g v-for="point in historyChartPoints" :key="point.periodStart">
                   <circle
                     class="recommendation-history__point recommendation-history__point--deck"
                     :cx="point.x"
@@ -331,12 +283,7 @@
                 <text class="recommendation-history__date" x="42" y="224">
                   {{ historyFirstDate }}
                 </text>
-                <text
-                  class="recommendation-history__date"
-                  x="588"
-                  y="224"
-                  text-anchor="end"
-                >
+                <text class="recommendation-history__date" x="588" y="224" text-anchor="end">
                   {{ historyLastDate }}
                 </text>
               </svg>
@@ -345,26 +292,18 @@
         </div>
         <div class="recommendation-evidence-keys my-4">
           <div class="recommendation-evidence-key">
-            <div class="text-caption font-weight-bold mb-2">
-              Card metrics
-            </div>
+            <div class="text-caption font-weight-bold mb-2">Card metrics</div>
             <div class="recommendation-metric-row text-caption">
               <v-chip size="x-small" variant="flat">42.0%</v-chip>
-              <span>
-                Confidence: focused-card Decks that also contained this card
-              </span>
+              <span> Confidence: focused-card Decks that also contained this card </span>
             </div>
             <div class="recommendation-metric-row text-caption">
               <v-chip size="x-small" variant="flat">1.25×</v-chip>
-              <span>
-                Lift: observed frequency compared with its sample baseline
-              </span>
+              <span> Lift: observed frequency compared with its sample baseline </span>
             </div>
           </div>
           <div class="recommendation-evidence-key">
-            <div class="text-caption font-weight-bold mb-2">
-              Association strength
-            </div>
+            <div class="text-caption font-weight-bold mb-2">Association strength</div>
             <div class="d-flex flex-wrap ga-2">
               <v-chip color="success" size="x-small" variant="outlined">
                 Strong association
@@ -372,9 +311,7 @@
               <v-chip color="warning" size="x-small" variant="outlined">
                 Moderate association
               </v-chip>
-              <v-chip color="error" size="x-small" variant="outlined">
-                Weak association
-              </v-chip>
+              <v-chip color="error" size="x-small" variant="outlined"> Weak association </v-chip>
             </div>
           </div>
         </div>
@@ -430,9 +367,7 @@
               <v-chip size="x-small" variant="flat">
                 {{ percent(evidence.confidence) }}
               </v-chip>
-              <v-chip size="x-small" variant="flat">
-                {{ evidence.lift.toFixed(2) }}×
-              </v-chip>
+              <v-chip size="x-small" variant="flat"> {{ evidence.lift.toFixed(2) }}× </v-chip>
             </div>
           </div>
         </div>
@@ -449,92 +384,91 @@ import {
   ref,
   watch,
   type ComponentPublicInstance,
-} from 'vue'
-import { getCardsByExactNames } from '../api/scryfall'
-import AppLoadingSkeleton from './AppLoadingSkeleton.vue'
-import DeckActionIcon from './DeckActionIcon.vue'
-import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
-import type {
-  AssociationBasedSuggestion,
-  AssociationSuggestionEvidence,
-} from '../models/associationSuggestion'
-import type { Deck, TrackedDeckBoard } from '../models/deck'
-import type {
-  CardInclusionHistoryPoint,
-  CardInclusionPeriod,
-} from '../models/tournament'
-import { cardAssociationRepository } from '../repositories/cardAssociationRepository'
-import { tournamentRepository } from '../repositories/tournamentRepository'
-import type { ScryfallCard } from '../types/card'
-import { associationSuggestionRepository } from '../repositories/associationSuggestionRepository'
+} from 'vue';
+
+import { getCardsByExactNames } from '../api/scryfall';
+import { associationSuggestionRepository } from '../repositories/associationSuggestionRepository';
+import { cardAssociationRepository } from '../repositories/cardAssociationRepository';
+import { tournamentRepository } from '../repositories/tournamentRepository';
 import {
   associationSuggestionService,
   formatSuggestionEvidence,
-} from '../services/associationSuggestionService'
-import { getComparisonCommander } from '../services/deckComparison'
-import { useDeckStore } from '../stores/deck'
-import { getCardImage } from '../utils/cardDisplay'
-import { getCompactCardName } from '../utils/cardName'
+} from '../services/associationSuggestionService';
+import { getComparisonCommander } from '../services/deckComparison';
+import { useDeckStore } from '../stores/deck';
+import { getCardImage } from '../utils/cardDisplay';
+import { getCompactCardName } from '../utils/cardName';
+
+import AppLoadingSkeleton from './AppLoadingSkeleton.vue';
+import DeckActionIcon from './DeckActionIcon.vue';
+import DoubleFacedCardImage from './DoubleFacedCardImage.vue';
+
+import type {
+  AssociationBasedSuggestion,
+  AssociationSuggestionEvidence,
+} from '../models/associationSuggestion';
+import type { Deck, TrackedDeckBoard } from '../models/deck';
+import type { CardInclusionHistoryPoint, CardInclusionPeriod } from '../models/tournament';
+import type { ScryfallCard } from '../types/card';
 
 const emit = defineEmits<{
-  add: [card: NonNullable<AssociationBasedSuggestion['suggestedCard']>, board: TrackedDeckBoard]
-  contentResized: [height: number]
-}>()
-const props = withDefaults(defineProps<{
-  deck?: Deck
-  readOnly?: boolean
-}>(), {
-  deck: undefined,
-  readOnly: false,
-})
-const deckStore = useDeckStore()
-const displayedDeck = computed(() => props.deck ?? deckStore.deck)
-const readOnly = computed(() => props.readOnly)
-const loading = ref(false)
-const refreshing = ref(false)
-const errorMessage = ref('')
-const suggestions = ref<AssociationBasedSuggestion[]>([])
-const selectedSuggestion = ref<AssociationBasedSuggestion | null>(null)
+  add: [card: NonNullable<AssociationBasedSuggestion['suggestedCard']>, board: TrackedDeckBoard];
+  contentResized: [height: number];
+}>();
+const props = withDefaults(
+  defineProps<{
+    deck?: Deck;
+    readOnly?: boolean;
+  }>(),
+  {
+    deck: undefined,
+    readOnly: false,
+  },
+);
+const deckStore = useDeckStore();
+const displayedDeck = computed(() => props.deck ?? deckStore.deck);
+const readOnly = computed(() => props.readOnly);
+const loading = ref(false);
+const refreshing = ref(false);
+const errorMessage = ref('');
+const suggestions = ref<AssociationBasedSuggestion[]>([]);
+const selectedSuggestion = ref<AssociationBasedSuggestion | null>(null);
 const sortedDialogEvidence = computed(() =>
   [...(selectedSuggestion.value?.evidence ?? [])].sort(
     (left, right) =>
-      right.confidence - left.confidence
-      || right.jointDeckCount - left.jointDeckCount
-      || right.lift - left.lift
-      || left.sourceCardName.localeCompare(right.sourceCardName),
+      right.confidence - left.confidence ||
+      right.jointDeckCount - left.jointDeckCount ||
+      right.lift - left.lift ||
+      left.sourceCardName.localeCompare(right.sourceCardName),
   ),
-)
-const dialogPreviewCard = ref<ScryfallCard | null>(null)
-const visibleSuggestions = computed(() => suggestions.value.slice(0, 3))
+);
+const dialogPreviewCard = ref<ScryfallCard | null>(null);
+const visibleSuggestions = computed(() => suggestions.value.slice(0, 3));
 const backgroundSkeletonCount = computed(() =>
-  refreshing.value
-    ? Math.max(0, 3 - visibleSuggestions.value.length)
-    : 0,
-)
-const historyLoading = ref(false)
-const historyError = ref('')
-const historyPoints = ref<CardInclusionHistoryPoint[]>([])
-const evidenceLoading = ref(false)
-const evidenceError = ref('')
-const dialogCardsByOracleId = ref(new Map<string, ScryfallCard>())
-let historyRequestId = 0
-let recommendationRequestId = 0
-let refillTimer: number | null = null
-let addCooldownTimer: number | null = null
-const addOnCooldown = ref(false)
-const hydratedCardsByOracleId = new Map<string, ScryfallCard>()
+  refreshing.value ? Math.max(0, 3 - visibleSuggestions.value.length) : 0,
+);
+const historyLoading = ref(false);
+const historyError = ref('');
+const historyPoints = ref<CardInclusionHistoryPoint[]>([]);
+const evidenceLoading = ref(false);
+const evidenceError = ref('');
+const dialogCardsByOracleId = ref(new Map<string, ScryfallCard>());
+let historyRequestId = 0;
+let recommendationRequestId = 0;
+let refillTimer: number | null = null;
+let addCooldownTimer: number | null = null;
+const addOnCooldown = ref(false);
+const hydratedCardsByOracleId = new Map<string, ScryfallCard>();
 const historyChartPoints = computed(() => {
-  const left = 42
-  const right = 588
-  const top = 12
-  const bottom = 204
-  const count = historyPoints.value.length
+  const left = 42;
+  const right = 588;
+  const top = 12;
+  const bottom = 204;
+  const count = historyPoints.value.length;
   return historyPoints.value.map((point, index) => {
-    const x = count === 1
-      ? (left + right) / 2
-      : left + index * ((right - left) / (count - 1))
-    const deckY = bottom - point.inclusionRate * (bottom - top)
-    const eventY = bottom - point.eventInclusionRate * (bottom - top)
+    const x = count === 1 ? (left + right) / 2 : left + index * ((right - left) / (count - 1));
+    const deckY = bottom - point.inclusionRate * (bottom - top);
+    const eventY = bottom - point.eventInclusionRate * (bottom - top);
     return {
       periodStart: point.periodStart,
       x,
@@ -545,38 +479,28 @@ const historyChartPoints = computed(() => {
         `Deck inclusion: ${percent(point.inclusionRate)} (${point.deckCount}/${point.totalEligibleDecks})`,
         `Tournament appearance: ${percent(point.eventInclusionRate)} (${point.cardEventCount}/${point.eventCount})`,
       ].join('\n'),
-    }
-  })
-})
+    };
+  });
+});
 const deckHistoryPath = computed(() =>
   historyPath(historyChartPoints.value.map((point) => [point.x, point.deckY])),
-)
+);
 const eventHistoryPath = computed(() =>
   historyPath(historyChartPoints.value.map((point) => [point.x, point.eventY])),
-)
+);
 const historyYTicks = [0, 25, 50, 75, 100].map((value) => ({
   value,
   y: 204 - (value / 100) * 192,
-}))
-const historyFirstDate = computed(() =>
-  formatHistoryDate(historyPoints.value[0]?.periodStart),
-)
-const historyLastDate = computed(() =>
-  formatHistoryDate(historyPoints.value.at(-1)?.periodStart),
-)
-const contentElement = ref<ComponentPublicInstance | null>(null)
-let contentResizeObserver: ResizeObserver | null = null
-type RecommendationTimeframe =
-  | 'week'
-  | 'month'
-  | 'three-months'
-  | 'six-months'
-  | 'year'
-  | 'all'
-const timeframe = ref<RecommendationTimeframe>('all')
+}));
+const historyFirstDate = computed(() => formatHistoryDate(historyPoints.value[0]?.periodStart));
+const historyLastDate = computed(() => formatHistoryDate(historyPoints.value.at(-1)?.periodStart));
+const contentElement = ref<ComponentPublicInstance | null>(null);
+let contentResizeObserver: ResizeObserver | null = null;
+type RecommendationTimeframe = 'week' | 'month' | 'three-months' | 'six-months' | 'year' | 'all';
+const timeframe = ref<RecommendationTimeframe>('all');
 const timeframeOptions: Array<{
-  title: string
-  value: RecommendationTimeframe
+  title: string;
+  value: RecommendationTimeframe;
 }> = [
   { title: '1 week', value: 'week' },
   { title: '1 month', value: 'month' },
@@ -584,105 +508,103 @@ const timeframeOptions: Array<{
   { title: '6 months', value: 'six-months' },
   { title: '1 year', value: 'year' },
   { title: 'All time', value: 'all' },
-]
+];
 const sourceOracleIds = computed(() => [
   ...new Set(
     displayedDeck.value.cards
       .map((entry) => entry.card.oracle_id)
       .filter((value): value is string => Boolean(value)),
   ),
-])
+]);
 const ownedOracleIds = computed(() => [
   ...sourceOracleIds.value,
   ...[
     displayedDeck.value.commander?.oracle_id,
     displayedDeck.value.partnerCommander?.oracle_id,
   ].filter((value): value is string => Boolean(value)),
-])
-const sourceCardsByOracleId = computed(() => new Map(
-  displayedDeck.value.cards
-    .filter((entry) => entry.card.oracle_id)
-    .map((entry) => [entry.card.oracle_id!.toLowerCase(), entry.card]),
-))
+]);
+const sourceCardsByOracleId = computed(
+  () =>
+    new Map(
+      displayedDeck.value.cards
+        .filter((entry) => entry.card.oracle_id)
+        .map((entry) => [entry.card.oracle_id!.toLowerCase(), entry.card]),
+    ),
+);
 const canLoad = computed(() =>
   Boolean(displayedDeck.value.commander && sourceOracleIds.value.length),
-)
+);
 const comparisonCommanderName = computed(() => {
-  const commanders = [
-    displayedDeck.value.commander,
-    displayedDeck.value.partnerCommander,
-  ].filter((card): card is ScryfallCard => Boolean(card))
+  const commanders = [displayedDeck.value.commander, displayedDeck.value.partnerCommander].filter(
+    (card): card is ScryfallCard => Boolean(card),
+  );
   if (commanders.length > 1) {
-    return commanders.map((card) => getCompactCardName(card.name)).join('/')
+    return commanders.map((card) => getCompactCardName(card.name)).join('/');
   }
-  return getComparisonCommander(displayedDeck.value).name || 'this Commander'
-})
+  return getComparisonCommander(displayedDeck.value).name || 'this Commander';
+});
 const boards: Array<{ title: string; value: TrackedDeckBoard }> = [
   { title: 'Mainboard', value: 'mainboard' },
   { title: 'Sideboard', value: 'sideboard' },
   { title: 'Maybeboard', value: 'maybeboard' },
-]
+];
 
 watch(
-  [
-    () => displayedDeck.value.id,
-    () => displayedDeck.value.commander?.oracle_id,
-    timeframe,
-  ],
+  [() => displayedDeck.value.id, () => displayedDeck.value.commander?.oracle_id, timeframe],
   () => void load(false),
   { immediate: true },
-)
+);
 
 // Adding a recommendation changes the source identities. Debounce the refill
 // so several quick additions produce one RPC and one Scryfall hydration batch.
-let sourceWatcherReady = false
+let sourceWatcherReady = false;
 watch(
   () => sourceOracleIds.value.join(','),
   () => {
     if (!sourceWatcherReady) {
-      sourceWatcherReady = true
-      return
+      sourceWatcherReady = true;
+      return;
     }
-    scheduleRefill()
+    scheduleRefill();
   },
   { immediate: true },
-)
+);
 
 watch(timeframe, () => {
   if (selectedSuggestion.value) {
-    void loadDialogHistory(selectedSuggestion.value)
+    void loadDialogHistory(selectedSuggestion.value);
   }
-})
+});
 
 onMounted(() => {
-  const element = contentElement.value?.$el
-  if (!(element instanceof HTMLElement)) return
+  const element = contentElement.value?.$el;
+  if (!(element instanceof HTMLElement)) return;
   const reportHeight = () => {
-    emit('contentResized', element.getBoundingClientRect().height)
-  }
-  reportHeight()
-  contentResizeObserver = new ResizeObserver(reportHeight)
-  contentResizeObserver.observe(element)
-})
+    emit('contentResized', element.getBoundingClientRect().height);
+  };
+  reportHeight();
+  contentResizeObserver = new ResizeObserver(reportHeight);
+  contentResizeObserver.observe(element);
+});
 
 onBeforeUnmount(() => {
-  contentResizeObserver?.disconnect()
-  if (refillTimer !== null) window.clearTimeout(refillTimer)
-  if (addCooldownTimer !== null) window.clearTimeout(addCooldownTimer)
-})
+  contentResizeObserver?.disconnect();
+  if (refillTimer !== null) window.clearTimeout(refillTimer);
+  if (addCooldownTimer !== null) window.clearTimeout(addCooldownTimer);
+});
 
 async function load(showLoader: boolean) {
-  const requestId = ++recommendationRequestId
-  errorMessage.value = ''
+  const requestId = ++recommendationRequestId;
+  errorMessage.value = '';
   if (!canLoad.value || !displayedDeck.value.commander) {
-    suggestions.value = []
-    refreshing.value = false
-    return
+    suggestions.value = [];
+    refreshing.value = false;
+    return;
   }
-  loading.value = showLoader || suggestions.value.length === 0
-  refreshing.value = !loading.value
+  loading.value = showLoader || suggestions.value.length === 0;
+  refreshing.value = !loading.value;
   try {
-    const commander = getComparisonCommander(displayedDeck.value)
+    const commander = getComparisonCommander(displayedDeck.value);
     const rows = await associationSuggestionRepository.getSuggestionEvidence(
       commander.key,
       sourceOracleIds.value,
@@ -695,30 +617,25 @@ async function load(showLoader: boolean) {
         minimumSupportingCards: 1,
         limit: 5,
       },
-    )
-    const grouped = associationSuggestionService.buildSuggestions(
-      rows,
-      ownedOracleIds.value,
-      { minimumSupportingCards: 1, limit: 5 },
-    )
+    );
+    const grouped = associationSuggestionService.buildSuggestions(rows, ownedOracleIds.value, {
+      minimumSupportingCards: 1,
+      limit: 5,
+    });
     const cachedCards = grouped.flatMap((item) => {
-      const card = hydratedCardsByOracleId.get(
-        item.suggestedOracleId.toLowerCase(),
-      )
-      return card ? [card] : []
-    })
+      const card = hydratedCardsByOracleId.get(item.suggestedOracleId.toLowerCase());
+      return card ? [card] : [];
+    });
     const missingSuggestions = grouped.filter(
-      (item) => !hydratedCardsByOracleId.has(
-        item.suggestedOracleId.toLowerCase(),
-      ),
-    )
+      (item) => !hydratedCardsByOracleId.has(item.suggestedOracleId.toLowerCase()),
+    );
     try {
       const cards = await getCardsByExactNames(
         missingSuggestions.map((item) => item.suggestedCardName),
-      )
+      );
       for (const card of cards) {
         if (card.oracle_id) {
-          hydratedCardsByOracleId.set(card.oracle_id.toLowerCase(), card)
+          hydratedCardsByOracleId.set(card.oracle_id.toLowerCase(), card);
         }
       }
     } catch {
@@ -726,126 +643,109 @@ async function load(showLoader: boolean) {
       // The Oracle-backed association row is still sufficient to add a card.
     }
     if (requestId === recommendationRequestId) {
-      const hydratedCards = [
-        ...cachedCards,
-        ...hydratedCardsByOracleId.values(),
-      ]
-      suggestions.value = associationSuggestionService.attachCards(
-        grouped,
-        hydratedCards,
-      ).map((suggestion) => ({
-        ...suggestion,
-        suggestedCard:
-          suggestion.suggestedCard ?? fallbackSuggestionCard(suggestion),
-      }))
+      const hydratedCards = [...cachedCards, ...hydratedCardsByOracleId.values()];
+      suggestions.value = associationSuggestionService
+        .attachCards(grouped, hydratedCards)
+        .map((suggestion) => ({
+          ...suggestion,
+          suggestedCard: suggestion.suggestedCard ?? fallbackSuggestionCard(suggestion),
+        }));
     }
   } catch (error) {
-    if (
-      requestId === recommendationRequestId &&
-      !suggestions.value.length
-    ) {
-      errorMessage.value = error instanceof Error
-        ? error.message
-        : 'Unable to load observed recommendations.'
+    if (requestId === recommendationRequestId && !suggestions.value.length) {
+      errorMessage.value =
+        error instanceof Error ? error.message : 'Unable to load observed recommendations.';
     }
   } finally {
     if (requestId === recommendationRequestId) {
-      loading.value = false
-      refreshing.value = false
+      loading.value = false;
+      refreshing.value = false;
     }
   }
 }
 
 function reload() {
   if (refillTimer !== null) {
-    window.clearTimeout(refillTimer)
-    refillTimer = null
+    window.clearTimeout(refillTimer);
+    refillTimer = null;
   }
-  void load(true)
+  void load(true);
 }
 
 function scheduleRefill() {
-  if (refillTimer !== null) window.clearTimeout(refillTimer)
-  refreshing.value = true
+  if (refillTimer !== null) window.clearTimeout(refillTimer);
+  refreshing.value = true;
   refillTimer = window.setTimeout(() => {
-    refillTimer = null
-    void load(false)
-  }, 600)
+    refillTimer = null;
+    void load(false);
+  }, 600);
 }
 
-function addToBoard(
-  suggestion: AssociationBasedSuggestion,
-  board: TrackedDeckBoard,
-) {
-  if (readOnly.value) return
-  if (addOnCooldown.value) return
-  const card = suggestion.suggestedCard ?? fallbackSuggestionCard(suggestion)
+function addToBoard(suggestion: AssociationBasedSuggestion, board: TrackedDeckBoard) {
+  if (readOnly.value) return;
+  if (addOnCooldown.value) return;
+  const card = suggestion.suggestedCard ?? fallbackSuggestionCard(suggestion);
   suggestions.value = suggestions.value.filter(
     (item) => item.suggestedOracleId !== suggestion.suggestedOracleId,
-  )
-  if (
-    selectedSuggestion.value?.suggestedOracleId
-    === suggestion.suggestedOracleId
-  ) {
-    closeDetails()
+  );
+  if (selectedSuggestion.value?.suggestedOracleId === suggestion.suggestedOracleId) {
+    closeDetails();
   }
-  addOnCooldown.value = true
-  if (addCooldownTimer !== null) window.clearTimeout(addCooldownTimer)
+  addOnCooldown.value = true;
+  if (addCooldownTimer !== null) window.clearTimeout(addCooldownTimer);
   addCooldownTimer = window.setTimeout(() => {
-    addOnCooldown.value = false
-    addCooldownTimer = null
-  }, 250)
-  emit('add', card, board)
+    addOnCooldown.value = false;
+    addCooldownTimer = null;
+  }, 250);
+  emit('add', card, board);
 }
 
-function fallbackSuggestionCard(
-  suggestion: AssociationBasedSuggestion,
-): ScryfallCard {
+function fallbackSuggestionCard(suggestion: AssociationBasedSuggestion): ScryfallCard {
   return {
     id: suggestion.suggestedOracleId,
     oracle_id: suggestion.suggestedOracleId,
     name: suggestion.suggestedCardName,
     type_line: '',
     color_identity: [],
-  }
+  };
 }
 
 function previewSuggestion(suggestion: AssociationBasedSuggestion) {
   if (suggestion.suggestedCard) {
-    deckStore.setPreviewCard(suggestion.suggestedCard)
+    deckStore.setPreviewCard(suggestion.suggestedCard);
   }
 }
 
 function openDetails(suggestion: AssociationBasedSuggestion) {
-  selectedSuggestion.value = suggestion
-  dialogPreviewCard.value = suggestion.suggestedCard
-  evidenceError.value = ''
-  dialogCardsByOracleId.value = new Map()
+  selectedSuggestion.value = suggestion;
+  dialogPreviewCard.value = suggestion.suggestedCard;
+  evidenceError.value = '';
+  dialogCardsByOracleId.value = new Map();
   if (suggestion.suggestedCard) {
     dialogCardsByOracleId.value.set(
       suggestion.suggestedOracleId.toLowerCase(),
       suggestion.suggestedCard,
-    )
+    );
   }
-  void loadDialogHistory(suggestion)
+  void loadDialogHistory(suggestion);
 }
 
 function previewEvidence(evidence: AssociationSuggestionEvidence) {
-  const card = evidenceCard(evidence)
-  if (card) dialogPreviewCard.value = card
+  const card = evidenceCard(evidence);
+  if (card) dialogPreviewCard.value = card;
 }
 
 function restoreDialogPreview() {
-  dialogPreviewCard.value = selectedSuggestion.value?.suggestedCard ?? null
+  dialogPreviewCard.value = selectedSuggestion.value?.suggestedCard ?? null;
 }
 
 async function focusEvidence(evidence: AssociationSuggestionEvidence) {
-  const focusedCard = evidenceCard(evidence)
-  const commanderKey = selectedSuggestion.value?.commanderKey
-  if (!focusedCard || !commanderKey || evidenceLoading.value) return
+  const focusedCard = evidenceCard(evidence);
+  const commanderKey = selectedSuggestion.value?.commanderKey;
+  if (!focusedCard || !commanderKey || evidenceLoading.value) return;
 
-  evidenceLoading.value = true
-  evidenceError.value = ''
+  evidenceLoading.value = true;
+  evidenceError.value = '';
   try {
     const associations = await cardAssociationRepository.getAssociations(
       commanderKey,
@@ -858,16 +758,16 @@ async function focusEvidence(evidence: AssociationSuggestionEvidence) {
         minimumLift: 1,
         limit: 24,
       },
-    )
+    );
     const cards = await getCardsByExactNames(
       associations.map((association) => association.associatedCardName),
-    )
-    const nextCards = new Map(dialogCardsByOracleId.value)
-    nextCards.set(evidence.sourceOracleId.toLowerCase(), focusedCard)
+    );
+    const nextCards = new Map(dialogCardsByOracleId.value);
+    nextCards.set(evidence.sourceOracleId.toLowerCase(), focusedCard);
     for (const card of cards) {
-      if (card.oracle_id) nextCards.set(card.oracle_id.toLowerCase(), card)
+      if (card.oracle_id) nextCards.set(card.oracle_id.toLowerCase(), card);
     }
-    dialogCardsByOracleId.value = nextCards
+    dialogCardsByOracleId.value = nextCards;
 
     const nextSuggestion: AssociationBasedSuggestion = {
       suggestedOracleId: evidence.sourceOracleId,
@@ -881,34 +781,32 @@ async function focusEvidence(evidence: AssociationSuggestionEvidence) {
         confidence: association.confidence,
         lift: association.lift,
         jointDeckCount: association.deckCount,
-        sourceDeckCount: association.confidence > 0
-          ? Math.round(association.deckCount / association.confidence)
-          : association.sampleSize,
+        sourceDeckCount:
+          association.confidence > 0
+            ? Math.round(association.deckCount / association.confidence)
+            : association.sampleSize,
         sampleSize: association.sampleSize,
       })),
       aggregateScore: 0,
-      sampleSize: associations[0]?.sampleSize
-        ?? selectedSuggestion.value?.sampleSize
-        ?? 0,
+      sampleSize: associations[0]?.sampleSize ?? selectedSuggestion.value?.sampleSize ?? 0,
       commanderKey,
-    }
-    selectedSuggestion.value = nextSuggestion
-    dialogPreviewCard.value = focusedCard
-    void loadDialogHistory(nextSuggestion)
+    };
+    selectedSuggestion.value = nextSuggestion;
+    dialogPreviewCard.value = focusedCard;
+    void loadDialogHistory(nextSuggestion);
   } catch (error) {
-    evidenceError.value = error instanceof Error
-      ? error.message
-      : 'Unable to load observed card associations.'
+    evidenceError.value =
+      error instanceof Error ? error.message : 'Unable to load observed card associations.';
   } finally {
-    evidenceLoading.value = false
+    evidenceLoading.value = false;
   }
 }
 
 async function loadDialogHistory(suggestion: AssociationBasedSuggestion) {
-  const requestId = ++historyRequestId
-  historyLoading.value = true
-  historyError.value = ''
-  historyPoints.value = []
+  const requestId = ++historyRequestId;
+  historyLoading.value = true;
+  historyError.value = '';
+  historyPoints.value = [];
   try {
     const points = await tournamentRepository.getCardInclusionOverTime(
       suggestion.commanderKey,
@@ -921,39 +819,36 @@ async function loadDialogHistory(suggestion: AssociationBasedSuggestion) {
       },
       historyPeriod(timeframe.value),
       { startDate: timeframeStartDate(timeframe.value) },
-    )
-    if (requestId === historyRequestId) historyPoints.value = points
+    );
+    if (requestId === historyRequestId) historyPoints.value = points;
   } catch (error) {
     if (requestId === historyRequestId) {
-      historyError.value = error instanceof Error
-        ? error.message
-        : 'Unable to load inclusion history.'
+      historyError.value =
+        error instanceof Error ? error.message : 'Unable to load inclusion history.';
     }
   } finally {
-    if (requestId === historyRequestId) historyLoading.value = false
+    if (requestId === historyRequestId) historyLoading.value = false;
   }
 }
 
 function historyPeriod(value: RecommendationTimeframe): CardInclusionPeriod {
-  if (value === 'week') return 'day'
-  if (value === 'month' || value === 'three-months') return 'week'
-  return 'month'
+  if (value === 'week') return 'day';
+  if (value === 'month' || value === 'three-months') return 'week';
+  return 'month';
 }
 
 function historyPath(points: Array<[number, number]>): string {
-  return points
-    .map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`)
-    .join(' ')
+  return points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ');
 }
 
 function formatHistoryDate(value?: string): string {
-  if (!value) return ''
+  if (!value) return '';
   return new Intl.DateTimeFormat(undefined, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(new Date(`${value}T00:00:00Z`))
+  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 function exactEvidence(evidence: AssociationSuggestionEvidence): string {
@@ -961,35 +856,28 @@ function exactEvidence(evidence: AssociationSuggestionEvidence): string {
     evidence.sourceCardName,
     evidence.jointDeckCount,
     evidence.sourceDeckCount,
-  )
+  );
 }
 
 function evidenceCard(evidence: AssociationSuggestionEvidence) {
-  const oracleId = evidence.sourceOracleId.toLowerCase()
-  return dialogCardsByOracleId.value.get(oracleId)
-    ?? sourceCardsByOracleId.value.get(oracleId)
+  const oracleId = evidence.sourceOracleId.toLowerCase();
+  return dialogCardsByOracleId.value.get(oracleId) ?? sourceCardsByOracleId.value.get(oracleId);
 }
 
-function evidenceStrength(
-  evidence: AssociationSuggestionEvidence,
-): 'strong' | 'moderate' | 'weak' {
-  if (
-    evidence.lift >= 1.5
-    && evidence.confidence >= 0.5
-    && evidence.jointDeckCount >= 10
-  ) return 'strong'
-  if (
-    evidence.lift >= 1.2
-    && evidence.confidence >= 0.25
-    && evidence.jointDeckCount >= 5
-  ) return 'moderate'
-  return 'weak'
+function evidenceStrength(evidence: AssociationSuggestionEvidence): 'strong' | 'moderate' | 'weak' {
+  if (evidence.lift >= 1.5 && evidence.confidence >= 0.5 && evidence.jointDeckCount >= 10)
+    return 'strong';
+  if (evidence.lift >= 1.2 && evidence.confidence >= 0.25 && evidence.jointDeckCount >= 5)
+    return 'moderate';
+  return 'weak';
 }
 
 function namedCardImage(cardName: string) {
-  return 'https://api.scryfall.com/cards/named'
-    + `?exact=${encodeURIComponent(cardName)}`
-    + '&format=image&version=normal'
+  return (
+    'https://api.scryfall.com/cards/named' +
+    `?exact=${encodeURIComponent(cardName)}` +
+    '&format=image&version=normal'
+  );
 }
 
 function tournamentDecksLink(suggestion: AssociationBasedSuggestion) {
@@ -997,44 +885,40 @@ function tournamentDecksLink(suggestion: AssociationBasedSuggestion) {
     name: 'commander-metagame',
     params: { commanderKey: suggestion.commanderKey },
     query: { cards: [suggestion.suggestedCardName] },
-  }
+  };
 }
 
 function cardImage(suggestion: AssociationBasedSuggestion): string {
-  return suggestion.suggestedCard
-    ? getCardImage(suggestion.suggestedCard, 'small') ?? ''
-    : ''
+  return suggestion.suggestedCard ? (getCardImage(suggestion.suggestedCard, 'small') ?? '') : '';
 }
 
 function updateDetailsDialog(value: boolean) {
-  if (!value) closeDetails()
+  if (!value) closeDetails();
 }
 
 function closeDetails() {
-  selectedSuggestion.value = null
-  historyRequestId += 1
-  dialogPreviewCard.value = null
-  historyPoints.value = []
-  historyError.value = ''
-  evidenceError.value = ''
-  dialogCardsByOracleId.value = new Map()
+  selectedSuggestion.value = null;
+  historyRequestId += 1;
+  dialogPreviewCard.value = null;
+  historyPoints.value = [];
+  historyError.value = '';
+  evidenceError.value = '';
+  dialogCardsByOracleId.value = new Map();
 }
 
 function percent(value: number) {
-  return `${(value * 100).toFixed(1)}%`
+  return `${(value * 100).toFixed(1)}%`;
 }
 
-function timeframeStartDate(
-  value: RecommendationTimeframe,
-): string | undefined {
-  if (value === 'all') return undefined
-  const date = new Date()
-  if (value === 'week') date.setUTCDate(date.getUTCDate() - 7)
-  if (value === 'month') date.setUTCMonth(date.getUTCMonth() - 1)
-  if (value === 'three-months') date.setUTCMonth(date.getUTCMonth() - 3)
-  if (value === 'six-months') date.setUTCMonth(date.getUTCMonth() - 6)
-  if (value === 'year') date.setUTCFullYear(date.getUTCFullYear() - 1)
-  return date.toISOString().slice(0, 10)
+function timeframeStartDate(value: RecommendationTimeframe): string | undefined {
+  if (value === 'all') return undefined;
+  const date = new Date();
+  if (value === 'week') date.setUTCDate(date.getUTCDate() - 7);
+  if (value === 'month') date.setUTCMonth(date.getUTCMonth() - 1);
+  if (value === 'three-months') date.setUTCMonth(date.getUTCMonth() - 3);
+  if (value === 'six-months') date.setUTCMonth(date.getUTCMonth() - 6);
+  if (value === 'year') date.setUTCFullYear(date.getUTCFullYear() - 1);
+  return date.toISOString().slice(0, 10);
 }
 </script>
 
@@ -1049,14 +933,14 @@ function timeframeStartDate(
 
 .recommendation-grid {
   display: grid;
-  gap: 12px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .recommendation-card {
-  cursor: pointer;
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 .recommendation-card:focus-visible {
@@ -1070,8 +954,8 @@ function timeframeStartDate(
 
 .recommendation-details__top {
   display: grid;
-  gap: 20px;
   grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+  gap: 20px;
 }
 
 .recommendation-details__card {
@@ -1079,9 +963,9 @@ function timeframeStartDate(
 }
 
 .recommendation-details__preview {
-  align-self: start;
   position: sticky;
   top: 16px;
+  align-self: start;
 }
 
 .recommendation-history {
@@ -1089,35 +973,35 @@ function timeframeStartDate(
 }
 
 .recommendation-history__chart {
-  background: rgba(var(--v-theme-surface), 0.45);
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 8px;
-  overflow: hidden;
   padding: 8px;
+  overflow: hidden;
+  background: rgb(var(--v-theme-surface), 0.45);
+  border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
 }
 
 .recommendation-history__chart svg {
   display: block;
-  overflow: visible;
   width: 100%;
+  overflow: visible;
 }
 
 .recommendation-history__grid line {
-  stroke: rgba(var(--v-theme-on-surface), 0.14);
+  stroke: rgb(var(--v-theme-on-surface), 0.14);
   stroke-width: 1;
 }
 
 .recommendation-history__grid text,
 .recommendation-history__date {
-  fill: rgba(var(--v-theme-on-surface), 0.7);
   font-size: 12px;
+  fill: rgb(var(--v-theme-on-surface), 0.7);
 }
 
 .recommendation-history__line {
   fill: none;
+  stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 4;
 }
 
 .recommendation-history__line--deck,
@@ -1136,16 +1020,16 @@ function timeframeStartDate(
 }
 
 .recommendation-history__legend {
-  align-items: center;
   display: inline-flex;
   gap: 6px;
+  align-items: center;
 }
 
 .recommendation-history__key {
-  border-radius: 999px;
   display: inline-block;
-  height: 3px;
   width: 22px;
+  height: 3px;
+  border-radius: 999px;
 }
 
 .recommendation-history__key--deck {
@@ -1156,35 +1040,30 @@ function timeframeStartDate(
   background: rgb(var(--v-theme-info));
 }
 
-.recommendation-evidence-card:focus-visible {
-  outline: 2px solid rgb(var(--v-theme-primary));
-  outline-offset: 2px;
-}
-
 .recommendation-evidence-grid {
   display: grid;
-  gap: 12px;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
 }
 
 .recommendation-evidence-keys {
   display: grid;
-  gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .recommendation-evidence-key {
-  background: rgba(var(--v-theme-surface), 0.45);
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 8px;
   padding: 10px 12px;
+  background: rgb(var(--v-theme-surface), 0.45);
+  border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
 }
 
 .recommendation-metric-row {
-  align-items: center;
   display: grid;
-  gap: 8px;
   grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
 }
 
 .recommendation-metric-row + .recommendation-metric-row {
@@ -1192,10 +1071,15 @@ function timeframeStartDate(
 }
 
 .recommendation-evidence-card {
+  overflow: hidden;
+  cursor: pointer;
   border: 2px solid transparent;
   border-radius: 8px;
-  cursor: pointer;
-  overflow: hidden;
+}
+
+.recommendation-evidence-card:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
 }
 
 .recommendation-evidence-card--strong {
@@ -1211,9 +1095,9 @@ function timeframeStartDate(
 }
 
 .recommendation-evidence-card__controls {
-  align-items: center;
   display: flex;
   gap: 4px;
+  align-items: center;
   min-height: 36px;
   padding: 5px 6px;
 }
@@ -1224,8 +1108,8 @@ function timeframeStartDate(
 
 .recommendation-skeleton__controls {
   display: grid;
-  gap: 4px;
   grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 4px;
   min-height: 46px;
   padding: 5px 6px 6px;
 }
@@ -1235,10 +1119,10 @@ function timeframeStartDate(
 }
 
 .recommendation-card__controls {
-  align-items: stretch;
   display: grid;
-  gap: 4px;
   grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 4px;
+  align-items: stretch;
   min-height: 46px;
   padding: 5px 6px 6px;
 }
@@ -1248,29 +1132,26 @@ function timeframeStartDate(
 }
 
 .recommendation-card__metrics {
-  align-items: center;
-  background: rgba(var(--v-theme-surface), 0.42);
-  border-radius: 6px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
   min-width: 0;
+  background: rgb(var(--v-theme-surface), 0.42);
+  border-radius: 6px;
 }
 
 .recommendation-card__metric {
-  align-items: center;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  line-height: 1.05;
   min-width: 0;
   padding: 4px 2px;
+  line-height: 1.05;
 }
 
 .recommendation-card__metric + .recommendation-card__metric {
-  border-left: 1px solid rgba(
-    var(--v-border-color),
-    var(--v-border-opacity)
-  );
+  border-left: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
 }
 
 .recommendation-card__metric strong {
@@ -1278,27 +1159,27 @@ function timeframeStartDate(
 }
 
 .recommendation-card__metric span {
-  color: rgba(var(--v-theme-on-surface), 0.68);
-  font-size: 0.625rem;
   margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.625rem;
+  color: rgb(var(--v-theme-on-surface), 0.68);
   white-space: nowrap;
 }
 
 .recommendation-card__add {
   align-self: stretch;
-  color: rgb(var(--v-theme-primary)) !important;
+  width: 34px;
+  min-width: 34px !important;
   height: auto !important;
   min-height: 34px;
-  min-width: 34px !important;
-  width: 34px;
+  color: rgb(var(--v-theme-primary)) !important;
 }
 
 .recommendation-card__add-icon {
-  fill: currentColor;
-  height: 16px;
   width: 16px;
+  height: 16px;
+  fill: currentcolor;
 }
 
 .recommendations-reload {
@@ -1307,9 +1188,9 @@ function timeframeStartDate(
 }
 
 .recommendations-reload__icon {
-  fill: currentColor;
-  height: 21px;
   width: 21px;
+  height: 21px;
+  fill: currentcolor;
 }
 
 .recommendations-timeframe {
@@ -1317,25 +1198,25 @@ function timeframeStartDate(
 }
 
 .recommendations-timeframe :deep(.v-field) {
-  background: rgba(var(--v-theme-surface), 0.7);
+  background: rgb(var(--v-theme-surface), 0.7);
 }
 
 .recommendation-skeleton {
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 8px;
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
 }
 
 .recommendation-skeleton__image {
-  aspect-ratio: 0.714;
   width: 100%;
+  aspect-ratio: 0.714;
 }
 
 .recommendation-skeleton__metrics,
 .recommendation-skeleton__action {
-  border-radius: 6px;
   min-width: 0;
+  border-radius: 6px;
 }
 
 .recommendation-skeleton__action {
@@ -1343,13 +1224,13 @@ function timeframeStartDate(
 }
 
 .skeleton-pulse {
+  background: rgb(var(--v-theme-on-surface), 0.09);
   animation: skeleton-pulse 1.25s ease-in-out infinite alternate;
-  background: rgba(var(--v-theme-on-surface), 0.09);
 }
 
 @keyframes skeleton-pulse {
   to {
-    background: rgba(var(--v-theme-on-surface), 0.18);
+    background: rgb(var(--v-theme-on-surface), 0.18);
   }
 }
 
@@ -1359,14 +1240,14 @@ function timeframeStartDate(
   }
 }
 
-@media (max-width: 599px) {
+@media (width <= 599px) {
   .recommendation-grid {
+    grid-template-columns: none;
     grid-auto-columns: minmax(142px, 44vw);
     grid-auto-flow: column;
-    grid-template-columns: none;
+    padding-bottom: 4px;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
-    padding-bottom: 4px;
     scroll-snap-type: inline proximity;
   }
 
@@ -1384,8 +1265,8 @@ function timeframeStartDate(
   }
 
   .recommendation-details__card {
-    margin-inline: auto;
     max-width: 240px;
+    margin-inline: auto;
   }
 }
 </style>

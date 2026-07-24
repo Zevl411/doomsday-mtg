@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { calculateMetagameStats } from './metagameStats'
+import { describe, expect, it } from 'vitest';
+
+import { calculateMetagameStats } from './metagameStats';
 
 describe('calculateMetagameStats', () => {
   it('calculates share, match rate, finishes, and distinct tournaments', () => {
@@ -34,7 +35,7 @@ describe('calculateMetagameStats', () => {
         draws: 0,
         standing: 16,
       },
-    ])
+    ]);
 
     expect(stats[0]).toMatchObject({
       entries: 2,
@@ -44,8 +45,7 @@ describe('calculateMetagameStats', () => {
       topCutRate: 0.5,
       firstPlaceFinishes: 1,
       metaShare: 2 / 3,
-    })
-    expect(stats[1]?.matchWinRate).toBe(0)
-  })
-})
-
+    });
+    expect(stats[1]?.matchWinRate).toBe(0);
+  });
+});

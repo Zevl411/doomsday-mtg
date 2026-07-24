@@ -1,16 +1,14 @@
-import { describe, expect, it } from 'vitest'
-import type { ScryfallCard } from '../types/card'
+import { describe, expect, it } from 'vitest';
+
 import {
   getCommanderColorIdentity,
   getCommanderLookupNames,
   mapColorIdentityByCardName,
-} from './commanderColorIdentity'
+} from './commanderColorIdentity';
 
-function card(
-  name: string,
-  colorIdentity: string[],
-  faceNames: string[] = [],
-): ScryfallCard {
+import type { ScryfallCard } from '../types/card';
+
+function card(name: string, colorIdentity: string[], faceNames: string[] = []): ScryfallCard {
   return {
     id: name,
     name,
@@ -20,7 +18,7 @@ function card(
       name: faceName,
       type_line: 'Legendary Creature',
     })),
-  }
+  };
 }
 
 describe('Commander color identity helpers', () => {
@@ -28,13 +26,12 @@ describe('Commander color identity helpers', () => {
     const identities = mapColorIdentityByCardName([
       card('Tymna the Weaver', ['W', 'B']),
       card('Kraum, Ludevic’s Opus', ['U', 'R']),
-    ])
+    ]);
 
-    expect(getCommanderColorIdentity(
-      'Tymna the Weaver // Kraum, Ludevic’s Opus',
-      identities,
-    )).toEqual(['W', 'B', 'U', 'R'])
-  })
+    expect(
+      getCommanderColorIdentity('Tymna the Weaver // Kraum, Ludevic’s Opus', identities),
+    ).toEqual(['W', 'B', 'U', 'R']);
+  });
 
   it('recognizes either face of a double-faced Commander', () => {
     const identities = mapColorIdentityByCardName([
@@ -43,13 +40,18 @@ describe('Commander color identity helpers', () => {
         ['W', 'U', 'B', 'R', 'G'],
         ['Esika, God of the Tree', 'The Prismatic Bridge'],
       ),
-    ])
+    ]);
 
-    expect(getCommanderColorIdentity('Esika, God of the Tree', identities))
-      .toEqual(['W', 'U', 'B', 'R', 'G'])
-  })
+    expect(getCommanderColorIdentity('Esika, God of the Tree', identities)).toEqual([
+      'W',
+      'U',
+      'B',
+      'R',
+      'G',
+    ]);
+  });
 
   it('accepts provider pair names with flexible separator spacing', () => {
-    expect(getCommanderLookupNames('A//B')).toEqual(['A', 'B'])
-  })
-})
+    expect(getCommanderLookupNames('A//B')).toEqual(['A', 'B']);
+  });
+});

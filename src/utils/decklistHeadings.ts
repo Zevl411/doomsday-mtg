@@ -1,4 +1,4 @@
-import type { DeckBoard } from '../types/deckImport'
+import type { DeckBoard } from '../types/deckImport';
 
 const BOARD_HEADINGS: Record<string, DeckBoard> = {
   commander: 'commander',
@@ -27,10 +27,10 @@ const BOARD_HEADINGS: Record<string, DeckBoard> = {
   acquire: 'acquireboard',
   acquireboard: 'acquireboard',
   'acquire board': 'acquireboard',
-}
+};
 
 export function normalizeDecklistHeading(line: string): string {
-  let heading = line.trim()
+  let heading = line.trim();
 
   // Remove only balanced, familiar heading wrappers from the whole line.
   const wrappers: Array<[RegExp, string]> = [
@@ -40,23 +40,18 @@ export function normalizeDecklistHeading(line: string): string {
     [/^#{1,6}\s+(.+)$/, '$1'],
     [/^--+\s*(.+?)\s*--+$/, '$1'],
     [/^===+\s*(.+?)\s*===+$/, '$1'],
-  ]
+  ];
 
   for (const [pattern, replacement] of wrappers) {
     if (pattern.test(heading)) {
-      heading = heading.replace(pattern, replacement)
-      break
+      heading = heading.replace(pattern, replacement);
+      break;
     }
   }
 
-  return heading
-    .trim()
-    .replace(/:$/, '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
+  return heading.trim().replace(/:$/, '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 export function getDecklistBoardHeading(line: string): DeckBoard | null {
-  return BOARD_HEADINGS[normalizeDecklistHeading(line)] ?? null
+  return BOARD_HEADINGS[normalizeDecklistHeading(line)] ?? null;
 }

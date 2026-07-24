@@ -1,11 +1,14 @@
-import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
-import DeckStatisticsPanel from './DeckStatisticsPanel.vue'
-import vuetify from '../plugins/vuetify'
-import { createEmptyDeck } from '../models/createDeck'
-import { useDeckStore } from '../stores/deck'
-import type { ScryfallCard } from '../types/card'
+import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { createEmptyDeck } from '../models/createDeck';
+import vuetify from '../plugins/vuetify';
+import { useDeckStore } from '../stores/deck';
+
+import DeckStatisticsPanel from './DeckStatisticsPanel.vue';
+
+import type { ScryfallCard } from '../types/card';
 
 const selectedCard: ScryfallCard = {
   id: 'selected-card',
@@ -13,7 +16,7 @@ const selectedCard: ScryfallCard = {
   type_line: 'Instant',
   color_identity: ['U'],
   cmc: 1,
-}
+};
 
 const curveCard: ScryfallCard = {
   id: 'curve-card',
@@ -21,58 +24,58 @@ const curveCard: ScryfallCard = {
   type_line: 'Artifact',
   color_identity: [],
   cmc: 2,
-}
+};
 
 beforeEach(() => {
-  localStorage.clear()
-  setActivePinia(createPinia())
-  const store = useDeckStore()
-  store.createDeck()
-  store.deck.cards = [{ card: curveCard, quantity: 1 }]
-})
+  localStorage.clear();
+  setActivePinia(createPinia());
+  const store = useDeckStore();
+  store.createDeck();
+  store.deck.cards = [{ card: curveCard, quantity: 1 }];
+});
 
 describe('DeckStatisticsPanel', () => {
   it('shows the mana-curve line by default', () => {
     const wrapper = mount(DeckStatisticsPanel, {
       global: { plugins: [vuetify] },
-    })
+    });
 
-    expect(wrapper.find('.mana-curve__line').exists()).toBe(true)
-    wrapper.unmount()
-  })
+    expect(wrapper.find('.mana-curve__line').exists()).toBe(true);
+    wrapper.unmount();
+  });
 
   it('temporarily previews curve-list cards without selecting them', async () => {
-    const store = useDeckStore()
-    store.selectPreviewCard(selectedCard)
+    const store = useDeckStore();
+    store.selectPreviewCard(selectedCard);
     const wrapper = mount(DeckStatisticsPanel, {
       global: { plugins: [vuetify] },
-    })
-    const item = wrapper.find('.mana-curve__card-item')
+    });
+    const item = wrapper.find('.mana-curve__card-item');
 
-    expect(wrapper.find('.widget-header-bar').text()).toBe('Deck Statistics')
-    await item.trigger('mouseenter')
-    expect(store.previewCard).toEqual(curveCard)
-    expect(store.selectedPreviewCard).toEqual(selectedCard)
+    expect(wrapper.find('.widget-header-bar').text()).toBe('Deck Statistics');
+    await item.trigger('mouseenter');
+    expect(store.previewCard).toEqual(curveCard);
+    expect(store.selectedPreviewCard).toEqual(selectedCard);
 
-    await item.trigger('click')
-    expect(store.selectedPreviewCard).toEqual(selectedCard)
+    await item.trigger('click');
+    expect(store.selectedPreviewCard).toEqual(selectedCard);
 
-    await item.trigger('mouseleave')
-    expect(store.previewCard).toEqual(selectedCard)
-    wrapper.unmount()
-  })
+    await item.trigger('mouseleave');
+    expect(store.previewCard).toEqual(selectedCard);
+    wrapper.unmount();
+  });
 
   it('calculates statistics from an explicitly provided Deck', () => {
-    const externalDeck = createEmptyDeck('Public Deck')
-    externalDeck.cards = [{ card: curveCard, quantity: 3 }]
+    const externalDeck = createEmptyDeck('Public Deck');
+    externalDeck.cards = [{ card: curveCard, quantity: 3 }];
     const wrapper = mount(DeckStatisticsPanel, {
       props: { deck: externalDeck },
       global: { plugins: [vuetify] },
-    })
+    });
 
-    const mainboardStat = wrapper.findAll('.v-sheet').find(
-      (sheet) => sheet.text().includes('Mainboard'),
-    )
-    expect(mainboardStat?.text()).toContain('3')
-  })
-})
+    const mainboardStat = wrapper
+      .findAll('.v-sheet')
+      .find((sheet) => sheet.text().includes('Mainboard'));
+    expect(mainboardStat?.text()).toContain('3');
+  });
+});

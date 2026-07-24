@@ -1,31 +1,30 @@
-import { defineStore } from 'pinia'
-import {
-  cloneDeck,
-  createEmptyDeck,
-  DEFAULT_DECK_NAME,
-} from '../models/createDeck'
+import { defineStore } from 'pinia';
+
+import { cloneDeck, createEmptyDeck, DEFAULT_DECK_NAME } from '../models/createDeck';
 import {
   getDeckBoardEntries,
   type Deck,
   type DeckCard,
   type DeckVisibility,
   type TrackedDeckBoard,
-} from '../models/deck'
-import type { ScryfallCard } from '../types/card'
-import { useUserPreferencesStore } from './userPreferences'
-import type { DeckLegalityResult } from '../utils/deckLegality'
-import { getCardIdentity } from '../utils/cardIdentity'
+} from '../models/deck';
+import { guestDraftRepository } from '../repositories/localDeckRepository';
+import { supportsFoil } from '../utils/cardFinish';
+import { getCardIdentity } from '../utils/cardIdentity';
+import { validateCommanderPairing } from '../utils/commanderPairing';
 import {
   getColorIdentityViolations,
   isBasicLand,
+  type DeckLegalityResult,
   validateCardAddition,
-} from '../utils/deckLegality'
-import { validateCommanderPairing } from '../utils/commanderPairing'
-import { guestDraftRepository } from '../repositories/localDeckRepository'
-import type { DeckRepository } from '../repositories/deckRepository'
-import { supportsFoil } from '../utils/cardFinish'
+} from '../utils/deckLegality';
 
-let activeDeckRepository: DeckRepository = guestDraftRepository
+import { useUserPreferencesStore } from './userPreferences';
+
+import type { DeckRepository } from '../repositories/deckRepository';
+import type { ScryfallCard } from '../types/card';
+
+let activeDeckRepository: DeckRepository = guestDraftRepository;
 
 // defineStore() creates one shared source of deck-library state.
 export const useDeckStore = defineStore('deck', {
@@ -43,19 +42,15 @@ export const useDeckStore = defineStore('deck', {
   // Getters calculate convenient values from state without duplicating data.
   getters: {
     decks(state): Deck[] {
-      return state.library.decks
+      return state.library.decks;
     },
 
     activeDeckId(state): string | null {
-      return state.library.activeDeckId
+      return state.library.activeDeckId;
     },
 
     activeDeck(state): Deck | null {
-      return (
-        state.library.decks.find(
-          (deck) => deck.id === state.library.activeDeckId,
-        ) ?? null
-      )
+      return state.library.decks.find((deck) => deck.id === state.library.activeDeckId) ?? null;
     },
 
     /**
@@ -65,14 +60,14 @@ export const useDeckStore = defineStore('deck', {
      */
     deck(): Deck {
       if (!this.activeDeck) {
-        throw new Error('No active deck is available.')
+        throw new Error('No active deck is available.');
       }
 
-      return this.activeDeck
+      return this.activeDeck;
     },
 
     hasActiveDeck(): boolean {
-      return this.activeDeck !== null
+      return this.activeDeck !== null;
     },
 
     deckSummaries(state) {
@@ -81,112 +76,110 @@ export const useDeckStore = defineStore('deck', {
         name: deck.name,
         commanderName: deck.commander?.name ?? null,
         updatedAt: deck.updatedAt,
-      }))
+      }));
     },
   },
 
   // Actions are the store's named methods for changing its state.
   actions: {
     getNextAvailableDefaultName(): string {
-      return getNextDefaultDeckName(
-        this.library.decks.map((deck) => deck.name),
-      )
+      return getNextDefaultDeckName(this.library.decks.map((deck) => deck.name));
     },
 
     createDeck(name?: string, creatorUsername = 'Guest'): Deck {
-      const deckName = name?.trim() || this.getNextAvailableDefaultName()
+      const deckName = name?.trim() || this.getNextAvailableDefaultName();
       const deck = createEmptyDeck(
         deckName,
         creatorUsername,
         useUserPreferencesStore().values.defaultDeckVisibility,
-      )
+      );
       if (this.storageMode === 'guest') {
-        this.library.decks = [deck]
+        this.library.decks = [deck];
       } else {
-        this.library.decks.push(deck)
+        this.library.decks.push(deck);
       }
-      this.library.activeDeckId = deck.id
-      this.rejectionMessage = ''
-      this.persistLibrary()
-      return deck
+      this.library.activeDeckId = deck.id;
+      this.rejectionMessage = '';
+      this.persistLibrary();
+      return deck;
     },
 
     addPreparedDeck(deck: Deck): Deck {
       if (this.storageMode === 'guest') {
-        this.library.decks = [deck]
+        this.library.decks = [deck];
       } else {
-        this.library.decks.push(deck)
+        this.library.decks.push(deck);
       }
-      this.library.activeDeckId = deck.id
-      this.rejectionMessage = ''
-      this.persistLibrary()
-      return deck
+      this.library.activeDeckId = deck.id;
+      this.rejectionMessage = '';
+      this.persistLibrary();
+      return deck;
     },
 
     openDeck(deckId: string): boolean {
       if (!this.library.decks.some((deck) => deck.id === deckId)) {
-        return false
+        return false;
       }
 
       if (this.library.activeDeckId === deckId) {
-        return true
+        return true;
       }
 
-      this.library.activeDeckId = deckId
-      this.rejectionMessage = ''
-      this.persistLibrary()
-      return true
+      this.library.activeDeckId = deckId;
+      this.rejectionMessage = '';
+      this.persistLibrary();
+      return true;
     },
 
     renameDeck(deckId: string, name: string): boolean {
-      const deck = this.library.decks.find((item) => item.id === deckId)
-      const trimmedName = name.trim()
+      const deck = this.library.decks.find((item) => item.id === deckId);
+      const trimmedName = name.trim();
 
       if (!deck || !trimmedName) {
-        return false
+        return false;
       }
 
       if (deck.name === trimmedName) {
-        return true
+        return true;
       }
 
-      deck.name = trimmedName
-      deck.updatedAt = new Date().toISOString()
-      this.persistLibrary()
-      return true
+      deck.name = trimmedName;
+      deck.updatedAt = new Date().toISOString();
+      this.persistLibrary();
+      return true;
     },
 
     updateDeckSettings(
       deckId: string,
       settings: {
-        name: string
-        description: string
-        visibility: DeckVisibility
+        name: string;
+        description: string;
+        visibility: DeckVisibility;
       },
     ): boolean {
-      const deck = this.library.decks.find((item) => item.id === deckId)
-      const name = settings.name.trim()
-      if (!deck || !name || settings.description.length > 500) return false
+      const deck = this.library.decks.find((item) => item.id === deckId);
+      const name = settings.name.trim();
+      if (!deck || !name || settings.description.length > 500) return false;
 
-      deck.name = name
-      deck.description = settings.description
-      deck.visibility = settings.visibility
-      deck.updatedAt = new Date().toISOString()
-      this.persistLibrary()
-      return true
+      deck.name = name;
+      deck.description = settings.description;
+      deck.visibility = settings.visibility;
+      deck.updatedAt = new Date().toISOString();
+      this.persistLibrary();
+      return true;
     },
 
     duplicateDeck(
       deckId: string,
       options?: {
-        name?: string
-        visibility?: DeckVisibility
-        creatorUsername?: string
+        name?: string;
+        visibility?: DeckVisibility;
+        creatorUsername?: string;
       },
     ): Deck | null {
-      const source = this.library.decks.find((deck) => deck.id === deckId)
+      const source = this.library.decks.find((deck) => deck.id === deckId);
       if (!source) {
-        return null
+        return null;
       }
 
       const duplicate = cloneDeck(
@@ -194,15 +187,15 @@ export const useDeckStore = defineStore('deck', {
         options?.name,
         options?.visibility ?? 'unlisted',
         options?.creatorUsername ?? source.creatorUsername ?? 'Unknown',
-      )
+      );
       if (this.storageMode === 'guest') {
-        this.library.decks = [duplicate]
+        this.library.decks = [duplicate];
       } else {
-        this.library.decks.push(duplicate)
+        this.library.decks.push(duplicate);
       }
-      this.library.activeDeckId = duplicate.id
-      this.persistLibrary()
-      return duplicate
+      this.library.activeDeckId = duplicate.id;
+      this.persistLibrary();
+      return duplicate;
     },
 
     copyExternalDeck(
@@ -211,100 +204,90 @@ export const useDeckStore = defineStore('deck', {
       visibility: DeckVisibility = 'unlisted',
       creatorUsername = 'Guest',
     ): Deck {
-      const duplicate = cloneDeck(source, name, visibility, creatorUsername)
-      if (this.storageMode === 'guest') this.library.decks = [duplicate]
-      else this.library.decks.push(duplicate)
-      this.library.activeDeckId = duplicate.id
-      this.persistLibrary()
-      return duplicate
+      const duplicate = cloneDeck(source, name, visibility, creatorUsername);
+      if (this.storageMode === 'guest') this.library.decks = [duplicate];
+      else this.library.decks.push(duplicate);
+      this.library.activeDeckId = duplicate.id;
+      this.persistLibrary();
+      return duplicate;
     },
 
     deleteDeck(deckId: string): boolean {
-      const deckIndex = this.library.decks.findIndex(
-        (deck) => deck.id === deckId,
-      )
+      const deckIndex = this.library.decks.findIndex((deck) => deck.id === deckId);
       if (deckIndex === -1) {
-        return false
+        return false;
       }
 
-      this.library.decks.splice(deckIndex, 1)
+      this.library.decks.splice(deckIndex, 1);
 
       if (this.library.activeDeckId === deckId) {
-        this.library.activeDeckId = this.library.decks[0]?.id ?? null
+        this.library.activeDeckId = this.library.decks[0]?.id ?? null;
       }
 
-      this.rejectionMessage = ''
-      this.persistLibrary()
-      return true
+      this.rejectionMessage = '';
+      this.persistLibrary();
+      return true;
     },
 
     deleteDecks(deckIds: string[]): number {
-      const idsToDelete = new Set(deckIds)
-      if (idsToDelete.size === 0) return 0
+      const idsToDelete = new Set(deckIds);
+      if (idsToDelete.size === 0) return 0;
 
-      const previousCount = this.library.decks.length
-      this.library.decks = this.library.decks.filter(
-        (deck) => !idsToDelete.has(deck.id),
-      )
-      const deletedCount = previousCount - this.library.decks.length
-      if (deletedCount === 0) return 0
+      const previousCount = this.library.decks.length;
+      this.library.decks = this.library.decks.filter((deck) => !idsToDelete.has(deck.id));
+      const deletedCount = previousCount - this.library.decks.length;
+      if (deletedCount === 0) return 0;
 
-      if (
-        this.library.activeDeckId &&
-        idsToDelete.has(this.library.activeDeckId)
-      ) {
-        this.library.activeDeckId = this.library.decks[0]?.id ?? null
+      if (this.library.activeDeckId && idsToDelete.has(this.library.activeDeckId)) {
+        this.library.activeDeckId = this.library.decks[0]?.id ?? null;
       }
 
-      this.rejectionMessage = ''
-      this.persistLibrary()
-      return deletedCount
+      this.rejectionMessage = '';
+      this.persistLibrary();
+      return deletedCount;
     },
 
-    updateDeckVisibilities(
-      deckIds: string[],
-      visibility: DeckVisibility,
-    ): number {
-      const idsToUpdate = new Set(deckIds)
-      if (idsToUpdate.size === 0) return 0
+    updateDeckVisibilities(deckIds: string[], visibility: DeckVisibility): number {
+      const idsToUpdate = new Set(deckIds);
+      if (idsToUpdate.size === 0) return 0;
 
-      const updatedAt = new Date().toISOString()
-      let updatedCount = 0
+      const updatedAt = new Date().toISOString();
+      let updatedCount = 0;
       for (const deck of this.library.decks) {
         if (!idsToUpdate.has(deck.id) || deck.visibility === visibility) {
-          continue
+          continue;
         }
-        deck.visibility = visibility
-        deck.updatedAt = updatedAt
-        updatedCount += 1
+        deck.visibility = visibility;
+        deck.updatedAt = updatedAt;
+        updatedCount += 1;
       }
-      if (updatedCount > 0) this.persistLibrary()
-      return updatedCount
+      if (updatedCount > 0) this.persistLibrary();
+      return updatedCount;
     },
 
     setCommander(card: ScryfallCard) {
-      this.deck.commander = card
-      delete this.deck.commanderFoil
+      this.deck.commander = card;
+      delete this.deck.commanderFoil;
       if (
         this.deck.partnerCommander &&
         !validateCommanderPairing(card, this.deck.partnerCommander).allowed
       ) {
-        this.deck.partnerCommander = null
-        delete this.deck.partnerCommanderFoil
+        this.deck.partnerCommander = null;
+        delete this.deck.partnerCommanderFoil;
       }
-      this.persistActiveDeck()
+      this.persistActiveDeck();
     },
 
     clearCommander() {
       if (!this.deck.commander) {
-        return
+        return;
       }
 
-      this.deck.commander = null
-      this.deck.partnerCommander = null
-      delete this.deck.commanderFoil
-      delete this.deck.partnerCommanderFoil
-      this.persistActiveDeck()
+      this.deck.commander = null;
+      this.deck.partnerCommander = null;
+      delete this.deck.commanderFoil;
+      delete this.deck.partnerCommanderFoil;
+      this.persistActiveDeck();
     },
 
     setPartnerCommander(card: ScryfallCard): DeckLegalityResult {
@@ -312,28 +295,27 @@ export const useDeckStore = defineStore('deck', {
         return {
           allowed: false,
           reason: 'Choose the first commander before choosing its partner.',
-        }
+        };
       }
 
-      const result = validateCommanderPairing(this.deck.commander, card)
+      const result = validateCommanderPairing(this.deck.commander, card);
       if (!result.allowed) {
-        this.rejectionMessage =
-          result.reason ?? 'Those commanders cannot be paired.'
-        return result
+        this.rejectionMessage = result.reason ?? 'Those commanders cannot be paired.';
+        return result;
       }
 
-      this.deck.partnerCommander = card
-      delete this.deck.partnerCommanderFoil
-      this.rejectionMessage = ''
-      this.persistActiveDeck()
-      return { allowed: true }
+      this.deck.partnerCommander = card;
+      delete this.deck.partnerCommanderFoil;
+      this.rejectionMessage = '';
+      this.persistActiveDeck();
+      return { allowed: true };
     },
 
     clearPartnerCommander() {
-      if (!this.deck.partnerCommander) return
-      this.deck.partnerCommander = null
-      delete this.deck.partnerCommanderFoil
-      this.persistActiveDeck()
+      if (!this.deck.partnerCommander) return;
+      this.deck.partnerCommander = null;
+      delete this.deck.partnerCommanderFoil;
+      this.persistActiveDeck();
     },
 
     /**
@@ -346,86 +328,73 @@ export const useDeckStore = defineStore('deck', {
       printing: ScryfallCard,
       foil?: boolean,
     ): boolean {
-      const current = target === 'partner'
-        ? this.deck.partnerCommander
-        : this.deck.commander
-      if (
-        !current ||
-        getCardIdentity(current) !== getCardIdentity(printing)
-      ) {
-        return false
+      const current = target === 'partner' ? this.deck.partnerCommander : this.deck.commander;
+      if (!current || getCardIdentity(current) !== getCardIdentity(printing)) {
+        return false;
       }
-      const currentFoil = target === 'partner'
-        ? this.deck.partnerCommanderFoil === true
-        : this.deck.commanderFoil === true
-      const nextFoil = foil ?? currentFoil
-      if (nextFoil && !supportsFoil(printing)) return false
+      const currentFoil =
+        target === 'partner'
+          ? this.deck.partnerCommanderFoil === true
+          : this.deck.commanderFoil === true;
+      const nextFoil = foil ?? currentFoil;
+      if (nextFoil && !supportsFoil(printing)) return false;
 
       if (target === 'partner') {
-        this.deck.partnerCommander = printing
-        if (nextFoil) this.deck.partnerCommanderFoil = true
-        else delete this.deck.partnerCommanderFoil
+        this.deck.partnerCommander = printing;
+        if (nextFoil) this.deck.partnerCommanderFoil = true;
+        else delete this.deck.partnerCommanderFoil;
       } else {
-        this.deck.commander = printing
-        if (nextFoil) this.deck.commanderFoil = true
-        else delete this.deck.commanderFoil
+        this.deck.commander = printing;
+        if (nextFoil) this.deck.commanderFoil = true;
+        else delete this.deck.commanderFoil;
       }
 
-      if (
-        this.previewCard &&
-        getCardIdentity(this.previewCard) === getCardIdentity(current)
-      ) {
-        this.previewCard = printing
+      if (this.previewCard && getCardIdentity(this.previewCard) === getCardIdentity(current)) {
+        this.previewCard = printing;
       }
       if (
         this.selectedPreviewCard &&
         getCardIdentity(this.selectedPreviewCard) === getCardIdentity(current)
       ) {
-        this.selectedPreviewCard = printing
+        this.selectedPreviewCard = printing;
       }
       if (
         this.lastPreviewCard &&
         getCardIdentity(this.lastPreviewCard) === getCardIdentity(current)
       ) {
-        this.lastPreviewCard = printing
+        this.lastPreviewCard = printing;
       }
 
-      this.rejectionMessage = ''
-      this.persistActiveDeck()
-      return true
+      this.rejectionMessage = '';
+      this.persistActiveDeck();
+      return true;
     },
 
-    addCard(
-      card: ScryfallCard,
-      allowColorIdentityViolation = false,
-    ): DeckLegalityResult {
-      const result = validateCardAddition(card, this.deck)
+    addCard(card: ScryfallCard, allowColorIdentityViolation = false): DeckLegalityResult {
+      const result = validateCardAddition(card, this.deck);
 
       if (!result.allowed) {
-        const mayAddAnyway =
-          allowColorIdentityViolation && result.overridable
+        const mayAddAnyway = allowColorIdentityViolation && result.overridable;
 
         if (!mayAddAnyway) {
-          this.rejectionMessage =
-            result.reason ?? 'That card cannot be added to this deck.'
-          return result
+          this.rejectionMessage = result.reason ?? 'That card cannot be added to this deck.';
+          return result;
         }
       }
 
       const existingBasicLand = this.deck.cards.find(
-        (deckCard) =>
-          getCardIdentity(deckCard.card) === getCardIdentity(card),
-      )
+        (deckCard) => getCardIdentity(deckCard.card) === getCardIdentity(card),
+      );
 
       if (existingBasicLand && isBasicLand(card)) {
-        existingBasicLand.quantity += 1
+        existingBasicLand.quantity += 1;
       } else {
-        this.deck.cards.push({ card, quantity: 1 })
+        this.deck.cards.push({ card, quantity: 1 });
       }
 
-      this.rejectionMessage = ''
-      this.persistActiveDeck()
-      return { allowed: true }
+      this.rejectionMessage = '';
+      this.persistActiveDeck();
+      return { allowed: true };
     },
 
     addCardToBoard(
@@ -438,54 +407,52 @@ export const useDeckStore = defineStore('deck', {
         return {
           allowed: false,
           reason: 'Quantity must be a positive whole number.',
-        }
+        };
       }
 
       if (board === 'mainboard') {
-        const result = this.addCard(card, allowColorIdentityViolation)
+        const result = this.addCard(card, allowColorIdentityViolation);
 
         if (result.allowed && quantity > 1 && isBasicLand(card)) {
-          const entry = findBoardEntry(this.deck.cards, card)
+          const entry = findBoardEntry(this.deck.cards, card);
           if (entry) {
-            entry.quantity += quantity - 1
-            this.persistActiveDeck()
+            entry.quantity += quantity - 1;
+            this.persistActiveDeck();
           }
         }
-        return result
+        return result;
       }
 
-      const entries = getDeckBoardEntries(this.deck, board)
-      const existing = findBoardEntry(entries, card)
+      const entries = getDeckBoardEntries(this.deck, board);
+      const existing = findBoardEntry(entries, card);
 
       if (existing) {
-        existing.quantity += quantity
+        existing.quantity += quantity;
       } else {
-        entries.push({ card, quantity })
+        entries.push({ card, quantity });
       }
 
-      this.rejectionMessage = ''
-      this.persistActiveDeck()
-      return { allowed: true }
+      this.rejectionMessage = '';
+      this.persistActiveDeck();
+      return { allowed: true };
     },
 
     removeCardFromBoard(identity: string, board: TrackedDeckBoard) {
-      const entries = getDeckBoardEntries(this.deck, board)
-      const remainingEntries = entries.filter(
-        (entry) => getCardIdentity(entry.card) !== identity,
-      )
+      const entries = getDeckBoardEntries(this.deck, board);
+      const remainingEntries = entries.filter((entry) => getCardIdentity(entry.card) !== identity);
 
       if (remainingEntries.length === entries.length) {
-        return
+        return;
       }
 
       if (board === 'mainboard') {
-        this.deck.cards = remainingEntries
+        this.deck.cards = remainingEntries;
       } else {
-        this.deck[board] = remainingEntries
+        this.deck[board] = remainingEntries;
       }
 
-      this.rejectionMessage = ''
-      this.persistActiveDeck()
+      this.rejectionMessage = '';
+      this.persistActiveDeck();
     },
 
     /**
@@ -499,63 +466,47 @@ export const useDeckStore = defineStore('deck', {
       printing: ScryfallCard,
       foil?: boolean,
     ): boolean {
-      if (getCardIdentity(printing) !== identity) return false
+      if (getCardIdentity(printing) !== identity) return false;
 
       const entry = getDeckBoardEntries(this.deck, board).find(
         (item) => getCardIdentity(item.card) === identity,
-      )
-      if (!entry) return false
-      const nextFoil = foil ?? (entry.foil === true)
-      if (nextFoil && !supportsFoil(printing)) return false
-      if (
-        entry.card.id === printing.id &&
-        (entry.foil === true) === nextFoil
-      ) {
-        return true
+      );
+      if (!entry) return false;
+      const nextFoil = foil ?? entry.foil === true;
+      if (nextFoil && !supportsFoil(printing)) return false;
+      if (entry.card.id === printing.id && (entry.foil === true) === nextFoil) {
+        return true;
       }
 
-      entry.card = printing
-      if (nextFoil) entry.foil = true
-      else delete entry.foil
-      if (
-        this.previewCard &&
-        getCardIdentity(this.previewCard) === identity
-      ) {
-        this.previewCard = printing
+      entry.card = printing;
+      if (nextFoil) entry.foil = true;
+      else delete entry.foil;
+      if (this.previewCard && getCardIdentity(this.previewCard) === identity) {
+        this.previewCard = printing;
       }
-      if (
-        this.selectedPreviewCard &&
-        getCardIdentity(this.selectedPreviewCard) === identity
-      ) {
-        this.selectedPreviewCard = printing
+      if (this.selectedPreviewCard && getCardIdentity(this.selectedPreviewCard) === identity) {
+        this.selectedPreviewCard = printing;
       }
-      if (
-        this.lastPreviewCard &&
-        getCardIdentity(this.lastPreviewCard) === identity
-      ) {
-        this.lastPreviewCard = printing
+      if (this.lastPreviewCard && getCardIdentity(this.lastPreviewCard) === identity) {
+        this.lastPreviewCard = printing;
       }
 
-      this.rejectionMessage = ''
-      this.persistActiveDeck()
-      return true
+      this.rejectionMessage = '';
+      this.persistActiveDeck();
+      return true;
     },
 
-    setCardFoil(
-      identity: string,
-      board: TrackedDeckBoard,
-      foil: boolean,
-    ): boolean {
+    setCardFoil(identity: string, board: TrackedDeckBoard, foil: boolean): boolean {
       const entry = getDeckBoardEntries(this.deck, board).find(
         (item) => getCardIdentity(item.card) === identity,
-      )
-      if (!entry || (foil && !supportsFoil(entry.card))) return false
-      if ((entry.foil === true) === foil) return true
+      );
+      if (!entry || (foil && !supportsFoil(entry.card))) return false;
+      if ((entry.foil === true) === foil) return true;
 
-      if (foil) entry.foil = true
-      else delete entry.foil
-      this.persistActiveDeck()
-      return true
+      if (foil) entry.foil = true;
+      else delete entry.foil;
+      this.persistActiveDeck();
+      return true;
     },
 
     increaseBoardQuantity(
@@ -565,44 +516,40 @@ export const useDeckStore = defineStore('deck', {
     ): boolean {
       const entry = getDeckBoardEntries(this.deck, board).find(
         (item) => getCardIdentity(item.card) === identity,
-      )
+      );
 
       if (
         !entry ||
-        (
-          board === 'mainboard' &&
-          !isBasicLand(entry.card) &&
-          !allowSingletonViolation
-        )
+        (board === 'mainboard' && !isBasicLand(entry.card) && !allowSingletonViolation)
       ) {
-        return false
+        return false;
       }
 
-      entry.quantity += 1
-      this.persistActiveDeck()
-      return true
+      entry.quantity += 1;
+      this.persistActiveDeck();
+      return true;
     },
 
     clearRejectionMessage() {
-      this.rejectionMessage = ''
+      this.rejectionMessage = '';
     },
 
     decreaseBoardQuantity(identity: string, board: TrackedDeckBoard) {
       const entry = getDeckBoardEntries(this.deck, board).find(
         (item) => getCardIdentity(item.card) === identity,
-      )
+      );
 
       if (!entry) {
-        return
+        return;
       }
 
       if (entry.quantity <= 1) {
-        this.removeCardFromBoard(identity, board)
-        return
+        this.removeCardFromBoard(identity, board);
+        return;
       }
 
-      entry.quantity -= 1
-      this.persistActiveDeck()
+      entry.quantity -= 1;
+      this.persistActiveDeck();
     },
 
     moveCardBetweenBoards(
@@ -612,147 +559,139 @@ export const useDeckStore = defineStore('deck', {
     ): DeckLegalityResult {
       const sourceEntry = getDeckBoardEntries(this.deck, fromBoard).find(
         (entry) => getCardIdentity(entry.card) === identity,
-      )
+      );
 
       if (!sourceEntry || fromBoard === toBoard) {
-        return { allowed: false, reason: 'That card could not be moved.' }
+        return { allowed: false, reason: 'That card could not be moved.' };
       }
 
       if (toBoard === 'mainboard') {
-        const result = validateCardAddition(sourceEntry.card, this.deck)
+        const result = validateCardAddition(sourceEntry.card, this.deck);
         if (!result.allowed) {
-          this.rejectionMessage =
-            result.reason ?? 'That card cannot be moved to the mainboard.'
-          return result
+          this.rejectionMessage = result.reason ?? 'That card cannot be moved to the mainboard.';
+          return result;
         }
 
         if (sourceEntry.quantity > 1 && !isBasicLand(sourceEntry.card)) {
           const result = {
             allowed: false,
             reason: 'Only one copy of a non-basic card may enter the mainboard.',
-          }
-          this.rejectionMessage = result.reason
-          return result
+          };
+          this.rejectionMessage = result.reason;
+          return result;
         }
       }
 
-      const destination = getDeckBoardEntries(this.deck, toBoard)
-      const existing = findBoardEntry(destination, sourceEntry.card)
+      const destination = getDeckBoardEntries(this.deck, toBoard);
+      const existing = findBoardEntry(destination, sourceEntry.card);
 
       if (existing) {
-        existing.quantity += sourceEntry.quantity
+        existing.quantity += sourceEntry.quantity;
       } else {
-        destination.push({ ...sourceEntry })
+        destination.push({ ...sourceEntry });
       }
 
-      const source = getDeckBoardEntries(this.deck, fromBoard)
-      const remaining = source.filter(
-        (entry) => getCardIdentity(entry.card) !== identity,
-      )
+      const source = getDeckBoardEntries(this.deck, fromBoard);
+      const remaining = source.filter((entry) => getCardIdentity(entry.card) !== identity);
       if (fromBoard === 'mainboard') {
-        this.deck.cards = remaining
+        this.deck.cards = remaining;
       } else {
-        this.deck[fromBoard] = remaining
+        this.deck[fromBoard] = remaining;
       }
 
-      this.rejectionMessage = ''
-      this.persistActiveDeck()
-      return { allowed: true }
+      this.rejectionMessage = '';
+      this.persistActiveDeck();
+      return { allowed: true };
     },
 
     removeIllegalCards() {
-      const illegalCards = getColorIdentityViolations(this.deck)
+      const illegalCards = getColorIdentityViolations(this.deck);
       if (!illegalCards.length) {
-        return
+        return;
       }
 
-      this.deck.cards = this.deck.cards.filter(
-        (deckCard) => !illegalCards.includes(deckCard),
-      )
-      this.rejectionMessage = ''
-      this.persistActiveDeck()
+      this.deck.cards = this.deck.cards.filter((deckCard) => !illegalCards.includes(deckCard));
+      this.rejectionMessage = '';
+      this.persistActiveDeck();
     },
 
     resetActiveDeck() {
-      const replacement = createEmptyDeck(
-        this.deck.name,
-        this.deck.creatorUsername ?? 'Unknown',
-      )
-      replacement.description = this.deck.description ?? ''
-      replacement.visibility = this.deck.visibility ?? 'private'
-      replacement.id = this.deck.id
-      replacement.createdAt = this.deck.createdAt
-      this.replaceActiveDeck(replacement)
+      const replacement = createEmptyDeck(this.deck.name, this.deck.creatorUsername ?? 'Unknown');
+      replacement.description = this.deck.description ?? '';
+      replacement.visibility = this.deck.visibility ?? 'private';
+      replacement.id = this.deck.id;
+      replacement.createdAt = this.deck.createdAt;
+      this.replaceActiveDeck(replacement);
     },
 
     replaceActiveDeck(deck: Deck) {
       const activeIndex = this.library.decks.findIndex(
         (item) => item.id === this.library.activeDeckId,
-      )
+      );
       if (activeIndex === -1) {
-        return
+        return;
       }
 
-      const current = this.library.decks[activeIndex]
+      const current = this.library.decks[activeIndex];
       this.library.decks[activeIndex] = {
         ...deck,
         id: current.id,
         name: deck.name.trim() || current.name,
         createdAt: current.createdAt,
         updatedAt: new Date().toISOString(),
-      }
-      this.rejectionMessage = ''
-      this.persistLibrary()
+      };
+      this.rejectionMessage = '';
+      this.persistLibrary();
     },
 
     setPreviewCard(card: ScryfallCard) {
-      this.previewCard = card
+      this.previewCard = card;
       if (!this.selectedPreviewCard) {
-        this.lastPreviewCard = card
+        this.lastPreviewCard = card;
       }
     },
 
     selectPreviewCard(card: ScryfallCard) {
       if (
-        this.selectedPreviewCard
-        && getCardIdentity(this.selectedPreviewCard) === getCardIdentity(card)
+        this.selectedPreviewCard &&
+        getCardIdentity(this.selectedPreviewCard) === getCardIdentity(card)
       ) {
-        this.selectedPreviewCard = null
-        this.lastPreviewCard = card
-        this.previewCard = card
-        return
+        this.selectedPreviewCard = null;
+        this.lastPreviewCard = card;
+        this.previewCard = card;
+        return;
       }
 
-      this.selectedPreviewCard = card
-      this.lastPreviewCard = card
-      this.previewCard = card
+      this.selectedPreviewCard = card;
+      this.lastPreviewCard = card;
+      this.previewCard = card;
     },
 
     restoreSelectedPreviewCard() {
-      this.previewCard = this.selectedPreviewCard ?? this.lastPreviewCard
+      this.previewCard = this.selectedPreviewCard ?? this.lastPreviewCard;
     },
 
     clearPreviewCard() {
-      this.selectedPreviewCard = null
-      this.lastPreviewCard = this.activeDeck?.commander ?? null
-      this.previewCard = this.lastPreviewCard
+      this.selectedPreviewCard = null;
+      this.lastPreviewCard = this.activeDeck?.commander ?? null;
+      this.previewCard = this.lastPreviewCard;
     },
 
     persistActiveDeck() {
-      this.updateActiveDeckTimestamp()
-      this.persistLibrary()
+      this.updateActiveDeckTimestamp();
+      this.persistLibrary();
     },
 
     updateActiveDeckTimestamp() {
-      this.deck.updatedAt = new Date().toISOString()
+      this.deck.updatedAt = new Date().toISOString();
     },
 
     saveActiveDeck() {
-      this.persistActiveDeck()
+      this.persistActiveDeck();
     },
 
     persistLibrary() {
-      this.saveSucceeded = activeDeckRepository.saveLibrary(this.library)
+      this.saveSucceeded = activeDeckRepository.saveLibrary(this.library);
     },
 
     useRepository(
@@ -760,48 +699,41 @@ export const useDeckStore = defineStore('deck', {
       storageMode: 'guest' | 'cloud',
       library = repository.loadLibrary(),
     ) {
-      activeDeckRepository = repository
-      this.storageMode = storageMode
-      this.library = library
-      this.rejectionMessage = ''
-      this.previewCard = null
-      this.selectedPreviewCard = null
-      this.lastPreviewCard = null
-      this.saveSucceeded = null
+      activeDeckRepository = repository;
+      this.storageMode = storageMode;
+      this.library = library;
+      this.rejectionMessage = '';
+      this.previewCard = null;
+      this.selectedPreviewCard = null;
+      this.lastPreviewCard = null;
+      this.saveSucceeded = null;
     },
 
     replaceLibrary(library: typeof this.library) {
-      this.library = library
-      this.persistLibrary()
+      this.library = library;
+      this.persistLibrary();
     },
   },
-})
+});
 
 function getNextDefaultDeckName(existingNames: string[]): string {
-  let highestSuffix = 0
+  let highestSuffix = 0;
 
   for (const name of existingNames) {
     if (name === DEFAULT_DECK_NAME) {
-      highestSuffix = Math.max(highestSuffix, 1)
-      continue
+      highestSuffix = Math.max(highestSuffix, 1);
+      continue;
     }
 
-    const match = name.match(/^Untitled Deck ([2-9]\d*)$/)
+    const match = name.match(/^Untitled Deck ([2-9]\d*)$/);
     if (match) {
-      highestSuffix = Math.max(highestSuffix, Number(match[1]))
+      highestSuffix = Math.max(highestSuffix, Number(match[1]));
     }
   }
 
-  return highestSuffix === 0
-    ? DEFAULT_DECK_NAME
-    : `${DEFAULT_DECK_NAME} ${highestSuffix + 1}`
+  return highestSuffix === 0 ? DEFAULT_DECK_NAME : `${DEFAULT_DECK_NAME} ${highestSuffix + 1}`;
 }
 
-function findBoardEntry(
-  entries: DeckCard[],
-  card: ScryfallCard,
-): DeckCard | undefined {
-  return entries.find(
-    (entry) => getCardIdentity(entry.card) === getCardIdentity(card),
-  )
+function findBoardEntry(entries: DeckCard[], card: ScryfallCard): DeckCard | undefined {
+  return entries.find((entry) => getCardIdentity(entry.card) === getCardIdentity(card));
 }

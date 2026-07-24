@@ -1,8 +1,8 @@
-import type { ScryfallCard } from '../types/card'
+import type { ScryfallCard } from '../types/card';
 
 export function getCardIdentity(card: ScryfallCard): string {
   // Different printings still represent the same card for singleton rules.
-  return card.oracle_id ?? normalizeCardIdentityName(card.name)
+  return card.oracle_id ?? normalizeCardIdentityName(card.name);
 }
 
 function normalizeCardIdentityName(name: string): string {
@@ -10,5 +10,5 @@ function normalizeCardIdentityName(name: string): string {
     .replace(/\s*\/{1,2}\s*/g, ' // ')
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, ' ');
 }

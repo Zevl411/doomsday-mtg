@@ -1,14 +1,13 @@
-import { describe, expect, it } from 'vitest'
-import type {
-  CommanderReadiness,
-  DataHealthSummary,
-} from '../models/dataHealth'
+import { describe, expect, it } from 'vitest';
+
 import {
   checkComparisonSamples,
   checkDataHealthConsistency,
   getNormalizationCompletionRate,
   getUnresolvedCardRate,
-} from './dataHealth'
+} from './dataHealth';
+
+import type { CommanderReadiness, DataHealthSummary } from '../models/dataHealth';
 
 const summary = (overrides: Partial<DataHealthSummary> = {}): DataHealthSummary => ({
   tournamentCount: 2,
@@ -54,11 +53,9 @@ const summary = (overrides: Partial<DataHealthSummary> = {}): DataHealthSummary 
   completedJobCount: 4,
   staleJobCount: 0,
   ...overrides,
-})
+});
 
-const commander = (
-  overrides: Partial<CommanderReadiness> = {},
-): CommanderReadiness => ({
+const commander = (overrides: Partial<CommanderReadiness> = {}): CommanderReadiness => ({
   commanderKey: 'kinnan, bonder prodigy',
   commanderName: 'Kinnan, Bonder Prodigy',
   completeDeckCount: 20,
@@ -79,16 +76,15 @@ const commander = (
   aliasMismatchCount: 0,
   oneSidedExtractionFailureCount: 0,
   ...overrides,
-})
+});
 
 describe('data health service', () => {
   it('calculates rates from validated counts and handles empty totals', () => {
-    expect(getNormalizationCompletionRate(summary())).toBe(0.6)
-    expect(getUnresolvedCardRate(summary())).toBe(0.02)
-    expect(getNormalizationCompletionRate(summary({ normalizedDeckCount: 0 })))
-      .toBe(0)
-    expect(getUnresolvedCardRate(summary({ tournamentCardCount: 0 }))).toBe(0)
-  })
+    expect(getNormalizationCompletionRate(summary())).toBe(0.6);
+    expect(getUnresolvedCardRate(summary())).toBe(0.02);
+    expect(getNormalizationCompletionRate(summary({ normalizedDeckCount: 0 }))).toBe(0);
+    expect(getUnresolvedCardRate(summary({ tournamentCardCount: 0 }))).toBe(0);
+  });
 
   it('surfaces impossible aggregate and Commander relationships', () => {
     const checks = checkDataHealthConsistency(
@@ -97,19 +93,23 @@ describe('data health service', () => {
         tournamentCardCount: 1,
         tournamentCardWithoutCanonicalCount: 2,
       }),
-      [commander({
-        sampleStatus: 'limited',
-        top16SampleCount: 21,
-        firstPlaceSampleCount: 22,
-      })],
-    )
-    expect(checks.filter((check) => check.status === 'warning')).toHaveLength(4)
-  })
+      [
+        commander({
+          sampleStatus: 'limited',
+          top16SampleCount: 21,
+          firstPlaceSampleCount: 22,
+        }),
+      ],
+    );
+    expect(checks.filter((check) => check.status === 'warning')).toHaveLength(4);
+  });
 
   it('checks equivalent RPC sample sizes and bounded result ordering', () => {
-    expect(checkComparisonSamples(5, 5, 5, 3, 1)
-      .every((check) => check.status === 'pass')).toBe(true)
-    expect(checkComparisonSamples(4, 5, 6, 3, 4)
-      .filter((check) => check.status === 'warning')).toHaveLength(3)
-  })
-})
+    expect(checkComparisonSamples(5, 5, 5, 3, 1).every((check) => check.status === 'pass')).toBe(
+      true,
+    );
+    expect(
+      checkComparisonSamples(4, 5, 6, 3, 4).filter((check) => check.status === 'warning'),
+    ).toHaveLength(3);
+  });
+});

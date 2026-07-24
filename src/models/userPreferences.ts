@@ -1,13 +1,13 @@
-import type { DeckVisibility } from './deck'
+import type { DeckVisibility } from './deck';
 
-export type DeckDisplayMode = 'grid' | 'list'
-export type DeckGrouping = 'name' | 'mana' | 'type' | 'color'
-export type DeckSecondaryGrouping = DeckGrouping | 'none'
-export type DeckBuilderSearchSide = 'left' | 'right'
-export type DeckStatisticsPosition = 'above' | 'below'
+export type DeckDisplayMode = 'grid' | 'list';
+export type DeckGrouping = 'name' | 'mana' | 'type' | 'color';
+export type DeckSecondaryGrouping = DeckGrouping | 'none';
+export type DeckBuilderSearchSide = 'left' | 'right';
+export type DeckStatisticsPosition = 'above' | 'below';
 // TCGplayer's marketplace API currently exposes US-dollar price values only.
 // Keeping currency explicit makes future native currencies additive.
-export type PriceCurrency = 'USD'
+export type PriceCurrency = 'USD';
 
 /**
  * Card themes store the generated colors instead of regenerating them on every
@@ -15,42 +15,42 @@ export type PriceCurrency = 'USD'
  * unavailable without breaking the saved theme.
  */
 export interface CardThemePalette {
-  background: string
-  surface: string
-  surfaceBright: string
-  surfaceLight: string
-  primary: string
-  primaryDarken: string
-  primaryLighten: string
-  secondary: string
-  accent: string
-  outline: string
+  background: string;
+  surface: string;
+  surfaceBright: string;
+  surfaceLight: string;
+  primary: string;
+  primaryDarken: string;
+  primaryLighten: string;
+  secondary: string;
+  accent: string;
+  outline: string;
 }
 
 export interface DefaultAppTheme {
-  mode: 'default'
+  mode: 'default';
 }
 
 export interface CardArtAppTheme {
-  mode: 'card'
-  cardId: string
-  cardName: string
-  artUrl: string
-  palette: CardThemePalette
+  mode: 'card';
+  cardId: string;
+  cardName: string;
+  artUrl: string;
+  palette: CardThemePalette;
 }
 
-export type AppThemePreference = DefaultAppTheme | CardArtAppTheme
+export type AppThemePreference = DefaultAppTheme | CardArtAppTheme;
 
 export interface UserPreferences {
-  defaultDeckDisplay: DeckDisplayMode
-  defaultPrimaryGrouping: DeckGrouping
-  defaultSecondaryGrouping: DeckSecondaryGrouping
-  defaultDeckVisibility: DeckVisibility
-  defaultCommanderColorFilter: boolean
-  deckBuilderSearchSide: DeckBuilderSearchSide
-  deckStatisticsPosition: DeckStatisticsPosition
-  priceCurrency: PriceCurrency
-  appTheme: AppThemePreference
+  defaultDeckDisplay: DeckDisplayMode;
+  defaultPrimaryGrouping: DeckGrouping;
+  defaultSecondaryGrouping: DeckSecondaryGrouping;
+  defaultDeckVisibility: DeckVisibility;
+  defaultCommanderColorFilter: boolean;
+  deckBuilderSearchSide: DeckBuilderSearchSide;
+  deckStatisticsPosition: DeckStatisticsPosition;
+  priceCurrency: PriceCurrency;
+  appTheme: AppThemePreference;
 }
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
@@ -63,4 +63,4 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   deckStatisticsPosition: 'above',
   priceCurrency: 'USD',
   appTheme: { mode: 'default' },
-}
+};

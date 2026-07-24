@@ -1,7 +1,9 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
-import vuetify from '../plugins/vuetify'
-import TournamentCardImage from './TournamentCardImage.vue'
+import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+
+import vuetify from '../plugins/vuetify';
+
+import TournamentCardImage from './TournamentCardImage.vue';
 
 describe('TournamentCardImage', () => {
   it('shows the back of a double-faced card while hovered or focused', async () => {
@@ -19,13 +21,13 @@ describe('TournamentCardImage', () => {
         },
       },
       global: { plugins: [vuetify] },
-    })
+    });
 
-    expect(wrapper.get('.v-img').classes()).toContain('full-card-image')
-    expect(wrapper.get('img').attributes('src')).toBe('front.jpg')
-    await wrapper.get('.v-card').trigger('mouseenter')
-    expect(wrapper.get('img').attributes('src')).toBe('back.jpg')
-    await wrapper.get('.v-card').trigger('mouseleave')
-    expect(wrapper.get('img').attributes('src')).toBe('front.jpg')
-  })
-})
+    expect(wrapper.get('.v-img').classes()).toContain('full-card-image');
+    expect(wrapper.get('img').attributes('src')).toBe('front.jpg');
+    await wrapper.get('.v-card').trigger('mouseenter');
+    expect(wrapper.get('img').attributes('src')).toBe('back.jpg');
+    await wrapper.get('.v-card').trigger('mouseleave');
+    expect(wrapper.get('img').attributes('src')).toBe('front.jpg');
+  });
+});

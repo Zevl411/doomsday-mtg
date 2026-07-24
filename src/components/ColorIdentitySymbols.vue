@@ -1,9 +1,5 @@
 <template>
-  <span
-    :aria-label="`Color identity: ${identityLabel}`"
-    class="color-identity-symbols"
-    role="img"
-  >
+  <span :aria-label="`Color identity: ${identityLabel}`" class="color-identity-symbols" role="img">
     <ManaSymbol
       v-for="color in displayedColors"
       :key="color"
@@ -15,18 +11,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import ManaSymbol, { type ManaColor } from './ManaSymbol.vue'
+import { computed } from 'vue';
+
+import ManaSymbol, { type ManaColor } from './ManaSymbol.vue';
 
 const props = withDefaults(
   defineProps<{
-    colors: string[]
-    size?: 'small' | 'medium' | 'large'
+    colors: string[];
+    size?: 'small' | 'medium' | 'large';
   }>(),
   {
     size: 'medium',
   },
-)
+);
 
 const colorNames: Record<ManaColor, string> = {
   W: 'White',
@@ -35,28 +32,28 @@ const colorNames: Record<ManaColor, string> = {
   R: 'Red',
   G: 'Green',
   C: 'Colorless',
-}
+};
 
-const supportedColors = new Set<ManaColor>(['W', 'U', 'B', 'R', 'G'])
+const supportedColors = new Set<ManaColor>(['W', 'U', 'B', 'R', 'G']);
 
 const displayedColors = computed<ManaColor[]>(() => {
   const colors = props.colors
     .map((color) => color.toUpperCase() as ManaColor)
-    .filter((color) => supportedColors.has(color))
+    .filter((color) => supportedColors.has(color));
 
-  return colors.length ? colors : ['C']
-})
+  return colors.length ? colors : ['C'];
+});
 
 const identityLabel = computed(() =>
   displayedColors.value.map((color) => colorNames[color]).join(', '),
-)
+);
 </script>
 
 <style scoped>
 .color-identity-symbols {
   display: inline-flex;
-  align-items: center;
   gap: 0.25rem;
+  align-items: center;
   vertical-align: middle;
 }
 </style>

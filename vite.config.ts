@@ -1,11 +1,11 @@
-import { defineConfig } from 'vitest/config'
-import { loadEnv } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import vuetify from 'vite-plugin-vuetify'
+import vue from '@vitejs/plugin-vue';
+import { loadEnv } from 'vite';
+import vuetify from 'vite-plugin-vuetify';
+import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  const env = loadEnv(mode, process.cwd(), '');
   return {
     // Forks can change their GitHub Pages repository path without editing code.
     base: env.VITE_BASE_PATH || '/doomsday-mtg/',
@@ -20,5 +20,5 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-  }
-})
+  };
+});

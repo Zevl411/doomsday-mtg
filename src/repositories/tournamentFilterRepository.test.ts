@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { tournamentFilterRepository } from './tournamentFilterRepository'
+import { beforeEach, describe, expect, it } from 'vitest';
 
-beforeEach(() => localStorage.clear())
+import { tournamentFilterRepository } from './tournamentFilterRepository';
+
+beforeEach(() => localStorage.clear());
 
 describe('tournamentFilterRepository', () => {
   it('round trips valid filter preferences', () => {
@@ -10,11 +11,11 @@ describe('tournamentFilterRepository', () => {
       timePeriod: '3-months' as const,
       sortOrder: 'size-desc' as const,
       registeredCommandersOnly: true,
-    }
+    };
 
-    expect(tournamentFilterRepository.save(preferences)).toBe(true)
-    expect(tournamentFilterRepository.load()).toEqual(preferences)
-  })
+    expect(tournamentFilterRepository.save(preferences)).toBe(true);
+    expect(tournamentFilterRepository.load()).toEqual(preferences);
+  });
 
   it('ignores malformed stored preferences', () => {
     localStorage.setItem(
@@ -25,8 +26,8 @@ describe('tournamentFilterRepository', () => {
         sortOrder: 'date-desc',
         registeredCommandersOnly: true,
       }),
-    )
+    );
 
-    expect(tournamentFilterRepository.load()).toBeNull()
-  })
-})
+    expect(tournamentFilterRepository.load()).toBeNull();
+  });
+});

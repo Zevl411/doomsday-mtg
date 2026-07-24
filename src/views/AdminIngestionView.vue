@@ -30,23 +30,12 @@
         </v-btn>
       </div>
 
-      <v-alert
-        v-if="metricsError"
-        class="mb-5"
-        type="error"
-        variant="tonal"
-      >
+      <v-alert v-if="metricsError" class="mb-5" type="error" variant="tonal">
         {{ metricsError }}
       </v-alert>
 
       <v-row v-if="metrics" class="mb-2">
-        <v-col
-          v-for="metric in metricCards"
-          :key="metric.label"
-          cols="12"
-          sm="6"
-          lg="3"
-        >
+        <v-col v-for="metric in metricCards" :key="metric.label" cols="12" sm="6" lg="3">
           <v-card border color="surface" height="100%" variant="flat">
             <v-card-text>
               <div class="text-overline text-medium-emphasis">
@@ -110,9 +99,7 @@
           <v-card border color="surface" variant="flat">
             <v-card-item>
               <v-card-title>Tournament ingestion</v-card-title>
-              <v-card-subtitle>
-                Fetch and process provider tournament records
-              </v-card-subtitle>
+              <v-card-subtitle> Fetch and process provider tournament records </v-card-subtitle>
             </v-card-item>
             <v-card-text>
               <v-select
@@ -136,12 +123,7 @@
                   />
                 </v-col>
                 <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="endDate"
-                    label="End date"
-                    type="date"
-                    variant="outlined"
-                  />
+                  <v-text-field v-model="endDate" label="End date" type="date" variant="outlined" />
                 </v-col>
               </v-row>
               <v-text-field
@@ -198,39 +180,23 @@
                 label="Exclude and purge explicitly casual or budget events"
               />
               <v-alert class="mb-4" type="info" variant="tonal">
-                TopDeck does not provide a competitive tag. Neutral event
-                names remain included; only explicit casual, budget, precon,
-                beginner, or low-power title signals are excluded.
+                TopDeck does not provide a competitive tag. Neutral event names remain included;
+                only explicit casual, budget, precon, beginner, or low-power title signals are
+                excluded.
               </v-alert>
               <v-switch
                 v-model="dryRun"
                 color="primary"
                 label="Dry run (validate without writing)"
               />
-              <v-btn
-                block
-                color="primary"
-                :loading="running"
-                size="large"
-                @click="ingest"
-              >
+              <v-btn block color="primary" :loading="running" size="large" @click="ingest">
                 Run ingestion
               </v-btn>
 
-              <v-alert
-                v-if="errorMessage"
-                class="mt-4"
-                type="error"
-                variant="tonal"
-              >
+              <v-alert v-if="errorMessage" class="mt-4" type="error" variant="tonal">
                 {{ errorMessage }}
               </v-alert>
-              <v-alert
-                v-else-if="normalizationMessage"
-                class="mt-4"
-                type="success"
-                variant="tonal"
-              >
+              <v-alert v-else-if="normalizationMessage" class="mt-4" type="success" variant="tonal">
                 {{ normalizationMessage }}
               </v-alert>
             </v-card-text>
@@ -241,9 +207,7 @@
           <v-card border color="surface" variant="flat">
             <v-card-item>
               <v-card-title>Recently imported tournaments</v-card-title>
-              <v-card-subtitle>
-                The ten most recently refreshed records
-              </v-card-subtitle>
+              <v-card-subtitle> The ten most recently refreshed records </v-card-subtitle>
             </v-card-item>
             <v-table>
               <thead>
@@ -256,10 +220,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="tournament in metrics?.recentTournaments ?? []"
-                  :key="tournament.id"
-                >
+                <tr v-for="tournament in metrics?.recentTournaments ?? []" :key="tournament.id">
                   <td>
                     <RouterLink
                       :to="{
@@ -362,14 +323,9 @@
               </v-list-item-title>
               <v-list-item-subtitle>
                 {{ job.completedBatches }} / {{ job.totalBatches }} batches ·
-                {{ job.failedBatches }} failed · {{ job.status }} ·
-                Runtime: {{ jobDuration(job) }}
+                {{ job.failedBatches }} failed · {{ job.status }} · Runtime: {{ jobDuration(job) }}
               </v-list-item-subtitle>
-              <v-progress-linear
-                class="mt-2"
-                color="primary"
-                :model-value="jobProgress(job)"
-              />
+              <v-progress-linear class="mt-2" color="primary" :model-value="jobProgress(job)" />
               <v-alert
                 v-if="job.lastError"
                 class="mt-2"
@@ -418,9 +374,7 @@
               </template>
             </v-list-item>
           </v-list>
-          <p v-else class="text-medium-emphasis">
-            No historical ingestion jobs have been created.
-          </p>
+          <p v-else class="text-medium-emphasis">No historical ingestion jobs have been created.</p>
         </v-card-text>
       </v-card>
 
@@ -428,8 +382,8 @@
         <v-card-item>
           <v-card-title>Purge casual TopDeck data</v-card-title>
           <v-card-subtitle>
-            Review or remove previously imported events with explicit casual,
-            budget, precon, beginner, or low-power title signals
+            Review or remove previously imported events with explicit casual, budget, precon,
+            beginner, or low-power title signals
           </v-card-subtitle>
         </v-card-item>
         <v-card-text>
@@ -455,8 +409,8 @@
             {{ purgeError }}
           </v-alert>
           <v-alert v-if="purgeReport" class="mt-4" type="info" variant="tonal">
-            {{ purgeReport.eventsMatched }} events matched,
-            affecting {{ purgeReport.entriesAffected }} entries.
+            {{ purgeReport.eventsMatched }} events matched, affecting
+            {{ purgeReport.entriesAffected }} entries.
             <span v-if="!purgeReport.dryRun">
               {{ purgeReport.eventsPurged }} events were purged.
             </span>
@@ -471,9 +425,7 @@
       <v-card border class="mt-6" color="surface" variant="flat">
         <v-card-item>
           <v-card-title>Card-level Decklists</v-card-title>
-          <v-card-subtitle>
-            Optional preparation for card-inclusion analysis
-          </v-card-subtitle>
+          <v-card-subtitle> Optional preparation for card-inclusion analysis </v-card-subtitle>
         </v-card-item>
         <v-card-text>
           <v-row>
@@ -497,33 +449,20 @@
               <v-text-field v-model="deckCommanderKey" label="Commander key (optional)" />
             </v-col>
           </v-row>
-          <v-textarea
-            v-model="deckTournamentIds"
-            label="Tournament IDs (optional)"
-            rows="2"
-          />
+          <v-textarea v-model="deckTournamentIds" label="Tournament IDs (optional)" rows="2" />
           <div class="d-flex flex-wrap ga-4">
             <v-switch v-model="deckOnlyMissing" label="Only missing" />
             <v-switch v-model="deckRetryPartial" label="Retry partial" />
             <v-switch v-model="deckDryRun" label="Dry run" />
           </div>
-          <v-btn
-            color="primary"
-            :loading="deckIngestionRunning"
-            @click="ingestTournamentDecks"
-          >
+          <v-btn color="primary" :loading="deckIngestionRunning" @click="ingestTournamentDecks">
             Ingest card-level Decklists
           </v-btn>
           <v-alert v-if="deckIngestionError" class="mt-4" type="error" variant="tonal">
             {{ deckIngestionError }}
           </v-alert>
           <v-row v-if="deckIngestionReport" class="mt-3">
-            <v-col
-              v-for="item in deckReportItems"
-              :key="item.label"
-              cols="6"
-              md="3"
-            >
+            <v-col v-for="item in deckReportItems" :key="item.label" cols="6" md="3">
               <v-sheet class="pa-3" color="surface-light" rounded>
                 <div class="text-caption">{{ item.label }}</div>
                 <div class="text-h6">{{ item.value }}</div>
@@ -542,15 +481,11 @@
         </v-card-item>
         <v-card-text>
           <v-alert class="mb-4" type="warning" variant="tonal">
-            This removes tournament jobs, events, entries, processed tournament
-            Decks, tournament Deck cards, and the canonical card cache. User
-            accounts and saved user Decks are preserved.
+            This removes tournament jobs, events, entries, processed tournament Decks, tournament
+            Deck cards, and the canonical card cache. User accounts and saved user Decks are
+            preserved.
           </v-alert>
-          <v-btn
-            color="error"
-            :loading="resetRunning"
-            @click="resetConfirmation = true"
-          >
+          <v-btn color="error" :loading="resetRunning" @click="resetConfirmation = true">
             Clear tournament data
           </v-btn>
           <v-alert v-if="resetError" class="mt-4" type="error" variant="tonal">
@@ -572,9 +507,8 @@
         <v-card>
           <v-card-title>Delete matching tournament data?</v-card-title>
           <v-card-text>
-            This permanently removes matching TopDeck events, their entries,
-            and processed tournament Decks. Run the preview first and review
-            every matching title.
+            This permanently removes matching TopDeck events, their entries, and processed
+            tournament Decks. Run the preview first and review every matching title.
           </v-card-text>
           <v-card-actions>
             <v-spacer />
@@ -588,15 +522,13 @@
         <v-card>
           <v-card-title>Clear all tournament testing data?</v-card-title>
           <v-card-text>
-            This cannot be undone. Confirm that no ingestion is currently
-            running. User accounts and saved user Decks will not be changed.
+            This cannot be undone. Confirm that no ingestion is currently running. User accounts and
+            saved user Decks will not be changed.
           </v-card-text>
           <v-card-actions>
             <v-spacer />
             <v-btn @click="resetConfirmation = false">Cancel</v-btn>
-            <v-btn color="error" @click="clearTournamentData">
-              Clear tournament data
-            </v-btn>
+            <v-btn color="error" @click="clearTournamentData"> Clear tournament data </v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -613,12 +545,12 @@
           <v-card-title>
             {{ report.dryRun ? 'Dry-run report' : 'Ingestion report' }}
           </v-card-title>
-          <v-card-subtitle>
-            Completed in {{ formatDuration(report.durationMs) }}
-          </v-card-subtitle>
+          <v-card-subtitle> Completed in {{ formatDuration(report.durationMs) }} </v-card-subtitle>
           <template #append>
             <v-btn
-              :aria-label="reportMinimized ? 'Expand ingestion report' : 'Minimize ingestion report'"
+              :aria-label="
+                reportMinimized ? 'Expand ingestion report' : 'Minimize ingestion report'
+              "
               color="primary"
               icon
               :title="reportMinimized ? 'Expand report' : 'Minimize report'"
@@ -643,12 +575,7 @@
         </v-card-item>
         <v-card-text v-show="!reportMinimized">
           <v-row>
-            <v-col
-              v-for="item in reportItems"
-              :key="item.label"
-              cols="6"
-              md="3"
-            >
+            <v-col v-for="item in reportItems" :key="item.label" cols="6" md="3">
               <v-sheet class="pa-3" color="surface-light" rounded="lg">
                 <div class="text-caption text-medium-emphasis">
                   {{ item.label }}
@@ -657,12 +584,7 @@
               </v-sheet>
             </v-col>
           </v-row>
-          <v-alert
-            v-if="report.providerErrors.length"
-            class="mt-4"
-            type="error"
-            variant="tonal"
-          >
+          <v-alert v-if="report.providerErrors.length" class="mt-4" type="error" variant="tonal">
             {{ report.providerErrors.join(' ') }}
           </v-alert>
           <v-alert
@@ -688,8 +610,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue';
 import {
   ingestionRepository,
   type IngestionDashboardMetrics,
@@ -698,76 +621,73 @@ import {
   type PurgeCasualEventsReport,
   type TournamentDeckIngestionReport,
   type IngestionReport,
-} from '../repositories/ingestionRepository'
-import { tournamentRepository } from '../repositories/tournamentRepository'
-import {
-  formatElapsedDuration,
-  getIngestionJobDurationMs,
-} from '../utils/ingestionDuration'
+} from '../repositories/ingestionRepository';
+import { tournamentRepository } from '../repositories/tournamentRepository';
+import { formatElapsedDuration, getIngestionJobDurationMs } from '../utils/ingestionDuration';
 
-const checkingAccess = ref(true)
-const isAdmin = ref(false)
-const loadingMetrics = ref(false)
-const metrics = ref<IngestionDashboardMetrics | null>(null)
-const metricsError = ref('')
-const running = ref(false)
-const provider = ref<'edhtop16' | 'topdeck'>('topdeck')
-const startDate = ref('')
-const endDate = ref('')
-const minimumPlayers = ref(0)
-const maximumPlayers = ref<number>()
-const lastDays = ref<number>()
-const dryRun = ref(true)
-const tournamentIds = ref('')
-const includeRounds = ref(false)
-const enrichLocation = ref(false)
-const excludeCasualEvents = ref(true)
-const report = ref<IngestionReport | null>(null)
-const reportMinimized = ref(false)
-const errorMessage = ref('')
-const normalizationMessage = ref('')
-const jobs = ref<IngestionJob[]>([])
-const creatingJob = ref(false)
-const jobStartDate = ref('')
-const jobEndDate = ref('')
-const jobWindowDays = ref(7)
-const jobMinimumPlayers = ref(0)
-const jobExcludeCasualEvents = ref(true)
-const jobError = ref('')
-const jobMessage = ref('')
-const jobClock = ref(Date.now())
-let jobRefreshTimer: number | undefined
-const purgeStartDate = ref('')
-const purgeEndDate = ref('')
-const purgeDryRun = ref(true)
-const purgeRunning = ref(false)
-const purgeConfirmation = ref(false)
-const purgeError = ref('')
-const purgeReport = ref<PurgeCasualEventsReport | null>(null)
-const resetConfirmation = ref(false)
-const resetRunning = ref(false)
-const resetError = ref('')
-const resetReport = ref<ClearTournamentDataReport | null>(null)
-const deckProvider = ref<'topdeck' | 'edhtop16' | undefined>('topdeck')
-const deckStartDate = ref('')
-const deckEndDate = ref('')
-const deckCommanderKey = ref('')
-const deckTournamentIds = ref('')
-const deckOnlyMissing = ref(true)
-const deckRetryPartial = ref(false)
-const deckDryRun = ref(true)
-const deckIngestionRunning = ref(false)
-const deckIngestionError = ref('')
-const deckIngestionReport = ref<TournamentDeckIngestionReport | null>(null)
+const checkingAccess = ref(true);
+const isAdmin = ref(false);
+const loadingMetrics = ref(false);
+const metrics = ref<IngestionDashboardMetrics | null>(null);
+const metricsError = ref('');
+const running = ref(false);
+const provider = ref<'edhtop16' | 'topdeck'>('topdeck');
+const startDate = ref('');
+const endDate = ref('');
+const minimumPlayers = ref(0);
+const maximumPlayers = ref<number>();
+const lastDays = ref<number>();
+const dryRun = ref(true);
+const tournamentIds = ref('');
+const includeRounds = ref(false);
+const enrichLocation = ref(false);
+const excludeCasualEvents = ref(true);
+const report = ref<IngestionReport | null>(null);
+const reportMinimized = ref(false);
+const errorMessage = ref('');
+const normalizationMessage = ref('');
+const jobs = ref<IngestionJob[]>([]);
+const creatingJob = ref(false);
+const jobStartDate = ref('');
+const jobEndDate = ref('');
+const jobWindowDays = ref(7);
+const jobMinimumPlayers = ref(0);
+const jobExcludeCasualEvents = ref(true);
+const jobError = ref('');
+const jobMessage = ref('');
+const jobClock = ref(Date.now());
+let jobRefreshTimer: number | undefined;
+const purgeStartDate = ref('');
+const purgeEndDate = ref('');
+const purgeDryRun = ref(true);
+const purgeRunning = ref(false);
+const purgeConfirmation = ref(false);
+const purgeError = ref('');
+const purgeReport = ref<PurgeCasualEventsReport | null>(null);
+const resetConfirmation = ref(false);
+const resetRunning = ref(false);
+const resetError = ref('');
+const resetReport = ref<ClearTournamentDataReport | null>(null);
+const deckProvider = ref<'topdeck' | 'edhtop16' | undefined>('topdeck');
+const deckStartDate = ref('');
+const deckEndDate = ref('');
+const deckCommanderKey = ref('');
+const deckTournamentIds = ref('');
+const deckOnlyMissing = ref(true);
+const deckRetryPartial = ref(false);
+const deckDryRun = ref(true);
+const deckIngestionRunning = ref(false);
+const deckIngestionError = ref('');
+const deckIngestionReport = ref<TournamentDeckIngestionReport | null>(null);
 const providerItems = [
   { title: 'TopDeck (recommended)', value: 'topdeck' },
   { title: 'EDHTop16', value: 'edhtop16' },
-]
+];
 const providerDescription = computed(() =>
   provider.value === 'topdeck'
     ? 'Direct tournament platform data with location and structured decklist support.'
     : 'Aggregated cEDH data useful for historical and curated coverage.',
-)
+);
 
 const metricCards = computed(() => [
   {
@@ -829,10 +749,10 @@ const metricCards = computed(() => [
     value: metrics.value?.normalizedDeckCount.toLocaleString() ?? '0',
     detail: `${metrics.value?.completeDeckCount ?? 0} complete · ${metrics.value?.partialDeckCount ?? 0} partial`,
   },
-])
+]);
 
 const reportItems = computed(() => {
-  if (!report.value) return []
+  if (!report.value) return [];
   return [
     { label: 'Tournaments fetched', value: report.value.tournamentsFetched },
     { label: 'Tournaments added', value: report.value.tournamentsInserted },
@@ -851,11 +771,11 @@ const reportItems = computed(() => {
     { label: 'Provider errors', value: report.value.providerErrors.length },
     { label: 'Events excluded', value: report.value.tournamentsExcluded },
     { label: 'Existing events purged', value: report.value.tournamentsPurged },
-  ]
-})
+  ];
+});
 const deckReportItems = computed(() => {
-  const report = deckIngestionReport.value
-  if (!report) return []
+  const report = deckIngestionReport.value;
+  if (!report) return [];
   return [
     { label: 'Entries considered', value: report.entriesConsidered },
     { label: 'Decklists available', value: report.decklistsAvailable },
@@ -865,50 +785,48 @@ const deckReportItems = computed(() => {
     { label: 'Partial Decks', value: report.decksPartial },
     { label: 'Cards resolved', value: report.cardsResolved },
     { label: 'Cards unresolved', value: report.cardsUnresolved },
-  ]
-})
+  ];
+});
 
 onMounted(async () => {
   try {
-    isAdmin.value = await ingestionRepository.isCurrentUserAdmin()
+    isAdmin.value = await ingestionRepository.isCurrentUserAdmin();
     if (isAdmin.value) {
-      await loadMetrics()
+      await loadMetrics();
       // Refresh progress and elapsed runtime while a long backfill runs.
-      jobRefreshTimer = window.setInterval(refreshJobs, 30_000)
+      jobRefreshTimer = window.setInterval(refreshJobs, 30_000);
     }
   } finally {
-    checkingAccess.value = false
+    checkingAccess.value = false;
   }
-})
+});
 
 onUnmounted(() => {
-  window.clearInterval(jobRefreshTimer)
-})
+  window.clearInterval(jobRefreshTimer);
+});
 
 async function loadMetrics() {
-  loadingMetrics.value = true
-  metricsError.value = ''
+  loadingMetrics.value = true;
+  metricsError.value = '';
   try {
     const [dashboard, historicalJobs] = await Promise.all([
       ingestionRepository.getDashboardMetrics(),
       ingestionRepository.getJobs(),
-    ])
-    metrics.value = dashboard
-    jobs.value = historicalJobs
+    ]);
+    metrics.value = dashboard;
+    jobs.value = historicalJobs;
   } catch (error) {
     metricsError.value =
-      error instanceof Error
-        ? error.message
-        : 'Unable to load admin dashboard metrics.'
+      error instanceof Error ? error.message : 'Unable to load admin dashboard metrics.';
   } finally {
-    loadingMetrics.value = false
+    loadingMetrics.value = false;
   }
 }
 
 async function createHistoricalJob() {
-  creatingJob.value = true
-  jobError.value = ''
-  jobMessage.value = ''
+  creatingJob.value = true;
+  jobError.value = '';
+  jobMessage.value = '';
   try {
     await ingestionRepository.createJob({
       provider: 'topdeck',
@@ -919,64 +837,61 @@ async function createHistoricalJob() {
       includeRounds: false,
       enrichLocation: false,
       excludeCasualEvents: jobExcludeCasualEvents.value,
-    })
-    jobMessage.value = 'Historical job created. The worker will process it in the background.'
-    jobs.value = await ingestionRepository.getJobs()
+    });
+    jobMessage.value = 'Historical job created. The worker will process it in the background.';
+    jobs.value = await ingestionRepository.getJobs();
   } catch (error) {
-    jobError.value = error instanceof Error ? error.message : 'Unable to create job.'
+    jobError.value = error instanceof Error ? error.message : 'Unable to create job.';
   } finally {
-    creatingJob.value = false
+    creatingJob.value = false;
   }
 }
 
 function requestCasualPurge() {
   if (purgeDryRun.value) {
-    void runCasualPurge()
+    void runCasualPurge();
   } else {
-    purgeConfirmation.value = true
+    purgeConfirmation.value = true;
   }
 }
 
 async function runCasualPurge() {
-  purgeConfirmation.value = false
-  purgeRunning.value = true
-  purgeError.value = ''
+  purgeConfirmation.value = false;
+  purgeRunning.value = true;
+  purgeError.value = '';
   try {
     purgeReport.value = await ingestionRepository.purgeCasualEvents({
       startDate: purgeStartDate.value || undefined,
       endDate: purgeEndDate.value || undefined,
       dryRun: purgeDryRun.value,
-    })
+    });
     if (!purgeDryRun.value) {
-      tournamentRepository.clearCache()
-      await loadMetrics()
+      tournamentRepository.clearCache();
+      await loadMetrics();
     }
   } catch (error) {
-    purgeError.value = error instanceof Error
-      ? error.message
-      : 'Unable to purge casual TopDeck events.'
+    purgeError.value =
+      error instanceof Error ? error.message : 'Unable to purge casual TopDeck events.';
   } finally {
-    purgeRunning.value = false
+    purgeRunning.value = false;
   }
 }
 
 async function clearTournamentData() {
-  resetConfirmation.value = false
-  resetRunning.value = true
-  resetError.value = ''
-  resetReport.value = null
+  resetConfirmation.value = false;
+  resetRunning.value = true;
+  resetError.value = '';
+  resetReport.value = null;
   try {
-    resetReport.value = await ingestionRepository.clearTournamentData()
-    tournamentRepository.clearCache()
-    report.value = null
-    deckIngestionReport.value = null
-    await loadMetrics()
+    resetReport.value = await ingestionRepository.clearTournamentData();
+    tournamentRepository.clearCache();
+    report.value = null;
+    deckIngestionReport.value = null;
+    await loadMetrics();
   } catch (error) {
-    resetError.value = error instanceof Error
-      ? error.message
-      : 'Unable to clear tournament data.'
+    resetError.value = error instanceof Error ? error.message : 'Unable to clear tournament data.';
   } finally {
-    resetRunning.value = false
+    resetRunning.value = false;
   }
 }
 
@@ -984,38 +899,36 @@ async function changeJob(
   jobId: string,
   action: 'pause-job' | 'resume-job' | 'cancel-job' | 'retry-job',
 ) {
-  jobError.value = ''
+  jobError.value = '';
   try {
-    await ingestionRepository.updateJob(jobId, action)
-    jobs.value = await ingestionRepository.getJobs()
+    await ingestionRepository.updateJob(jobId, action);
+    jobs.value = await ingestionRepository.getJobs();
   } catch (error) {
-    jobError.value = error instanceof Error ? error.message : 'Unable to update job.'
+    jobError.value = error instanceof Error ? error.message : 'Unable to update job.';
   }
 }
 
 function jobProgress(job: IngestionJob) {
-  return job.totalBatches
-    ? (job.completedBatches / job.totalBatches) * 100
-    : 0
+  return job.totalBatches ? (job.completedBatches / job.totalBatches) * 100 : 0;
 }
 
 function jobDuration(job: IngestionJob): string {
-  const duration = getIngestionJobDurationMs(job, jobClock.value)
-  return duration === null ? 'Not started' : formatElapsedDuration(duration)
+  const duration = getIngestionJobDurationMs(job, jobClock.value);
+  return duration === null ? 'Not started' : formatElapsedDuration(duration);
 }
 
 async function refreshJobs() {
-  jobClock.value = Date.now()
+  jobClock.value = Date.now();
   try {
-    jobs.value = await ingestionRepository.getJobs()
+    jobs.value = await ingestionRepository.getJobs();
   } catch {
     // Keep the last successful snapshot when a background refresh fails.
   }
 }
 
 async function ingestTournamentDecks() {
-  deckIngestionRunning.value = true
-  deckIngestionError.value = ''
+  deckIngestionRunning.value = true;
+  deckIngestionError.value = '';
   try {
     deckIngestionReport.value = await ingestionRepository.ingestAllTournamentDecks({
       provider: deckProvider.value,
@@ -1023,30 +936,32 @@ async function ingestTournamentDecks() {
       endDate: deckEndDate.value || undefined,
       commanderKey: deckCommanderKey.value || undefined,
       tournamentIds: deckTournamentIds.value
-        .split(/[\n,]/).map((id) => id.trim()).filter(Boolean),
+        .split(/[\n,]/)
+        .map((id) => id.trim())
+        .filter(Boolean),
       onlyMissing: deckOnlyMissing.value,
       retryPartial: deckRetryPartial.value,
       dryRun: deckDryRun.value,
-    })
-    if (!deckDryRun.value) tournamentRepository.clearCache()
+    });
+    if (!deckDryRun.value) tournamentRepository.clearCache();
   } catch (error) {
-    deckIngestionError.value = error instanceof Error
-      ? error.message : 'Card-level Deck ingestion failed.'
+    deckIngestionError.value =
+      error instanceof Error ? error.message : 'Card-level Deck ingestion failed.';
   } finally {
-    deckIngestionRunning.value = false
+    deckIngestionRunning.value = false;
   }
 }
 
 async function ingest() {
-  running.value = true
-  errorMessage.value = ''
-  normalizationMessage.value = ''
-  reportMinimized.value = false
+  running.value = true;
+  errorMessage.value = '';
+  normalizationMessage.value = '';
+  reportMinimized.value = false;
   try {
     const selectedTournamentIds = tournamentIds.value
       .split(/[\n,]/)
       .map((id) => id.trim())
-      .filter(Boolean)
+      .filter(Boolean);
     report.value = await ingestionRepository.ingestAllTournaments({
       provider: provider.value,
       startDate: startDate.value || undefined,
@@ -1059,7 +974,7 @@ async function ingest() {
       includeRounds: includeRounds.value,
       enrichLocation: enrichLocation.value,
       excludeCasualEvents: excludeCasualEvents.value,
-    })
+    });
     if (!dryRun.value && !report.value.providerErrors.length) {
       // Keep provider requests responsive, then let the durable worker perform
       // card-level normalization automatically in bounded cron invocations.
@@ -1073,40 +988,37 @@ async function ingest() {
           includeRounds: false,
           enrichLocation: false,
           excludeCasualEvents: excludeCasualEvents.value,
-        })
+        });
         normalizationMessage.value =
-          'Tournament metadata imported. Card-level Deck processing is queued.'
+          'Tournament metadata imported. Card-level Deck processing is queued.';
       }
-      tournamentRepository.clearCache()
-      await loadMetrics()
+      tournamentRepository.clearCache();
+      await loadMetrics();
     }
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Ingestion failed.'
+    errorMessage.value = error instanceof Error ? error.message : 'Ingestion failed.';
   } finally {
-    running.value = false
+    running.value = false;
   }
 }
 
 function closeReport() {
-  report.value = null
-  reportMinimized.value = false
+  report.value = null;
+  reportMinimized.value = false;
 }
 
 function formatDate(value: string | null, includeTime = false): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     ...(includeTime ? { timeStyle: 'short' as const } : {}),
-  }).format(date)
+  }).format(date);
 }
 
 function formatDuration(durationMs: number): string {
-  return durationMs < 1000
-    ? `${durationMs} ms`
-    : `${(durationMs / 1000).toFixed(1)} s`
+  return durationMs < 1000 ? `${durationMs} ms` : `${(durationMs / 1000).toFixed(1)} s`;
 }
 </script>
 
@@ -1115,7 +1027,7 @@ function formatDuration(durationMs: number): string {
  * Keep a dry-run result available while an administrator reviews the rest of
  * the page. Mobile screens use normal document flow to preserve usable space.
  */
-@media (min-width: 1280px) {
+@media (width >= 1280px) {
   .ingestion-report--sticky {
     position: sticky;
     bottom: 16px;

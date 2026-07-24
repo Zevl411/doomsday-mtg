@@ -1,12 +1,7 @@
-import type { Deck } from '../models/deck'
+import type { Deck } from '../models/deck';
 
 /** Source formats influence parsing heuristics but never the Deck model. */
-export type DecklistFormat =
-  | 'generic'
-  | 'moxfield'
-  | 'archidekt'
-  | 'arena'
-  | 'mtgo'
+export type DecklistFormat = 'generic' | 'moxfield' | 'archidekt' | 'arena' | 'mtgo';
 
 /**
  * The parser recognizes more boards than the application currently stores.
@@ -22,53 +17,53 @@ export type DeckBoard =
   | 'companion'
   | 'acquireboard'
   | 'tokens'
-  | 'unknown'
+  | 'unknown';
 
-export type DecklistSection = DeckBoard
+export type DecklistSection = DeckBoard;
 
 export interface ParsedDeckLine {
-  quantity: number
-  cardName: string
-  lineNumber: number
-  section: DeckBoard
-  originalText?: string
+  quantity: number;
+  cardName: string;
+  lineNumber: number;
+  section: DeckBoard;
+  originalText?: string;
 }
 
 /** A user-facing parser, resolution, or legality problem. */
 export interface DeckImportIssue {
-  lineNumber?: number
-  input?: string
-  message: string
+  lineNumber?: number;
+  input?: string;
+  message: string;
 }
 
 /** Summary shown before a potentially lossy import is confirmed. */
 export interface DeckImportResult {
-  format: DecklistFormat
-  importedCards: number
-  skippedCards: number
-  issues: DeckImportIssue[]
-  informationalIssues: DeckImportIssue[]
-  ignoredSections: IgnoredDeckSection[]
-  commanderSource: 'imported' | 'inferred' | 'retained' | 'required' | 'none'
+  format: DecklistFormat;
+  importedCards: number;
+  skippedCards: number;
+  issues: DeckImportIssue[];
+  informationalIssues: DeckImportIssue[];
+  ignoredSections: IgnoredDeckSection[];
+  commanderSource: 'imported' | 'inferred' | 'retained' | 'required' | 'none';
 }
 
 /** Fully normalized, network-free output from the plaintext parser. */
 export interface ParsedDecklist {
-  format: DecklistFormat
-  lines: ParsedDeckLine[]
-  issues: DeckImportIssue[]
-  ignoredSections: IgnoredDeckSection[]
-  hasCommanderSection: boolean
-  commanderInferenceMayBeRequired: boolean
-  skippedCategoryHeadings: DeckImportIssue[]
+  format: DecklistFormat;
+  lines: ParsedDeckLine[];
+  issues: DeckImportIssue[];
+  ignoredSections: IgnoredDeckSection[];
+  hasCommanderSection: boolean;
+  commanderInferenceMayBeRequired: boolean;
+  skippedCategoryHeadings: DeckImportIssue[];
 }
 
 export interface IgnoredDeckSection {
-  section: DecklistSection
-  cardCount: number
+  section: DecklistSection;
+  cardCount: number;
 }
 
 export interface PreparedDeckImport {
-  deck: Deck
-  result: DeckImportResult
+  deck: Deck;
+  result: DeckImportResult;
 }

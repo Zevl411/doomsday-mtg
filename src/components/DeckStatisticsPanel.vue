@@ -6,9 +6,7 @@
     rounded="lg"
     variant="flat"
   >
-    <v-card-title class="widget-header-bar px-5 py-3">
-      Deck Statistics
-    </v-card-title>
+    <v-card-title class="widget-header-bar px-5 py-3"> Deck Statistics </v-card-title>
     <v-card-text class="statistics-content pa-4">
       <v-row density="comfortable">
         <v-col v-for="stat in summaryStats" :key="stat.label" cols="6" sm="3">
@@ -49,11 +47,7 @@
         <v-row density="comfortable">
           <v-col cols="12" md="8">
             <div class="mana-curve__plot">
-              <div
-                v-for="bucket in manaCurve"
-                :key="bucket.value"
-                class="mana-curve__column"
-              >
+              <div v-for="bucket in manaCurve" :key="bucket.value" class="mana-curve__column">
                 <span class="mana-curve__count text-caption">
                   {{ bucket.count }}
                 </span>
@@ -61,11 +55,7 @@
                   :aria-label="`Show mana value ${bucket.label} cards`"
                   block
                   class="mana-curve__bar"
-                  :color="
-                    selectedManaValue === bucket.value
-                      ? 'primary'
-                      : 'primary-darken-2'
-                  "
+                  :color="selectedManaValue === bucket.value ? 'primary' : 'primary-darken-2'"
                   :disabled="bucket.count === 0"
                   :height="`${bucket.height}%`"
                   min-height="0"
@@ -76,10 +66,8 @@
                 <span
                   class="text-caption"
                   :class="{
-                    'font-weight-bold text-primary':
-                      selectedManaValue === bucket.value,
-                    'text-medium-emphasis':
-                      selectedManaValue !== bucket.value,
+                    'font-weight-bold text-primary': selectedManaValue === bucket.value,
+                    'text-medium-emphasis': selectedManaValue !== bucket.value,
                   }"
                 >
                   {{ bucket.label }}
@@ -105,11 +93,7 @@
             </div>
           </v-col>
           <v-col cols="12" md="4">
-            <v-card
-              border
-              class="mana-curve__card-list"
-              variant="tonal"
-            >
+            <v-card border class="mana-curve__card-list" variant="tonal">
               <v-list
                 aria-label="Cards at selected mana value"
                 class="mana-curve__cards"
@@ -127,9 +111,7 @@
                   @mouseenter="deckStore.setPreviewCard(entry.card)"
                 >
                   <template v-if="entry.quantity > 1" #append>
-                    <v-chip size="x-small" variant="outlined">
-                      ×{{ entry.quantity }}
-                    </v-chip>
+                    <v-chip size="x-small" variant="outlined"> ×{{ entry.quantity }} </v-chip>
                   </template>
                 </v-list-item>
                 <v-list-item
@@ -144,12 +126,7 @@
       </v-sheet>
       <v-divider class="my-4" />
       <div class="d-flex flex-wrap ga-2">
-        <v-chip
-          v-for="type in typeCounts"
-          :key="type.label"
-          size="small"
-          variant="outlined"
-        >
+        <v-chip v-for="type in typeCounts" :key="type.label" size="small" variant="outlined">
           {{ type.label }} {{ type.count }}
         </v-chip>
       </div>
@@ -158,41 +135,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import type { Deck } from '../models/deck'
-import { useDeckStore } from '../stores/deck'
-import type { ScryfallCard } from '../types/card'
-import { getCardManaValue } from '../utils/cardManaValue'
+import { computed, ref, watch } from 'vue';
 
-const deckStore = useDeckStore()
+import { useDeckStore } from '../stores/deck';
+import { getCardManaValue } from '../utils/cardManaValue';
+
+import type { Deck } from '../models/deck';
+import type { ScryfallCard } from '../types/card';
+
+const deckStore = useDeckStore();
 const props = defineProps<{
-  deck?: Deck
-}>()
-const displayedDeck = computed(() => props.deck ?? deckStore.deck)
-const excludeLands = ref(true)
-const showTrendLine = ref(true)
-const selectedManaValue = ref(0)
+  deck?: Deck;
+}>();
+const displayedDeck = computed(() => props.deck ?? deckStore.deck);
+const excludeLands = ref(true);
+const showTrendLine = ref(true);
+const selectedManaValue = ref(0);
 const curveCards = computed(() =>
-  displayedDeck.value.cards.filter(
-    (entry) => !excludeLands.value || !isLand(entry.card),
-  ),
-)
+  displayedDeck.value.cards.filter((entry) => !excludeLands.value || !isLand(entry.card)),
+);
 const mainboardCount = computed(() =>
   displayedDeck.value.cards.reduce((sum, entry) => sum + entry.quantity, 0),
-)
+);
 const averageManaValue = computed(() => {
   const total = curveCards.value.reduce(
     (sum, entry) => sum + getCardManaValue(entry.card) * entry.quantity,
     0,
-  )
-  const includedCardCount = curveCards.value.reduce(
-    (sum, entry) => sum + entry.quantity,
-    0,
-  )
-  return includedCardCount
-    ? (total / includedCardCount).toFixed(2)
-    : '0.00'
-})
+  );
+  const includedCardCount = curveCards.value.reduce((sum, entry) => sum + entry.quantity, 0);
+  return includedCardCount ? (total / includedCardCount).toFixed(2) : '0.00';
+});
 const summaryStats = computed(() => [
   { label: 'Mainboard', value: mainboardCount.value },
   { label: 'Unique Cards', value: displayedDeck.value.cards.length },
@@ -204,13 +176,13 @@ const summaryStats = computed(() => [
       ...(displayedDeck.value.partnerCommander?.color_identity ?? []),
     ]).size,
   },
-])
+]);
 const manaCurve = computed(() => {
-  const counts = Array.from({ length: 7 }, () => 0)
+  const counts = Array.from({ length: 7 }, () => 0);
   for (const entry of curveCards.value) {
-    counts[getManaValueBucket(entry.card)] += entry.quantity
+    counts[getManaValueBucket(entry.card)] += entry.quantity;
   }
-  const maximum = Math.max(...counts, 1)
+  const maximum = Math.max(...counts, 1);
   return counts.map((count, index) => ({
     value: index,
     label: index === 6 ? '6+' : String(index),
@@ -218,59 +190,58 @@ const manaCurve = computed(() => {
     // Keep a small amount of headroom above the tallest point so its bar and
     // trend-line stroke remain clear of the count-label row.
     height: count === 0 ? 0 : Math.max(8, (count / maximum) * 90),
-  }))
-})
+  }));
+});
 const manaCurvePath = computed(() => {
   const points = manaCurve.value.map((bucket, index) => ({
     x: 50 + index * 100,
     y: 100 - bucket.height,
-  }))
-  const first = points[0]
-  if (!first) return ''
+  }));
+  const first = points[0];
+  if (!first) return '';
 
-  let path = `M ${first.x} ${first.y}`
+  let path = `M ${first.x} ${first.y}`;
   for (let index = 0; index < points.length - 1; index += 1) {
-    const previous = points[index - 1] ?? points[index]
-    const current = points[index]
-    const next = points[index + 1]
-    const following = points[index + 2] ?? next
-    if (!previous || !current || !next || !following) continue
+    const previous = points[index - 1] ?? points[index];
+    const current = points[index];
+    const next = points[index + 1];
+    const following = points[index + 2] ?? next;
+    if (!previous || !current || !next || !following) continue;
 
     // Convert the neighboring Catmull-Rom points to cubic Bézier controls.
     // This keeps the line passing through every mana-value data point.
-    const firstControlX = current.x + (next.x - previous.x) / 6
-    const firstControlY = current.y + (next.y - previous.y) / 6
-    const secondControlX = next.x - (following.x - current.x) / 6
-    const secondControlY = next.y - (following.y - current.y) / 6
+    const firstControlX = current.x + (next.x - previous.x) / 6;
+    const firstControlY = current.y + (next.y - previous.y) / 6;
+    const secondControlX = next.x - (following.x - current.x) / 6;
+    const secondControlY = next.y - (following.y - current.y) / 6;
     path +=
       ` C ${firstControlX} ${firstControlY},` +
-      ` ${secondControlX} ${secondControlY}, ${next.x} ${next.y}`
+      ` ${secondControlX} ${secondControlY}, ${next.x} ${next.y}`;
   }
-  return path
-})
+  return path;
+});
 const selectedCards = computed(() =>
   curveCards.value
     .filter((entry) => getManaValueBucket(entry.card) === selectedManaValue.value)
     .slice()
     .sort((left, right) => left.card.name.localeCompare(right.card.name)),
-)
+);
 watch(
   manaCurve,
   (buckets) => {
-    if (buckets[selectedManaValue.value]?.count) return
-    selectedManaValue.value =
-      buckets.find((bucket) => bucket.count > 0)?.value ?? 0
+    if (buckets[selectedManaValue.value]?.count) return;
+    selectedManaValue.value = buckets.find((bucket) => bucket.count > 0)?.value ?? 0;
   },
   { immediate: true },
-)
+);
 
 function getManaValueBucket(card: ScryfallCard) {
-  return Math.min(Math.max(0, Math.floor(getCardManaValue(card))), 6)
+  return Math.min(Math.max(0, Math.floor(getCardManaValue(card))), 6);
 }
 
 function isLand(card: ScryfallCard) {
-  const typeLine = card.card_faces?.[0]?.type_line ?? card.type_line
-  return /\bLand\b/i.test(typeLine)
+  const typeLine = card.card_faces?.[0]?.type_line ?? card.type_line;
+  return /\bLand\b/i.test(typeLine);
 }
 const typeCounts = computed(() => {
   const types = [
@@ -281,31 +252,27 @@ const typeCounts = computed(() => {
     'Artifact',
     'Enchantment',
     'Land',
-  ]
+  ];
   return types
     .map((label) => ({
       label,
       count: displayedDeck.value.cards.reduce((sum, entry) => {
-        const typeLine =
-          entry.card.card_faces?.[0]?.type_line ?? entry.card.type_line
-        return sum +
-          (new RegExp(`\\b${label}\\b`, 'i').test(typeLine)
-            ? entry.quantity
-            : 0)
+        const typeLine = entry.card.card_faces?.[0]?.type_line ?? entry.card.type_line;
+        return sum + (new RegExp(`\\b${label}\\b`, 'i').test(typeLine) ? entry.quantity : 0);
       }, 0),
     }))
-    .filter((entry) => entry.count > 0)
-})
+    .filter((entry) => entry.count > 0);
+});
 </script>
 
 <style scoped>
 .deck-statistics-panel {
   display: flex;
   flex-direction: column;
-  height: 530px !important;
-  max-height: 530px;
-  min-height: 530px;
   min-width: 0;
+  height: 530px !important;
+  min-height: 530px;
+  max-height: 530px;
   overflow: hidden;
 }
 
@@ -326,18 +293,18 @@ const typeCounts = computed(() => {
 }
 
 .mana-curve__plot {
-  align-items: end;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(7, 1fr);
-  height: 100%;
   position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  align-items: end;
+  height: 100%;
 }
 
 .mana-curve__column {
-  align-items: center;
   display: grid;
   grid-template-rows: 34px 1fr 20px;
+  align-items: center;
   height: 100%;
   text-align: center;
 }
@@ -348,20 +315,20 @@ const typeCounts = computed(() => {
 
 .mana-curve__bar {
   align-self: end;
-  min-width: 10px;
   width: 100%;
+  min-width: 10px;
 }
 
 .mana-curve__line {
-  color: rgb(var(--v-theme-secondary));
-  height: calc(100% - 54px);
-  left: 0;
-  pointer-events: none;
   position: absolute;
-  right: 0;
   top: 34px;
-  width: 100%;
+  right: 0;
+  left: 0;
   z-index: 1;
+  width: 100%;
+  height: calc(100% - 54px);
+  color: rgb(var(--v-theme-secondary));
+  pointer-events: none;
 }
 
 .mana-curve__toggle :deep(.v-selection-control) {
@@ -384,15 +351,11 @@ const typeCounts = computed(() => {
 }
 
 .mana-curve__card-item {
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-bottom: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
 }
 
 .mana-curve__card-item:nth-child(even) {
-  background: color-mix(
-    in srgb,
-    rgb(var(--v-theme-surface)) 72%,
-    black
-  );
+  background: color-mix(in srgb, rgb(var(--v-theme-surface)) 72%, black);
 }
 
 .mana-curve__card-item:last-child {

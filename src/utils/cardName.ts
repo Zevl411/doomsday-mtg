@@ -3,10 +3,8 @@
  * surrounding input. The first word or comma-delimited name is kept intact.
  */
 export function getCompactCardName(name: string): string {
-  const trimmedName = name.trim()
-  const delimiterIndex = trimmedName.search(/[,\s]/)
+  const trimmedName = name.trim();
+  const delimiterIndex = trimmedName.search(/[,\s]/);
 
-  return delimiterIndex === -1
-    ? trimmedName
-    : trimmedName.slice(0, delimiterIndex)
+  return delimiterIndex === -1 ? trimmedName : trimmedName.slice(0, delimiterIndex);
 }

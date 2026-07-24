@@ -22,9 +22,7 @@
           </p>
         </div>
         <div class="d-flex ga-2">
-          <v-btn :to="{ name: 'admin-ingestion' }" variant="text">
-            Ingestion
-          </v-btn>
+          <v-btn :to="{ name: 'admin-ingestion' }" variant="text"> Ingestion </v-btn>
           <v-btn
             color="secondary"
             :loading="loading"
@@ -50,13 +48,7 @@
 
       <template v-if="report">
         <v-row class="mb-3">
-          <v-col
-            v-for="metric in summaryCards"
-            :key="metric.label"
-            cols="12"
-            sm="6"
-            lg="3"
-          >
+          <v-col v-for="metric in summaryCards" :key="metric.label" cols="12" sm="6" lg="3">
             <v-card border color="surface" height="100%" variant="flat">
               <v-card-text>
                 <div class="text-overline text-medium-emphasis">
@@ -83,13 +75,7 @@
           </v-card-item>
           <v-card-text>
             <v-row>
-              <v-col
-                v-for="item in coverageItems"
-                :key="item.label"
-                cols="12"
-                sm="6"
-                md="4"
-              >
+              <v-col v-for="item in coverageItems" :key="item.label" cols="12" sm="6" md="4">
                 <v-list-item
                   :subtitle="item.detail"
                   :title="`${item.label}: ${item.value.toLocaleString()}`"
@@ -119,69 +105,66 @@
           <v-card-item>
             <v-card-title>Commander analytics readiness</v-card-title>
             <v-card-subtitle>
-              Complete Deck samples; descriptive thresholds are not statistical
-              guarantees.
+              Complete Deck samples; descriptive thresholds are not statistical guarantees.
             </v-card-subtitle>
           </v-card-item>
           <v-card-text>
             <AppMobileFilterPanel>
               <v-row>
-              <v-col cols="12" sm="4" md="2">
-                <v-select
-                  v-model="filters.sampleStatus"
-                  clearable
-                  density="comfortable"
-                  hide-details
-                  :items="sampleStatusItems"
-                  label="Sample status"
-                  variant="outlined"
-                />
-              </v-col>
-              <v-col cols="12" sm="4" md="2">
-                <v-select
-                  v-model="filters.provider"
-                  clearable
-                  density="comfortable"
-                  hide-details
-                  :items="providerItems"
-                  label="Provider"
-                  variant="outlined"
-                />
-              </v-col>
-              <v-col cols="6" md="3">
-                <v-text-field
-                  v-model="filters.startDate"
-                  density="comfortable"
-                  hide-details
-                  label="Start date"
-                  type="date"
-                  variant="outlined"
-                />
-              </v-col>
-              <v-col cols="6" md="3">
-                <v-text-field
-                  v-model="filters.endDate"
-                  density="comfortable"
-                  hide-details
-                  label="End date"
-                  type="date"
-                  variant="outlined"
-                />
-              </v-col>
-              <v-col cols="12" md="2">
-                <v-switch
-                  v-model="filters.pairedOnly"
-                  color="primary"
-                  density="comfortable"
-                  hide-details
-                  label="Paired only"
-                />
-              </v-col>
+                <v-col cols="12" sm="4" md="2">
+                  <v-select
+                    v-model="filters.sampleStatus"
+                    clearable
+                    density="comfortable"
+                    hide-details
+                    :items="sampleStatusItems"
+                    label="Sample status"
+                    variant="outlined"
+                  />
+                </v-col>
+                <v-col cols="12" sm="4" md="2">
+                  <v-select
+                    v-model="filters.provider"
+                    clearable
+                    density="comfortable"
+                    hide-details
+                    :items="providerItems"
+                    label="Provider"
+                    variant="outlined"
+                  />
+                </v-col>
+                <v-col cols="6" md="3">
+                  <v-text-field
+                    v-model="filters.startDate"
+                    density="comfortable"
+                    hide-details
+                    label="Start date"
+                    type="date"
+                    variant="outlined"
+                  />
+                </v-col>
+                <v-col cols="6" md="3">
+                  <v-text-field
+                    v-model="filters.endDate"
+                    density="comfortable"
+                    hide-details
+                    label="End date"
+                    type="date"
+                    variant="outlined"
+                  />
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-switch
+                    v-model="filters.pairedOnly"
+                    color="primary"
+                    density="comfortable"
+                    hide-details
+                    label="Paired only"
+                  />
+                </v-col>
               </v-row>
               <div class="d-flex justify-end my-3">
-                <v-btn color="primary" variant="tonal" @click="loadHealth">
-                  Apply filters
-                </v-btn>
+                <v-btn color="primary" variant="tonal" @click="loadHealth"> Apply filters </v-btn>
               </div>
             </AppMobileFilterPanel>
           </v-card-text>
@@ -302,10 +285,7 @@
                   :title="`${job.provider} · ${job.stage} · ${job.jobStatus}`"
                 >
                   <template #append>
-                    <v-chip
-                      :color="job.stale || job.lastError ? 'error' : 'success'"
-                      size="small"
-                    >
+                    <v-chip :color="job.stale || job.lastError ? 'error' : 'success'" size="small">
                       {{ job.stale ? 'Stale' : job.lastError ? 'Error' : 'Healthy' }}
                     </v-chip>
                   </template>
@@ -388,168 +368,265 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue'
-import AppMobileFilterPanel from '../components/AppMobileFilterPanel.vue'
+import { computed, onMounted, reactive, ref } from 'vue';
+
+import AppLoadingSkeleton from '../components/AppLoadingSkeleton.vue';
+import AppMobileFilterPanel from '../components/AppMobileFilterPanel.vue';
+import { dataHealthRepository } from '../repositories/dataHealthRepository';
+import { getNormalizationCompletionRate, getUnresolvedCardRate } from '../services/dataHealth';
+
 import type {
   DataHealthFilters,
   DataHealthReport,
   DataHealthSmokeTest,
-} from '../models/dataHealth'
-import { dataHealthRepository } from '../repositories/dataHealthRepository'
-import {
-  getNormalizationCompletionRate,
-  getUnresolvedCardRate,
-} from '../services/dataHealth'
+} from '../models/dataHealth';
 
-const checkingAccess = ref(true)
-const isAdmin = ref(false)
-const loading = ref(false)
-const errorMessage = ref('')
-const report = ref<DataHealthReport | null>(null)
-const lastRefreshedAt = ref('')
-const smokeCommanderKey = ref('')
-const smokeLoading = ref(false)
-const smokeResult = ref<DataHealthSmokeTest | null>(null)
+const checkingAccess = ref(true);
+const isAdmin = ref(false);
+const loading = ref(false);
+const errorMessage = ref('');
+const report = ref<DataHealthReport | null>(null);
+const lastRefreshedAt = ref('');
+const smokeCommanderKey = ref('');
+const smokeLoading = ref(false);
+const smokeResult = ref<DataHealthSmokeTest | null>(null);
 const filters = reactive<DataHealthFilters>({
   pairedOnly: false,
   readinessLimit: 100,
   unresolvedLimit: 100,
   jobLimit: 100,
-})
+});
 const sampleStatusItems = [
   { title: 'Unavailable', value: 'unavailable' },
   { title: 'Insufficient (1–4)', value: 'insufficient' },
   { title: 'Limited (5–19)', value: 'limited' },
   { title: 'Sufficient (20+)', value: 'sufficient' },
-]
+];
 const providerItems = [
   { title: 'TopDeck', value: 'topdeck' },
   { title: 'EDHTop16', value: 'edhtop16' },
-]
+];
 
 const summaryCards = computed(() => {
-  const summary = report.value?.summary
-  if (!summary) return []
+  const summary = report.value?.summary;
+  if (!summary) return [];
   return [
-    { label: 'Tournaments', value: summary.tournamentCount.toLocaleString(), detail: `${summary.topdeckTournamentCount} TopDeck · ${summary.edhtop16TournamentCount} EDHTop16` },
-    { label: 'Entries', value: summary.entryCount.toLocaleString(), detail: `${summary.tournamentWithoutLocationCount} events without location` },
-    { label: 'Processed Decks', value: summary.normalizedDeckCount.toLocaleString(), detail: `${percent(getNormalizationCompletionRate(summary))} complete` },
-    { label: 'Complete Decks', value: summary.completeDeckCount.toLocaleString(), detail: `${summary.partialDeckCount} partial · ${summary.unavailableDeckCount} unavailable` },
-    { label: 'Unresolved cards', value: summary.unresolvedCardRowCount.toLocaleString(), detail: `${percent(getUnresolvedCardRate(summary))} of card rows` },
-    { label: 'Ready Commanders', value: report.value?.commanders.filter((item) => item.comparisonReady).length.toLocaleString() ?? '0', detail: 'At least 5 complete Decks in current filter' },
-    { label: 'Failed jobs', value: summary.failedJobCount.toLocaleString(), detail: `${summary.staleJobCount} stale · ${summary.runningJobCount} running` },
-    { label: 'Canonical identities', value: summary.canonicalCardCount.toLocaleString(), detail: `${summary.fallbackIdentityCount} fallback-only · ${summary.suspiciousAliasCount} suspicious aliases` },
-  ]
-})
+    {
+      label: 'Tournaments',
+      value: summary.tournamentCount.toLocaleString(),
+      detail: `${summary.topdeckTournamentCount} TopDeck · ${summary.edhtop16TournamentCount} EDHTop16`,
+    },
+    {
+      label: 'Entries',
+      value: summary.entryCount.toLocaleString(),
+      detail: `${summary.tournamentWithoutLocationCount} events without location`,
+    },
+    {
+      label: 'Processed Decks',
+      value: summary.normalizedDeckCount.toLocaleString(),
+      detail: `${percent(getNormalizationCompletionRate(summary))} complete`,
+    },
+    {
+      label: 'Complete Decks',
+      value: summary.completeDeckCount.toLocaleString(),
+      detail: `${summary.partialDeckCount} partial · ${summary.unavailableDeckCount} unavailable`,
+    },
+    {
+      label: 'Unresolved cards',
+      value: summary.unresolvedCardRowCount.toLocaleString(),
+      detail: `${percent(getUnresolvedCardRate(summary))} of card rows`,
+    },
+    {
+      label: 'Ready Commanders',
+      value:
+        report.value?.commanders.filter((item) => item.comparisonReady).length.toLocaleString() ??
+        '0',
+      detail: 'At least 5 complete Decks in current filter',
+    },
+    {
+      label: 'Failed jobs',
+      value: summary.failedJobCount.toLocaleString(),
+      detail: `${summary.staleJobCount} stale · ${summary.runningJobCount} running`,
+    },
+    {
+      label: 'Canonical identities',
+      value: summary.canonicalCardCount.toLocaleString(),
+      detail: `${summary.fallbackIdentityCount} fallback-only · ${summary.suspiciousAliasCount} suspicious aliases`,
+    },
+  ];
+});
 
 const coverageItems = computed(() => {
-  const summary = report.value?.summary
-  if (!summary) return []
+  const summary = report.value?.summary;
+  if (!summary) return [];
   return [
-    { label: 'TopDeck entries', value: summary.topdeckEntryCount, detail: `${summary.topdeckTournamentCount} tournaments` },
-    { label: 'EDHTop16 entries', value: summary.edhtop16EntryCount, detail: `${summary.edhtop16TournamentCount} tournaments` },
-    { label: 'Structured entries', value: summary.structuredEntryCount, detail: 'Provider structured Decks' },
-    { label: 'Plaintext entries', value: summary.plaintextEntryCount, detail: 'Embedded plaintext Decks' },
+    {
+      label: 'TopDeck entries',
+      value: summary.topdeckEntryCount,
+      detail: `${summary.topdeckTournamentCount} tournaments`,
+    },
+    {
+      label: 'EDHTop16 entries',
+      value: summary.edhtop16EntryCount,
+      detail: `${summary.edhtop16TournamentCount} tournaments`,
+    },
+    {
+      label: 'Structured entries',
+      value: summary.structuredEntryCount,
+      detail: 'Provider structured Decks',
+    },
+    {
+      label: 'Plaintext entries',
+      value: summary.plaintextEntryCount,
+      detail: 'Embedded plaintext Decks',
+    },
     { label: 'URL-only entries', value: summary.urlOnlyEntryCount, detail: 'External source only' },
-    { label: 'Missing Decklists', value: summary.missingDecklistEntryCount, detail: 'No usable source Deck' },
-    { label: 'Canonical aliases', value: summary.canonicalAliasCount, detail: `${summary.canonicalWithOracleCount} cards have Oracle IDs` },
-    { label: 'Unlinked card rows', value: summary.tournamentCardWithoutCanonicalCount, detail: `${summary.tournamentCardCount} total card rows` },
-    { label: 'Possible provider matches', value: summary.possibleMatchCount, detail: `${summary.linkedEventCount} explicit source links` },
-    { label: 'Excluded casual events', value: summary.excludedCasualEventCount, detail: 'Tracked by durable ingestion batches' },
-    { label: 'Events missing dates', value: summary.tournamentMissingDateCount, detail: `${summary.tournamentWithLocationCount} events have known locations` },
-    { label: 'Commanders with 1+ complete', value: summary.commanderWithOneCompleteCount, detail: 'Inclusion ready' },
-    { label: 'Commanders with 5+ complete', value: summary.commanderWithFiveCompleteCount, detail: 'Comparison ready' },
-    { label: 'Commanders with 20+ complete', value: summary.commanderWithTwentyCompleteCount, detail: 'Sufficient sample band' },
-    { label: 'Commanders with 50+ complete', value: summary.commanderWithFiftyCompleteCount, detail: 'Large descriptive sample' },
-    { label: 'Commanders without complete Decks', value: summary.commanderWithoutCompleteCount, detail: 'Not analytics ready' },
-    { label: 'Paired Commander samples', value: summary.pairedCommanderSampleCount, detail: 'Pairs with complete Decks' },
-    { label: 'Regional complete Decks', value: summary.regionalCompleteDeckCount, detail: 'Complete Decks with known region' },
-  ]
-})
+    {
+      label: 'Missing Decklists',
+      value: summary.missingDecklistEntryCount,
+      detail: 'No usable source Deck',
+    },
+    {
+      label: 'Canonical aliases',
+      value: summary.canonicalAliasCount,
+      detail: `${summary.canonicalWithOracleCount} cards have Oracle IDs`,
+    },
+    {
+      label: 'Unlinked card rows',
+      value: summary.tournamentCardWithoutCanonicalCount,
+      detail: `${summary.tournamentCardCount} total card rows`,
+    },
+    {
+      label: 'Possible provider matches',
+      value: summary.possibleMatchCount,
+      detail: `${summary.linkedEventCount} explicit source links`,
+    },
+    {
+      label: 'Excluded casual events',
+      value: summary.excludedCasualEventCount,
+      detail: 'Tracked by durable ingestion batches',
+    },
+    {
+      label: 'Events missing dates',
+      value: summary.tournamentMissingDateCount,
+      detail: `${summary.tournamentWithLocationCount} events have known locations`,
+    },
+    {
+      label: 'Commanders with 1+ complete',
+      value: summary.commanderWithOneCompleteCount,
+      detail: 'Inclusion ready',
+    },
+    {
+      label: 'Commanders with 5+ complete',
+      value: summary.commanderWithFiveCompleteCount,
+      detail: 'Comparison ready',
+    },
+    {
+      label: 'Commanders with 20+ complete',
+      value: summary.commanderWithTwentyCompleteCount,
+      detail: 'Sufficient sample band',
+    },
+    {
+      label: 'Commanders with 50+ complete',
+      value: summary.commanderWithFiftyCompleteCount,
+      detail: 'Large descriptive sample',
+    },
+    {
+      label: 'Commanders without complete Decks',
+      value: summary.commanderWithoutCompleteCount,
+      detail: 'Not analytics ready',
+    },
+    {
+      label: 'Paired Commander samples',
+      value: summary.pairedCommanderSampleCount,
+      detail: 'Pairs with complete Decks',
+    },
+    {
+      label: 'Regional complete Decks',
+      value: summary.regionalCompleteDeckCount,
+      detail: 'Complete Decks with known region',
+    },
+  ];
+});
 
 onMounted(async () => {
   try {
-    isAdmin.value = await dataHealthRepository.isCurrentUserAdmin()
-    if (isAdmin.value) await loadHealth()
+    isAdmin.value = await dataHealthRepository.isCurrentUserAdmin();
+    if (isAdmin.value) await loadHealth();
   } finally {
-    checkingAccess.value = false
+    checkingAccess.value = false;
   }
-})
+});
 
 async function loadHealth() {
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = '';
   try {
-    report.value = await dataHealthRepository.load(filters)
-    lastRefreshedAt.value = new Date().toISOString()
+    report.value = await dataHealthRepository.load(filters);
+    lastRefreshedAt.value = new Date().toISOString();
     if (
       smokeCommanderKey.value &&
-      !report.value.commanders.some(
-        (item) => item.commanderKey === smokeCommanderKey.value,
-      )
-    ) smokeCommanderKey.value = ''
+      !report.value.commanders.some((item) => item.commanderKey === smokeCommanderKey.value)
+    )
+      smokeCommanderKey.value = '';
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Unable to load Data Health.'
+    errorMessage.value = error instanceof Error ? error.message : 'Unable to load Data Health.';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function runSmokeTest() {
   const commander = report.value?.commanders.find(
     (item) => item.commanderKey === smokeCommanderKey.value,
-  )
-  if (!commander) return
-  smokeLoading.value = true
-  errorMessage.value = ''
+  );
+  if (!commander) return;
+  smokeLoading.value = true;
+  errorMessage.value = '';
   try {
-    smokeResult.value = await dataHealthRepository.runSmokeTest(
-      commander,
-      filters,
-    )
+    smokeResult.value = await dataHealthRepository.runSmokeTest(commander, filters);
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Smoke test failed.'
+    errorMessage.value = error instanceof Error ? error.message : 'Smoke test failed.';
   } finally {
-    smokeLoading.value = false
+    smokeLoading.value = false;
   }
 }
 
 async function copyName(name: string) {
-  await navigator.clipboard?.writeText(name)
+  await navigator.clipboard?.writeText(name);
 }
 
 function scryfallSearch(name: string) {
-  return `https://scryfall.com/search?q=${encodeURIComponent(`!"${name}"`)}`
+  return `https://scryfall.com/search?q=${encodeURIComponent(`!"${name}"`)}`;
 }
 
 function formatProviders(providers: Record<string, number>) {
-  return Object.entries(providers)
-    .map(([provider, count]) => `${provider}: ${count}`)
-    .join(' · ') || 'None'
+  return (
+    Object.entries(providers)
+      .map(([provider, count]) => `${provider}: ${count}`)
+      .join(' · ') || 'None'
+  );
 }
 
 function sampleColor(status: string) {
-  if (status === 'sufficient') return 'success'
-  if (status === 'limited') return 'warning'
-  if (status === 'insufficient') return 'secondary'
-  return 'error'
+  if (status === 'sufficient') return 'success';
+  if (status === 'limited') return 'warning';
+  if (status === 'insufficient') return 'secondary';
+  return 'error';
 }
 
 function percent(value: number) {
-  return `${(value * 100).toFixed(1)}%`
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 function formatDate(value?: string, includeTime = false) {
-  if (!value) return '—'
-  const date = new Date(value)
+  if (!value) return '—';
+  const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? '—'
     : new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: includeTime ? 'short' : undefined,
-    }).format(date)
+        dateStyle: 'medium',
+        timeStyle: includeTime ? 'short' : undefined,
+      }).format(date);
 }
 </script>

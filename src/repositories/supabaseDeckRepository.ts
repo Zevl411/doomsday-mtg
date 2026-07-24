@@ -1,13 +1,14 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Deck } from '../models/deck'
-import type { CloudDeckRecord } from '../types/cloudDeck'
-import { isUsableDeck } from '../utils/deckStorage'
+import { isUsableDeck } from '../utils/deckStorage';
+
+import type { Deck } from '../models/deck';
+import type { CloudDeckRecord } from '../types/cloudDeck';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface SupabaseDeckRepository {
-  loadDecks(): Promise<Deck[]>
-  loadDeck(deckId: string): Promise<Deck | null>
-  saveDeck(deck: Deck): Promise<void>
-  deleteDeck(deckId: string): Promise<void>
+  loadDecks(): Promise<Deck[]>;
+  loadDeck(deckId: string): Promise<Deck | null>;
+  saveDeck(deck: Deck): Promise<void>;
+  deleteDeck(deckId: string): Promise<void>;
 }
 
 export function createSupabaseDeckRepository(
@@ -15,16 +16,13 @@ export function createSupabaseDeckRepository(
   userId: string,
 ): SupabaseDeckRepository {
   if (!userId) {
-    throw new Error('Sign in before accessing cloud decks.')
+    throw new Error('Sign in before accessing cloud decks.');
   }
 
   return {
     async loadDecks() {
-      const { data, error } = await client
-        .from('decks')
-        .select('*')
-        .eq('user_id', userId)
-      if (error) throw repositoryError('load', error)
+      const { data, error } = await client.from('decks').select('*').eq('user_id', userId);
+      if (error) throw repositoryError('load', error);
 
       return ((data ?? []) as CloudDeckRecord[]).flatMap((record) => {
         if (
@@ -32,11 +30,11 @@ export function createSupabaseDeckRepository(
           record.deck_id !== record.deck_data?.id ||
           !isUsableDeck(record.deck_data)
         ) {
-          console.warn('An invalid cloud deck record was ignored.', record.id)
-          return []
+          console.warn('An invalid cloud deck record was ignored.', record.id);
+          return [];
         }
-        return [hydrateDeck(record)]
-      })
+        return [hydrateDeck(record)];
+      });
     },
 
     async loadDeck(deckId) {
@@ -45,20 +43,20 @@ export function createSupabaseDeckRepository(
         .select('*')
         .eq('deck_id', deckId)
         .eq('user_id', userId)
-        .maybeSingle()
-      if (error) throw repositoryError('load', error)
-      if (!data) return null
+        .maybeSingle();
+      if (error) throw repositoryError('load', error);
+      if (!data) return null;
 
-      const record = data as CloudDeckRecord
+      const record = data as CloudDeckRecord;
       if (
         record.user_id !== userId ||
         record.deck_id !== record.deck_data?.id ||
         !isUsableDeck(record.deck_data)
       ) {
-        console.warn('An invalid cloud deck record was ignored.', record.id)
-        return null
+        console.warn('An invalid cloud deck record was ignored.', record.id);
+        return null;
       }
-      return hydrateDeck(record)
+      return hydrateDeck(record);
     },
 
     async saveDeck(deck) {
@@ -70,7 +68,7 @@ export function createSupabaseDeckRepository(
         schema_version: 1,
         created_at: deck.createdAt,
         updated_at: deck.updatedAt,
-      }
+      };
       const { error } = await client.from('decks').upsert(
         {
           ...baseRecord,
@@ -78,21 +76,20 @@ export function createSupabaseDeckRepository(
           visibility: deck.visibility ?? 'private',
         },
         { onConflict: 'user_id,deck_id' },
-      )
-      if (!error) return
+      );
+      if (!error) return;
 
       // Deployments can briefly run newer clients before the sharing migration
       // reaches PostgREST. The full Deck remains safe inside deck_data, so a
       // legacy upsert keeps saves working until the schema cache catches up.
       if (isMissingSharingColumn(error)) {
-        const legacyResult = await client.from('decks').upsert(
-          baseRecord,
-          { onConflict: 'user_id,deck_id' },
-        )
-        if (!legacyResult.error) return
-        throw repositoryError('save', legacyResult.error)
+        const legacyResult = await client
+          .from('decks')
+          .upsert(baseRecord, { onConflict: 'user_id,deck_id' });
+        if (!legacyResult.error) return;
+        throw repositoryError('save', legacyResult.error);
       }
-      throw repositoryError('save', error)
+      throw repositoryError('save', error);
     },
 
     async deleteDeck(deckId) {
@@ -100,10 +97,10 @@ export function createSupabaseDeckRepository(
         .from('decks')
         .delete()
         .eq('deck_id', deckId)
-        .eq('user_id', userId)
-      if (error) throw repositoryError('delete', error)
+        .eq('user_id', userId);
+      if (error) throw repositoryError('delete', error);
     },
-  }
+  };
 }
 
 function hydrateDeck(record: CloudDeckRecord): Deck {
@@ -112,22 +109,21 @@ function hydrateDeck(record: CloudDeckRecord): Deck {
     name: record.name ?? record.deck_data.name,
     description: record.description ?? record.deck_data.description ?? '',
     visibility: record.visibility ?? record.deck_data.visibility ?? 'private',
-    creatorUsername:
-      record.creator_username || record.deck_data.creatorUsername || 'Unknown',
-  }
+    creatorUsername: record.creator_username || record.deck_data.creatorUsername || 'Unknown',
+  };
 }
 
 function repositoryError(operation: string, error: unknown): Error {
-  console.warn(`Supabase deck ${operation} failed.`, error)
-  return new Error(`Cloud deck ${operation} failed.`)
+  console.warn(`Supabase deck ${operation} failed.`, error);
+  return new Error(`Cloud deck ${operation} failed.`);
 }
 
 function isMissingSharingColumn(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const value = error as { code?: unknown; message?: unknown }
+  if (!error || typeof error !== 'object') return false;
+  const value = error as { code?: unknown; message?: unknown };
   return (
     value.code === 'PGRST204' &&
     typeof value.message === 'string' &&
     /\b(description|visibility|creator_username)\b/.test(value.message)
-  )
+  );
 }

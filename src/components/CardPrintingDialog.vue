@@ -52,23 +52,21 @@
             <div class="printing-option__image printing-skeleton-pulse" />
             <div class="printing-option__details">
               <i class="printing-skeleton-line printing-skeleton-pulse" />
-              <i class="printing-skeleton-line printing-skeleton-line--short printing-skeleton-pulse" />
-              <i class="printing-skeleton-line printing-skeleton-line--short printing-skeleton-pulse" />
+              <i
+                class="printing-skeleton-line printing-skeleton-line--short printing-skeleton-pulse"
+              />
+              <i
+                class="printing-skeleton-line printing-skeleton-line--short printing-skeleton-pulse"
+              />
             </div>
           </div>
           <span class="printing-sr-only">Loading available card printings</span>
         </div>
 
-        <v-alert
-          v-else-if="errorMessage"
-          type="error"
-          variant="tonal"
-        >
+        <v-alert v-else-if="errorMessage" type="error" variant="tonal">
           <div class="align-center d-flex flex-wrap ga-3">
             <span>{{ errorMessage }}</span>
-            <v-btn color="error" variant="outlined" @click="loadPrintings">
-              Retry
-            </v-btn>
+            <v-btn color="error" variant="outlined" @click="loadPrintings"> Retry </v-btn>
           </div>
         </v-alert>
 
@@ -89,8 +87,7 @@
               :aria-pressed="selectedPrintingId === printing.id"
               class="printing-option"
               :class="{
-                'printing-option--selected':
-                  selectedPrintingId === printing.id,
+                'printing-option--selected': selectedPrintingId === printing.id,
               }"
               type="button"
               @click="selectPrinting(printing)"
@@ -173,163 +170,151 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
-import { getCardPrintings } from '../api/scryfall'
-import type { ScryfallCard } from '../types/card'
-import { getCardImage } from '../utils/cardDisplay'
-import { supportsFoil } from '../utils/cardFinish'
-import DeckActionIcon from './DeckActionIcon.vue'
-import DoubleFacedCardImage from './DoubleFacedCardImage.vue'
+import { computed, onUnmounted, ref, watch } from 'vue';
 
-const PAGE_SIZE = 48
+import { getCardPrintings } from '../api/scryfall';
+import { getCardImage } from '../utils/cardDisplay';
+import { supportsFoil } from '../utils/cardFinish';
 
-const props = withDefaults(defineProps<{
-  modelValue: boolean
-  card: ScryfallCard | null
-  foil?: boolean
-  allowFoil?: boolean
-}>(), {
-  foil: false,
-  allowFoil: true,
-})
+import DeckActionIcon from './DeckActionIcon.vue';
+import DoubleFacedCardImage from './DoubleFacedCardImage.vue';
+
+import type { ScryfallCard } from '../types/card';
+
+const PAGE_SIZE = 48;
+
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean;
+    card: ScryfallCard | null;
+    foil?: boolean;
+    allowFoil?: boolean;
+  }>(),
+  {
+    foil: false,
+    allowFoil: true,
+  },
+);
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  selected: [selection: { printing: ScryfallCard; foil: boolean }]
-}>()
+  'update:modelValue': [value: boolean];
+  selected: [selection: { printing: ScryfallCard; foil: boolean }];
+}>();
 
-const printings = ref<ScryfallCard[]>([])
-const selectedPrintingId = ref('')
-const selectedFoil = ref(false)
-const filter = ref('')
-const loading = ref(false)
-const errorMessage = ref('')
-const displayLimit = ref(PAGE_SIZE)
-let controller: AbortController | null = null
+const printings = ref<ScryfallCard[]>([]);
+const selectedPrintingId = ref('');
+const selectedFoil = ref(false);
+const filter = ref('');
+const loading = ref(false);
+const errorMessage = ref('');
+const displayLimit = ref(PAGE_SIZE);
+let controller: AbortController | null = null;
 
 const filteredPrintings = computed(() => {
-  const query = filter.value.trim().toLowerCase()
-  if (!query) return printings.value
+  const query = filter.value.trim().toLowerCase();
+  if (!query) return printings.value;
   return printings.value.filter((printing) =>
-    [
-      printing.set,
-      printing.set_name,
-      printing.collector_number,
-      printing.artist,
-    ].some((value) => value?.toLowerCase().includes(query)),
-  )
-})
-const visiblePrintings = computed(() =>
-  filteredPrintings.value.slice(0, displayLimit.value),
-)
-const hasMore = computed(() =>
-  visiblePrintings.value.length < filteredPrintings.value.length,
-)
+    [printing.set, printing.set_name, printing.collector_number, printing.artist].some((value) =>
+      value?.toLowerCase().includes(query),
+    ),
+  );
+});
+const visiblePrintings = computed(() => filteredPrintings.value.slice(0, displayLimit.value));
+const hasMore = computed(() => visiblePrintings.value.length < filteredPrintings.value.length);
 const selectedPrinting = computed(() =>
   printings.value.find((printing) => printing.id === selectedPrintingId.value),
-)
+);
 const selectedSupportsFoil = computed(() =>
   selectedPrinting.value ? supportsFoil(selectedPrinting.value) : false,
-)
+);
 
-watch(
-  [() => props.modelValue, () => props.card?.id],
-  ([isOpen]) => {
-    if (!isOpen || !props.card) {
-      controller?.abort()
-      return
-    }
-    selectedPrintingId.value = props.card.id
-    selectedFoil.value = props.foil
-    filter.value = ''
-    displayLimit.value = PAGE_SIZE
-    void loadPrintings()
-  },
-)
+watch([() => props.modelValue, () => props.card?.id], ([isOpen]) => {
+  if (!isOpen || !props.card) {
+    controller?.abort();
+    return;
+  }
+  selectedPrintingId.value = props.card.id;
+  selectedFoil.value = props.foil;
+  filter.value = '';
+  displayLimit.value = PAGE_SIZE;
+  void loadPrintings();
+});
 
-onUnmounted(() => controller?.abort())
+onUnmounted(() => controller?.abort());
 
 async function loadPrintings() {
-  if (!props.card) return
-  controller?.abort()
-  controller = new AbortController()
-  const activeController = controller
-  loading.value = true
-  errorMessage.value = ''
+  if (!props.card) return;
+  controller?.abort();
+  controller = new AbortController();
+  const activeController = controller;
+  loading.value = true;
+  errorMessage.value = '';
 
   try {
-    const results = await getCardPrintings(
-      props.card,
-      activeController.signal,
-    )
-    if (activeController.signal.aborted) return
+    const results = await getCardPrintings(props.card, activeController.signal);
+    if (activeController.signal.aborted) return;
 
     // Keep the selected printing easy to verify without changing Scryfall's
     // newest-first order for every remaining result.
-    const current = results.find((printing) => printing.id === props.card?.id)
+    const current = results.find((printing) => printing.id === props.card?.id);
     printings.value = current
       ? [current, ...results.filter((printing) => printing.id !== current.id)]
-      : results
-    if (current && !supportsFoil(current)) selectedFoil.value = false
+      : results;
+    if (current && !supportsFoil(current)) selectedFoil.value = false;
     if (!printings.value.length) {
-      errorMessage.value = 'No paper printings are available for this card.'
+      errorMessage.value = 'No paper printings are available for this card.';
     }
   } catch {
-    if (activeController.signal.aborted) return
-    printings.value = []
-    errorMessage.value = 'Printings are unavailable right now. Please try again.'
+    if (activeController.signal.aborted) return;
+    printings.value = [];
+    errorMessage.value = 'Printings are unavailable right now. Please try again.';
   } finally {
     if (controller === activeController) {
-      loading.value = false
-      controller = null
+      loading.value = false;
+      controller = null;
     }
   }
 }
 
 function printingLabel(printing: ScryfallCard): string {
-  const set = printing.set_name ?? printing.set?.toUpperCase() ?? 'Unknown set'
-  const collectorNumber = printing.collector_number
-    ? `, number ${printing.collector_number}`
-    : ''
-  return `${printing.name} from ${set}${collectorNumber}`
+  const set = printing.set_name ?? printing.set?.toUpperCase() ?? 'Unknown set';
+  const collectorNumber = printing.collector_number ? `, number ${printing.collector_number}` : '';
+  return `${printing.name} from ${set}${collectorNumber}`;
 }
 
 function finishLabel(printing: ScryfallCard): string {
-  if (supportsFoil(printing)) return 'Nonfoil or foil'
-  return 'Nonfoil only'
+  if (supportsFoil(printing)) return 'Nonfoil or foil';
+  return 'Nonfoil only';
 }
 
 function formatReleaseDate(value?: string): string {
-  if (!value) return 'Release date unavailable'
-  const date = new Date(`${value}T00:00:00`)
+  if (!value) return 'Release date unavailable';
+  const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime())
     ? value
     : new Intl.DateTimeFormat(undefined, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
-      }).format(date)
+      }).format(date);
 }
 
 function close() {
-  emit('update:modelValue', false)
+  emit('update:modelValue', false);
 }
 
 function selectPrinting(printing: ScryfallCard) {
-  selectedPrintingId.value = printing.id
-  if (!supportsFoil(printing)) selectedFoil.value = false
+  selectedPrintingId.value = printing.id;
+  if (!supportsFoil(printing)) selectedFoil.value = false;
 }
 
 function confirmSelection() {
-  if (!selectedPrinting.value) return
+  if (!selectedPrinting.value) return;
   emit('selected', {
     printing: selectedPrinting.value,
-    foil:
-      props.allowFoil &&
-      selectedFoil.value &&
-      supportsFoil(selectedPrinting.value),
-  })
-  close()
+    foil: props.allowFoil && selectedFoil.value && supportsFoil(selectedPrinting.value),
+  });
+  close();
 }
 </script>
 
@@ -340,30 +325,27 @@ function confirmSelection() {
 
 .printing-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
   gap: 12px;
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(min(100%, 160px), 1fr)
-  );
 }
 
 .printing-option {
-  background: rgb(var(--v-theme-surface-bright));
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 8px;
-  color: rgb(var(--v-theme-on-surface));
-  cursor: pointer;
   min-width: 0;
-  overflow: hidden;
   padding: 0;
+  overflow: hidden;
+  color: rgb(var(--v-theme-on-surface));
   text-align: left;
+  cursor: pointer;
+  background: rgb(var(--v-theme-surface-bright));
+  border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
 }
 
 .printing-option:hover,
 .printing-option:focus-visible,
 .printing-option--selected {
-  border-color: rgb(var(--v-theme-primary));
   outline: none;
+  border-color: rgb(var(--v-theme-primary));
 }
 
 .printing-option--selected {
@@ -372,8 +354,8 @@ function confirmSelection() {
 
 .printing-option__image {
   aspect-ratio: 0.716;
-  background: rgb(var(--v-theme-surface));
   overflow: hidden;
+  background: rgb(var(--v-theme-surface));
 }
 
 .printing-option__image :deep(.v-img) {
@@ -393,8 +375,8 @@ function confirmSelection() {
 }
 
 .printing-option__details > span {
-  color: rgba(var(--v-theme-on-surface), 0.68);
   font-size: 0.72rem;
+  color: rgb(var(--v-theme-on-surface), 0.68);
 }
 
 .printing-option--skeleton {
@@ -402,11 +384,11 @@ function confirmSelection() {
 }
 
 .printing-skeleton-line {
+  display: block;
+  width: 88%;
+  height: 10px;
   background: rgb(var(--v-theme-surface-light));
   border-radius: 3px;
-  display: block;
-  height: 10px;
-  width: 88%;
 }
 
 .printing-skeleton-line--short {
@@ -414,17 +396,17 @@ function confirmSelection() {
 }
 
 .printing-skeleton-pulse {
-  animation: printing-skeleton-pulse 1.2s ease-in-out infinite alternate;
   background: rgb(var(--v-theme-surface-light));
+  animation: printing-skeleton-pulse 1.2s ease-in-out infinite alternate;
 }
 
 .printing-sr-only {
-  clip: rect(0, 0, 0, 0);
+  position: absolute;
+  width: 1px;
   height: 1px;
   margin: -1px;
   overflow: hidden;
-  position: absolute;
-  width: 1px;
+  clip: rect(0, 0, 0, 0);
 }
 
 @keyframes printing-skeleton-pulse {
@@ -437,14 +419,14 @@ function confirmSelection() {
   }
 }
 
-@media (max-width: 599px) {
+@media (width <= 599px) {
   .printing-dialog-content {
     padding-inline: 10px;
   }
 
   .printing-grid {
-    gap: 8px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .printing-option__details {

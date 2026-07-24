@@ -1,39 +1,35 @@
-import { supabase } from '../lib/supabase'
-import {
-  DEFAULT_USER_PREFERENCES,
-  type UserPreferences,
-} from '../models/userPreferences'
-import { normalizeAppTheme } from '../theme/cardArtTheme'
+import { supabase } from '../lib/supabase';
+import { DEFAULT_USER_PREFERENCES, type UserPreferences } from '../models/userPreferences';
+import { normalizeAppTheme } from '../theme/cardArtTheme';
 
-const STORAGE_KEY = 'doomsday-mtg-user-preferences'
+const STORAGE_KEY = 'doomsday-mtg-user-preferences';
 
-export async function loadUserPreferences(
-  userId: string | null,
-): Promise<UserPreferences> {
+export async function loadUserPreferences(userId: string | null): Promise<UserPreferences> {
   if (userId && supabase) {
     const { data, error } = await supabase
       .from('user_preferences')
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle()
-    if (!error && data) return normalizePreferences({
-      defaultDeckDisplay: data.default_deck_display,
-      defaultPrimaryGrouping: data.default_primary_grouping,
-      defaultSecondaryGrouping: data.default_secondary_grouping,
-      defaultDeckVisibility: data.default_deck_visibility,
-      defaultCommanderColorFilter: data.default_commander_color_filter,
-      deckBuilderSearchSide: data.deck_builder_search_side,
-      deckStatisticsPosition: data.deck_statistics_position,
-      priceCurrency: data.price_currency,
-      appTheme: data.app_theme,
-    })
-    if (error) console.warn('Unable to load user preferences.', error)
+      .maybeSingle();
+    if (!error && data)
+      return normalizePreferences({
+        defaultDeckDisplay: data.default_deck_display,
+        defaultPrimaryGrouping: data.default_primary_grouping,
+        defaultSecondaryGrouping: data.default_secondary_grouping,
+        defaultDeckVisibility: data.default_deck_visibility,
+        defaultCommanderColorFilter: data.default_commander_color_filter,
+        deckBuilderSearchSide: data.deck_builder_search_side,
+        deckStatisticsPosition: data.deck_statistics_position,
+        priceCurrency: data.price_currency,
+        appTheme: data.app_theme,
+      });
+    if (error) console.warn('Unable to load user preferences.', error);
   }
 
   try {
-    return normalizePreferences(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}'))
+    return normalizePreferences(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}'));
   } catch {
-    return { ...DEFAULT_USER_PREFERENCES }
+    return { ...DEFAULT_USER_PREFERENCES };
   }
 }
 
@@ -54,8 +50,8 @@ export async function saveUserPreferences(
       price_currency: preferences.priceCurrency,
       app_theme: preferences.appTheme,
       updated_at: new Date().toISOString(),
-    }
-    let { error } = await supabase.from('user_preferences').upsert(payload)
+    };
+    let { error } = await supabase.from('user_preferences').upsert(payload);
 
     /*
      * A frontend deployment can briefly precede its database migration. Price
@@ -63,44 +59,39 @@ export async function saveUserPreferences(
      * unrelated preferences saveable until the migration reaches PostgREST.
      */
     if (isMissingPreferenceColumn(error, 'price_currency')) {
-      const { price_currency: _priceCurrency, ...legacyPayload } = payload
-      const retry = await supabase
-        .from('user_preferences')
-        .upsert(legacyPayload)
-      error = retry.error
+      const { price_currency: _priceCurrency, ...legacyPayload } = payload;
+      const retry = await supabase.from('user_preferences').upsert(legacyPayload);
+      error = retry.error;
     }
 
     if (error) {
-      console.warn('Unable to save user preferences.', error)
-      return false
+      console.warn('Unable to save user preferences.', error);
+      return false;
     }
-    return true
+    return true;
   }
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences))
-    return true
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+    return true;
   } catch {
-    return false
+    return false;
   }
 }
 
-function isMissingPreferenceColumn(
-  error: unknown,
-  column: string,
-): boolean {
-  if (!error || typeof error !== 'object') return false
-  const value = error as { code?: unknown; message?: unknown }
-  return value.code === 'PGRST204' &&
+function isMissingPreferenceColumn(error: unknown, column: string): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const value = error as { code?: unknown; message?: unknown };
+  return (
+    value.code === 'PGRST204' &&
     typeof value.message === 'string' &&
     value.message.includes(`'${column}' column`)
+  );
 }
 
-export function normalizePreferences(
-  value: Partial<UserPreferences>,
-): UserPreferences {
-  const defaults = DEFAULT_USER_PREFERENCES
-  const grouping = ['name', 'mana', 'type', 'color']
+export function normalizePreferences(value: Partial<UserPreferences>): UserPreferences {
+  const defaults = DEFAULT_USER_PREFERENCES;
+  const grouping = ['name', 'mana', 'type', 'color'];
   return {
     defaultDeckDisplay: value.defaultDeckDisplay === 'list' ? 'list' : 'grid',
     defaultPrimaryGrouping: grouping.includes(value.defaultPrimaryGrouping ?? '')
@@ -111,19 +102,18 @@ export function normalizePreferences(
       grouping.includes(value.defaultSecondaryGrouping ?? '')
         ? value.defaultSecondaryGrouping!
         : defaults.defaultSecondaryGrouping,
-    defaultDeckVisibility:
-      ['private', 'unlisted', 'public'].includes(value.defaultDeckVisibility ?? '')
-        ? value.defaultDeckVisibility!
-        : defaults.defaultDeckVisibility,
+    defaultDeckVisibility: ['private', 'unlisted', 'public'].includes(
+      value.defaultDeckVisibility ?? '',
+    )
+      ? value.defaultDeckVisibility!
+      : defaults.defaultDeckVisibility,
     defaultCommanderColorFilter:
       typeof value.defaultCommanderColorFilter === 'boolean'
         ? value.defaultCommanderColorFilter
         : defaults.defaultCommanderColorFilter,
-    deckBuilderSearchSide:
-      value.deckBuilderSearchSide === 'left' ? 'left' : 'right',
-    deckStatisticsPosition:
-      value.deckStatisticsPosition === 'below' ? 'below' : 'above',
+    deckBuilderSearchSide: value.deckBuilderSearchSide === 'left' ? 'left' : 'right',
+    deckStatisticsPosition: value.deckStatisticsPosition === 'below' ? 'below' : 'above',
     priceCurrency: 'USD',
     appTheme: normalizeAppTheme(value.appTheme),
-  }
+  };
 }

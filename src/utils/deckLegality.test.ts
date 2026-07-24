@@ -1,15 +1,18 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
-import type { Deck } from '../models/deck'
-import { useDeckStore } from '../stores/deck'
-import type { ScryfallCard } from '../types/card'
-import { validateCardAddition } from './deckLegality'
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { useDeckStore } from '../stores/deck';
+
+import { validateCardAddition } from './deckLegality';
+
+import type { Deck } from '../models/deck';
+import type { ScryfallCard } from '../types/card';
 
 const deckMetadata = {
   id: 'test-deck',
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
-}
+};
 
 function createCard(
   id: string,
@@ -24,17 +27,17 @@ function createCard(
     name,
     type_line: typeLine,
     color_identity: colorIdentity,
-  }
+  };
 }
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  useDeckStore().createDeck()
-})
+  setActivePinia(createPinia());
+  useDeckStore().createDeck();
+});
 
 describe('deck legality identity checks', () => {
   it('requires a commander before adding a card', () => {
-    const card = createCard('card-printing', 'Card', 'card-oracle')
+    const card = createCard('card-printing', 'Card', 'card-oracle');
     const deck: Deck = {
       ...deckMetadata,
       name: 'Test Deck',
@@ -43,10 +46,10 @@ describe('deck legality identity checks', () => {
       sideboard: [],
       maybeboard: [],
       considering: [],
-    }
+    };
 
-    expect(validateCardAddition(card, deck).allowed).toBe(false)
-  })
+    expect(validateCardAddition(card, deck).allowed).toBe(false);
+  });
 
   it('does not allow the commander in the main deck', () => {
     const commander = createCard(
@@ -54,13 +57,13 @@ describe('deck legality identity checks', () => {
       'Commander',
       'commander-oracle',
       'Legendary Creature',
-    )
+    );
     const otherPrinting = createCard(
       'commander-printing-2',
       'Commander',
       'commander-oracle',
       'Legendary Creature',
-    )
+    );
     const deck: Deck = {
       ...deckMetadata,
       name: 'Test Deck',
@@ -69,10 +72,10 @@ describe('deck legality identity checks', () => {
       sideboard: [],
       maybeboard: [],
       considering: [],
-    }
+    };
 
-    expect(validateCardAddition(otherPrinting, deck).allowed).toBe(false)
-  })
+    expect(validateCardAddition(otherPrinting, deck).allowed).toBe(false);
+  });
 
   it('rejects a different printing of the same non-basic card', () => {
     const commander = createCard(
@@ -81,17 +84,9 @@ describe('deck legality identity checks', () => {
       'commander-oracle',
       'Legendary Creature',
       ['U'],
-    )
-    const firstPrinting = createCard(
-      'printing-1',
-      'Arcane Signet',
-      'arcane-signet-oracle',
-    )
-    const secondPrinting = createCard(
-      'printing-2',
-      'Arcane Signet',
-      'arcane-signet-oracle',
-    )
+    );
+    const firstPrinting = createCard('printing-1', 'Arcane Signet', 'arcane-signet-oracle');
+    const secondPrinting = createCard('printing-2', 'Arcane Signet', 'arcane-signet-oracle');
     const deck: Deck = {
       ...deckMetadata,
       name: 'Test Deck',
@@ -100,45 +95,45 @@ describe('deck legality identity checks', () => {
       sideboard: [],
       maybeboard: [],
       considering: [],
-    }
+    };
 
     expect(validateCardAddition(secondPrinting, deck)).toMatchObject({
       allowed: false,
       rule: 'duplicate',
-    })
-  })
+    });
+  });
 
   it('combines different printings of the same basic land', () => {
-    const store = useDeckStore()
+    const store = useDeckStore();
     const commander = createCard(
       'commander-printing',
       'Commander',
       'commander-oracle',
       'Legendary Creature',
       ['U'],
-    )
+    );
     const firstIsland = createCard(
       'island-printing-1',
       'Island',
       'island-oracle',
       'Basic Land — Island',
       ['U'],
-    )
+    );
     const secondIsland = createCard(
       'island-printing-2',
       'Island',
       'island-oracle',
       'Basic Land — Island',
       ['U'],
-    )
+    );
 
-    store.setCommander(commander)
-    store.addCard(firstIsland)
-    store.addCard(secondIsland)
+    store.setCommander(commander);
+    store.addCard(firstIsland);
+    store.addCard(secondIsland);
 
-    expect(store.deck.cards).toHaveLength(1)
-    expect(store.deck.cards[0]?.quantity).toBe(2)
-  })
+    expect(store.deck.cards).toHaveLength(1);
+    expect(store.deck.cards[0]?.quantity).toBe(2);
+  });
 
   it('keeps color identity rejection overridable', () => {
     const commander = createCard(
@@ -147,14 +142,8 @@ describe('deck legality identity checks', () => {
       'commander-oracle',
       'Legendary Creature',
       ['U'],
-    )
-    const redCard = createCard(
-      'red-printing',
-      'Red Card',
-      'red-card-oracle',
-      'Instant',
-      ['R'],
-    )
+    );
+    const redCard = createCard('red-printing', 'Red Card', 'red-card-oracle', 'Instant', ['R']);
     const deck: Deck = {
       ...deckMetadata,
       name: 'Test Deck',
@@ -163,13 +152,13 @@ describe('deck legality identity checks', () => {
       sideboard: [],
       maybeboard: [],
       considering: [],
-    }
+    };
 
     expect(validateCardAddition(redCard, deck)).toMatchObject({
       allowed: false,
       overridable: true,
-    })
-  })
+    });
+  });
 
   it('accepts a legal card inside the commander color identity', () => {
     const commander = createCard(
@@ -178,14 +167,8 @@ describe('deck legality identity checks', () => {
       'commander-oracle',
       'Legendary Creature',
       ['U'],
-    )
-    const blueCard = createCard(
-      'blue-printing',
-      'Blue Card',
-      'blue-card-oracle',
-      'Instant',
-      ['U'],
-    )
+    );
+    const blueCard = createCard('blue-printing', 'Blue Card', 'blue-card-oracle', 'Instant', ['U']);
     const deck: Deck = {
       ...deckMetadata,
       name: 'Test Deck',
@@ -194,8 +177,8 @@ describe('deck legality identity checks', () => {
       sideboard: [],
       maybeboard: [],
       considering: [],
-    }
+    };
 
-    expect(validateCardAddition(blueCard, deck).allowed).toBe(true)
-  })
-})
+    expect(validateCardAddition(blueCard, deck).allowed).toBe(true);
+  });
+});

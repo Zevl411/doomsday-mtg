@@ -1,4 +1,4 @@
-import type { ThemeDefinition } from 'vuetify'
+import type { ThemeDefinition } from 'vuetify';
 
 export const oracleDarkColors = {
   background: '#0F0D18',
@@ -34,7 +34,7 @@ export const oracleDarkColors = {
   'on-info': '#F7FAFF',
   'on-success': '#F4FFF5',
   'on-warning': '#1C1508',
-} as const
+} as const;
 
 export const oracleDarkVariables = {
   'border-color': '#5A4436',
@@ -44,20 +44,20 @@ export const oracleDarkVariables = {
   'disabled-opacity': 0.42,
   'idle-opacity': 0.08,
   'hover-opacity': 0.06,
-  'focus-opacity': 0.10,
+  'focus-opacity': 0.1,
   'selected-opacity': 0.12,
   'activated-opacity': 0.12,
   'pressed-opacity': 0.14,
-  'dragged-opacity': 0.10,
+  'dragged-opacity': 0.1,
   'theme-kbd': '#21182B',
   'theme-on-kbd': '#F4E6C5',
   'theme-code': '#21182B',
   'theme-on-code': '#F1D39A',
-} as const
+} as const;
 
 /** Restrained Oracle chrome keeps colorful Magic card artwork dominant. */
 export const oracleDarkTheme: ThemeDefinition = {
   dark: true,
   colors: oracleDarkColors,
   variables: oracleDarkVariables,
-}
+};

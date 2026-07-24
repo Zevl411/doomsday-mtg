@@ -1,20 +1,21 @@
-import type { Deck } from '../models/deck'
-import { getDeckCommanders } from './commanderPairing'
-import { getColorIdentityViolations, isBasicLand } from './deckLegality'
-import { getTotalDeckCardCount } from './deckValidation'
+import { getDeckCommanders } from './commanderPairing';
+import { getColorIdentityViolations, isBasicLand } from './deckLegality';
+import { getTotalDeckCardCount } from './deckValidation';
 
-export type DeckValiditySeverity = 'warning' | 'error'
+import type { Deck } from '../models/deck';
+
+export type DeckValiditySeverity = 'warning' | 'error';
 
 export interface DeckValidityIssue {
-  rule: string
-  severity: DeckValiditySeverity
-  message: string
+  rule: string;
+  severity: DeckValiditySeverity;
+  message: string;
 }
 
 interface DeckValidityRule {
-  id: string
-  severity: DeckValiditySeverity
-  evaluate: (deck: Deck) => string[]
+  id: string;
+  severity: DeckValiditySeverity;
+  evaluate: (deck: Deck) => string[];
 }
 
 // Rule severity is configuration, not component logic. Future rules can be
@@ -24,10 +25,10 @@ const deckValidityRules: DeckValidityRule[] = [
     id: 'deck-size',
     severity: 'warning',
     evaluate: (deck) => {
-      const count = getTotalDeckCardCount(deck)
+      const count = getTotalDeckCardCount(deck);
       return count === 100
         ? []
-        : [`Commander decks must contain 100 cards; this deck contains ${count}.`]
+        : [`Commander decks must contain 100 cards; this deck contains ${count}.`];
     },
   },
   {
@@ -43,9 +44,7 @@ const deckValidityRules: DeckValidityRule[] = [
     severity: 'warning',
     evaluate: (deck) =>
       getColorIdentityViolations(deck).length
-        ? [
-            "This deck contains cards outside the Commander's color identity.",
-          ]
+        ? ["This deck contains cards outside the Commander's color identity."]
         : [],
   },
   {
@@ -56,7 +55,7 @@ const deckValidityRules: DeckValidityRule[] = [
         .filter((card) => card.legalities?.commander === 'banned')
         .map((card) => `${card.name} is banned in Commander.`),
   },
-]
+];
 
 export function getDeckValidityIssues(deck: Deck): DeckValidityIssue[] {
   const issues = deckValidityRules.flatMap((rule) =>
@@ -65,15 +64,11 @@ export function getDeckValidityIssues(deck: Deck): DeckValidityIssue[] {
       severity: rule.severity,
       message,
     })),
-  )
-  return [
-    ...new Map(issues.map((issue) => [issue.message, issue])).values(),
-  ]
+  );
+  return [...new Map(issues.map((issue) => [issue.message, issue])).values()];
 }
 
-export function getDeckValiditySeverity(
-  issues: DeckValidityIssue[],
-): DeckValiditySeverity | null {
-  if (issues.some((issue) => issue.severity === 'error')) return 'error'
-  return issues.length ? 'warning' : null
+export function getDeckValiditySeverity(issues: DeckValidityIssue[]): DeckValiditySeverity | null {
+  if (issues.some((issue) => issue.severity === 'error')) return 'error';
+  return issues.length ? 'warning' : null;
 }
