@@ -66,10 +66,11 @@
           : 'No tournaments have been imported yet.'
       }}
     </v-card>
-    <v-list v-else border>
+    <v-list v-else border class="tournament-list">
       <v-list-item
         v-for="tournament in visibleTournaments"
         :key="tournament.id"
+        class="tournament-list__item"
         :subtitle="`${formatDate(tournament.date)} · ${displayTournamentLocation(tournament)} · ${tournament.playerCount ?? 'Unknown'} players · ${tournament.entryCount ?? 0} entries · ${tournament.source}`"
         :title="tournament.name"
         :to="{ name: 'tournament-detail', params: { tournamentId: tournament.id } }"
@@ -220,3 +221,23 @@ function getStartDate(): string | undefined {
   return date.toISOString()
 }
 </script>
+
+<style scoped>
+@media (max-width: 599px) {
+  .tournament-list__item {
+    align-items: flex-start;
+    padding-block: 10px;
+  }
+
+  .tournament-list__item :deep(.v-list-item-subtitle) {
+    margin-top: 4px;
+    opacity: 0.78;
+    white-space: normal;
+  }
+
+  .tournament-list__item :deep(.v-list-item__append) {
+    align-self: flex-end;
+    margin-top: 8px;
+  }
+}
+</style>

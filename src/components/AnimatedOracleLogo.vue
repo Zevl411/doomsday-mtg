@@ -74,7 +74,10 @@ const video = ref<HTMLVideoElement | null>(null)
 const videoFailed = ref(false)
 const reducedMotion = ref(false)
 const display = useDisplay()
-const shouldAnimate = computed(() => !display.smAndDown.value)
+// Phones use the static asset to avoid decoding video during the most
+// constrained layout. Tablets retain the desktop animation when motion is
+// allowed, matching Vuetify's xs breakpoint rather than a device guess.
+const shouldAnimate = computed(() => !display.xs.value)
 const visible = ref(true)
 const animationActive = ref(false)
 let observer: IntersectionObserver | null = null

@@ -174,7 +174,10 @@
                     {{ section.description }}
                   </p>
                 </div>
-                <v-table v-if="section.cards.length">
+                <v-table
+                  v-if="section.cards.length"
+                  class="comparison-table comparison-table--cards"
+                >
                   <thead>
                     <tr>
                       <th scope="col">#</th>
@@ -195,7 +198,7 @@
                       :key="card.identityKey"
                       :class="comparisonRowClass(card)"
                     >
-                      <td>
+                      <td class="comparison-rank-cell" data-label="Rank">
                         <v-chip
                           :aria-label="`${section.title} row ${index + 1}`"
                           size="small"
@@ -214,19 +217,19 @@
                           width="72"
                         />
                       </td>
-                      <td>
+                      <td class="comparison-card-name-cell" data-label="Card">
                         <div class="font-weight-medium">{{ card.cardName }}</div>
                         <div class="text-caption text-medium-emphasis">
                           {{ card.typeLine || 'Type unavailable' }}
                         </div>
                       </td>
-                      <td><v-chip size="small" variant="tonal">{{ categoryLabel(card.category) }}</v-chip></td>
-                      <td>{{ percent(card.inclusionRate) }}</td>
-                      <td>{{ card.deckCount }} / {{ card.totalEligibleDecks }}</td>
-                      <td>{{ card.averageQuantity.toFixed(2) }}</td>
-                      <td>{{ percent(card.top16InclusionRate) }}</td>
-                      <td>{{ percent(card.firstPlaceInclusionRate) }}</td>
-                      <td>{{ card.userQuantity }}</td>
+                      <td data-label="Status"><v-chip size="small" variant="tonal">{{ categoryLabel(card.category) }}</v-chip></td>
+                      <td data-label="Inclusion">{{ percent(card.inclusionRate) }}</td>
+                      <td data-label="Decks">{{ card.deckCount }} / {{ card.totalEligibleDecks }}</td>
+                      <td data-label="Average quantity">{{ card.averageQuantity.toFixed(2) }}</td>
+                      <td data-label="Top 16">{{ percent(card.top16InclusionRate) }}</td>
+                      <td data-label="First place">{{ percent(card.firstPlaceInclusionRate) }}</td>
+                      <td data-label="My quantity">{{ card.userQuantity }}</td>
                     </tr>
                   </tbody>
                 </v-table>
@@ -242,7 +245,10 @@
                 Jaccard similarity compares unique mainboard identities:
                 shared cards divided by the union of both Decks.
               </v-card-text>
-              <v-table v-if="similarities.length">
+              <v-table
+                v-if="similarities.length"
+                class="comparison-table comparison-table--similar"
+              >
               <thead>
                 <tr>
                   <th>Similarity</th><th>Tournament</th><th>Pilot</th>
@@ -251,14 +257,14 @@
               </thead>
               <tbody>
                 <tr v-for="item in similarities" :key="item.tournamentDeckId">
-                  <td>{{ percent(item.similarityRate) }}</td>
-                  <td>{{ item.tournamentName }}</td>
-                  <td>{{ item.pilotName || 'Unknown' }}</td>
-                  <td>{{ item.standing ?? '—' }}</td>
-                  <td>{{ formatDate(item.eventDate) }}</td>
-                  <td>{{ item.regionKey || 'Unknown' }}</td>
-                  <td>{{ item.sharedCardCount }} / {{ item.unionCardCount }}</td>
-                  <td>
+                  <td data-label="Similarity">{{ percent(item.similarityRate) }}</td>
+                  <td data-label="Tournament">{{ item.tournamentName }}</td>
+                  <td data-label="Pilot">{{ item.pilotName || 'Unknown' }}</td>
+                  <td data-label="Standing">{{ item.standing ?? '—' }}</td>
+                  <td data-label="Date">{{ formatDate(item.eventDate) }}</td>
+                  <td data-label="Region">{{ item.regionKey || 'Unknown' }}</td>
+                  <td data-label="Shared">{{ item.sharedCardCount }} / {{ item.unionCardCount }}</td>
+                  <td class="comparison-action-cell">
                     <v-btn
                       :aria-label="`View ${item.tournamentName} Deck`"
                       :to="{ name: 'tournament-deck-detail', params: { deckId: item.tournamentDeckId } }"
@@ -480,5 +486,78 @@ onMounted(async () => {
 
 .comparison-row--low {
   box-shadow: inset 0 0 0 2px rgb(var(--v-theme-error));
+}
+
+@media (max-width: 599px) {
+  .comparison-table :deep(thead) {
+    display: none;
+  }
+
+  .comparison-table :deep(table),
+  .comparison-table :deep(tbody) {
+    display: block;
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .comparison-table :deep(tbody tr) {
+    border-bottom: 1px solid
+      rgba(var(--v-border-color), var(--v-border-opacity));
+    display: grid;
+    gap: 6px 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+  }
+
+  .comparison-table :deep(tbody td) {
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-width: 0;
+    padding: 0;
+    white-space: normal;
+  }
+
+  .comparison-table :deep(tbody td[data-label]::before) {
+    color: rgb(var(--v-theme-on-surface));
+    content: attr(data-label);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    opacity: 0.62;
+    text-transform: uppercase;
+  }
+
+  .comparison-table--cards :deep(.comparison-rank-cell) {
+    display: none;
+  }
+
+  .comparison-table--cards :deep(.comparison-card-image-cell) {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .comparison-table--cards :deep(.comparison-card-image) {
+    max-width: 96px;
+    width: min(96px, 100%) !important;
+  }
+
+  .comparison-table--cards :deep(.comparison-card-name-cell) {
+    grid-column: 2;
+  }
+
+  .comparison-table--similar :deep(tbody td:nth-child(2)) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .comparison-table :deep(.comparison-action-cell) {
+    grid-column: 1 / -1;
+  }
+
+  .comparison-table :deep(.comparison-action-cell .v-btn) {
+    width: 100%;
+  }
 }
 </style>

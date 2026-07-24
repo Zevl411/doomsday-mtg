@@ -704,6 +704,71 @@ function move(board: VisibleBoard) {
   }
 }
 
+@media (max-width: 599px) {
+  .board-header {
+    gap: 10px;
+    padding: 10px !important;
+  }
+
+  .board-title {
+    min-height: 36px;
+  }
+
+  .board-title h2 {
+    font-size: 1rem !important;
+  }
+
+  .board-controls {
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch !important;
+  }
+
+  :deep(.board-controls > .v-input) {
+    max-width: none !important;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .card-size-control {
+    flex-basis: auto;
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  :deep(.board-controls > .v-btn-toggle) {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  :deep(.board-controls > .v-btn-toggle .v-btn) {
+    flex: 1 1 50%;
+    min-width: 44px;
+  }
+
+  .board-content {
+    padding: 10px !important;
+  }
+
+  .deck-card-grid {
+    gap: 6px;
+  }
+
+  .deck-list-item {
+    padding-inline: 10px;
+  }
+
+  .deck-list-item :deep(.v-list-item__append) {
+    gap: 0;
+  }
+
+  .deck-list-item :deep(.v-list-item__append .v-btn) {
+    min-width: 40px;
+    width: 40px;
+  }
+}
+
 .board-header--accordion {
   cursor: pointer;
   min-height: 44px;

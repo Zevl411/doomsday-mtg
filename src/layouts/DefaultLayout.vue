@@ -5,7 +5,8 @@
         class="d-flex align-center mx-auto px-3 px-md-6"
       >
         <v-app-bar-nav-icon
-          class="d-md-none"
+          aria-label="Open navigation"
+          class="mobile-navigation-toggle d-md-none"
           density="comfortable"
           variant="text"
           @click="showMobileMenu = true"
@@ -24,8 +25,8 @@
             width="56"
           />
         </RouterLink>
-        <div class="app-brand-title mr-4">
-          <span class="text-h5 text-sm-h4 font-weight-bold text-primary">
+        <div class="app-brand-title mr-2 mr-md-4">
+          <span class="app-brand-title__text font-weight-bold text-primary">
             {{ appConfig.name }}
           </span>
         </div>
@@ -101,23 +102,19 @@
             </svg>
           </v-btn>
         </nav>
-        <span
-          v-if="!auth.isSignedIn"
-          class="d-md-none mr-2"
-        >
-          <v-btn
-            color="primary"
-            size="small"
-            :to="{ name: 'auth' }"
-            variant="text"
-          >
-            Sign In
-          </v-btn>
-        </span>
         <v-menu v-if="auth.isSignedIn">
           <template #activator="{ props }">
-            <v-btn size="small" v-bind="props" variant="text">
-              {{ auth.user?.email ?? 'Account' }}
+            <v-btn
+              aria-label="Open account menu"
+              class="account-menu-button"
+              size="small"
+              v-bind="props"
+              variant="text"
+            >
+              <v-icon class="d-md-none" icon="mdi-account-circle" />
+              <span class="d-none d-md-inline">
+                {{ auth.user?.email ?? 'Account' }}
+              </span>
             </v-btn>
           </template>
           <v-list>
@@ -138,6 +135,7 @@
         </v-menu>
         <v-btn
           v-else
+          class="d-none d-md-inline-flex"
           color="primary"
           size="small"
           :to="{ name: 'auth' }"
@@ -205,15 +203,18 @@
           title="Data Health"
         />
         <v-list-subheader>Account</v-list-subheader>
+        <v-list-item prepend-icon="mdi-cog" title="Preferences" @click="openPreferences" />
         <v-list-item
-          prepend-icon="mdi-cog"
-          title="Preferences"
-          @click="openPreferences"
-        />
-        <v-list-item
+          v-if="auth.isSignedIn"
           prepend-icon="mdi-logout"
           title="Sign Out"
           @click="auth.signOut"
+        />
+        <v-list-item
+          v-else
+          :to="{ name: 'auth' }"
+          prepend-icon="mdi-login"
+          title="Sign In"
         />
       </v-list>
     </v-navigation-drawer>
@@ -355,6 +356,12 @@ watch(
   },
   { immediate: true },
 )
+watch(
+  () => router.currentRoute.value.fullPath,
+  () => {
+    showMobileMenu.value = false
+  },
+)
 // BASE_URL keeps the logo working from a GitHub Pages repository subdirectory.
 const brandLogoUrl =
   `${import.meta.env.BASE_URL}brand/oracle-wheel-header.png`
@@ -406,6 +413,11 @@ function applyDeckBuilderSearchSide(value: unknown) {
   white-space: nowrap;
 }
 
+.app-brand-title__text {
+  font-size: 2rem;
+  line-height: 1;
+}
+
 .primary-nav {
   min-height: 36px;
 }
@@ -445,5 +457,20 @@ function applyDeckBuilderSearchSide(value: unknown) {
 
 .deck-builder-side-toggle :deep(.v-btn) {
   flex: 1 1 50%;
+}
+
+@media (max-width: 599px) {
+  .mobile-navigation-toggle {
+    margin-inline-start: -8px;
+  }
+
+  .app-brand-title__text {
+    font-size: 1.15rem;
+  }
+
+  .account-menu-button {
+    min-width: 40px;
+    padding-inline: 8px;
+  }
 }
 </style>

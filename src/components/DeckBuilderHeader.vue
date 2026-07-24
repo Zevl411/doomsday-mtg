@@ -463,4 +463,50 @@ function copyDeck() {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 599px) {
+  .deck-header-content {
+    gap: 12px;
+    padding: 10px !important;
+  }
+
+  .deck-header-title-row {
+    align-items: flex-start !important;
+  }
+
+  .deck-title-editor,
+  .editable-deck-title,
+  .inline-deck-title {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .editable-deck-title,
+  .inline-deck-title {
+    font-size: 1.35rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .deck-header-tools {
+    min-width: 0;
+  }
+
+  .deck-header-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    height: auto;
+    width: 100%;
+  }
+
+  .deck-header-actions :deep(.v-btn) {
+    border-radius: 0;
+    min-width: 0;
+    padding-inline: 6px;
+  }
+
+  .description-box {
+    max-width: 100%;
+  }
+}
 </style>

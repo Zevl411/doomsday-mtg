@@ -64,10 +64,11 @@
           >
             {{ filterError }}
           </v-alert>
-          <v-list v-if="selectedCards.length">
+          <v-list v-if="selectedCards.length" class="commander-event-list">
         <v-list-item
           v-for="entry in paginatedFilteredEvents"
           :key="entry.tournamentEntryId"
+          class="commander-event-list__item"
           :subtitle="`${entry.playerName || 'Unknown pilot'} · Place ${entry.standing ?? '—'} · ${entry.wins}-${entry.losses}-${entry.draws}`"
           :title="entry.tournamentName"
           :to="{
@@ -95,10 +96,11 @@
           title="No complete Commander Decks contain every selected card"
         />
           </v-list>
-          <v-list v-else>
+          <v-list v-else class="commander-event-list">
         <v-list-item
           v-for="entry in paginatedEntries"
           :key="entry.id"
+          class="commander-event-list__item"
           :subtitle="`${entry.playerName || 'Unknown pilot'} · Place ${entry.standing ?? '—'} · ${entry.wins}-${entry.losses}-${entry.draws}`"
           :title="entry.tournamentName || 'Unknown tournament'"
           :to="{ name: 'tournament-detail', params: { tournamentId: entry.tournamentId } }"
@@ -224,7 +226,7 @@
 
       <v-dialog v-model="inclusionDialog" max-width="1400">
         <v-card>
-          <v-card-title class="d-flex align-center ga-3">
+          <v-card-title class="dialog-toolbar d-flex align-center ga-3">
             <div>
               <div>Card inclusions</div>
               <div class="text-caption text-medium-emphasis">
@@ -318,7 +320,7 @@
 
       <v-dialog v-model="associationDialog" max-width="1400">
         <v-card>
-          <v-card-title class="d-flex align-center">
+          <v-card-title class="dialog-toolbar d-flex align-center">
             <span>Card associations</span>
             <v-spacer />
             <v-btn
@@ -569,5 +571,48 @@ function timeframeStartDate(value: InclusionTimeframe): string | undefined {
 .inclusion-timeframe {
   flex: 0 0 140px;
   max-width: 140px;
+}
+
+@media (max-width: 599px) {
+  .commander-event-list__item {
+    align-items: flex-start;
+    padding-block: 10px;
+  }
+
+  .commander-event-list__item :deep(.v-list-item-subtitle) {
+    margin-top: 4px;
+    white-space: normal;
+  }
+
+  .commander-event-list__item :deep(.v-list-item__append) {
+    align-self: flex-end;
+  }
+
+  .commander-event-list__item :deep(.v-list-item__append .v-btn) {
+    min-width: 44px;
+    padding-inline: 8px;
+  }
+
+  .card-inclusions-grid,
+  .card-inclusions-grid--dialog {
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 8px !important;
+  }
+
+  .dialog-toolbar {
+    align-items: stretch !important;
+    flex-wrap: wrap;
+  }
+
+  .dialog-toolbar > .v-spacer {
+    display: none;
+  }
+
+  .dialog-toolbar .inclusion-timeframe {
+    flex: 1 1 calc(100% - 52px);
+    max-width: none;
+    order: 2;
+  }
 }
 </style>

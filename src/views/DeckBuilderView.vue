@@ -125,6 +125,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import CardPreview from '../components/CardPreview.vue'
 import CommanderPanel from '../components/CommanderPanel.vue'
 import DeckBuilderHeader from '../components/DeckBuilderHeader.vue'
@@ -143,6 +144,7 @@ const deckStore = useDeckStore()
 const preferencesStore = useUserPreferencesStore()
 const route = useRoute()
 const router = useRouter()
+const display = useDisplay()
 const routeDeckReady = ref(false)
 const showPartnerPanel = computed(() =>
   Boolean(
@@ -153,7 +155,7 @@ const showPartnerPanel = computed(() =>
 const importExport = ref<InstanceType<typeof DeckImportExport> | null>(null)
 const recommendationContentHeight = ref(0)
 const commanderPanelStyle = computed(() =>
-  recommendationContentHeight.value > 0
+  display.lgAndUp.value && recommendationContentHeight.value > 0
     ? { height: `${recommendationContentHeight.value}px` }
     : undefined,
 )
@@ -365,6 +367,26 @@ function closeIllegalCardDialog() {
 
   .deck-builder-page--statistics-below .workspace-preview {
     order: 4;
+  }
+}
+
+@media (max-width: 599px) {
+  .builder-workspace {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .workspace-commander--paired {
+    gap: 10px;
+  }
+
+  .workspace-commander,
+  .workspace-statistics,
+  .workspace-statistics-below,
+  .workspace-deck,
+  .workspace-preview {
+    min-width: 0;
+    width: 100%;
   }
 }
 </style>

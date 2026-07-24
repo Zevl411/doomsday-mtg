@@ -1143,10 +1143,59 @@ function getPlacementClass(standing?: number): string {
     grid-template-columns: 1fr;
   }
 
+  .deck-overview {
+    gap: 14px;
+  }
+
+  .commander-column {
+    justify-self: center;
+    max-width: min(240px, 78vw);
+  }
+
+  .commander-column--partners {
+    max-width: 100%;
+  }
+
+  .commander-grid--partners {
+    gap: 8px;
+  }
+
+  .deck-statistics {
+    min-width: 0;
+  }
+
+  .mana-curve {
+    gap: 4px;
+    min-height: 128px;
+  }
+
   .board-header {
     align-items: stretch !important;
     flex-direction: column;
   }
 
+  .board-header > .v-spacer {
+    display: none;
+  }
+
+  :deep(.board-header > .v-btn),
+  :deep(.board-header > .v-btn-toggle),
+  :deep(.board-header > .v-input) {
+    max-width: none !important;
+    width: 100%;
+  }
+
+  :deep(.board-header > .v-btn-toggle .v-btn) {
+    flex: 1 1 50%;
+  }
+
+  .card-grid {
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .deck-card-group + .deck-card-group {
+    margin-top: 14px;
+  }
 }
 </style>

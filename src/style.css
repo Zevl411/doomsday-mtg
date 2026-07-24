@@ -23,6 +23,13 @@ body {
   margin: 0;
 }
 
+html,
+body,
+#app {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 .v-application .rounded-lg,
 .v-application .rounded-xl {
   border-radius: 6px !important;
@@ -181,8 +188,108 @@ body {
 }
 
 @media (max-width: 599px) {
+  .content-container {
+    padding: 12px 8px 20px !important;
+  }
+
+  .app-brand-link {
+    height: 44px;
+    min-width: 44px;
+    width: 44px;
+  }
+
+  .app-brand-logo {
+    flex-basis: 40px;
+    height: 40px !important;
+    width: 40px !important;
+  }
+
   .home-hero {
     grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 28px !important;
+  }
+
+  .home-hero-brand {
+    min-height: 210px;
+    overflow: hidden;
+  }
+
+  .home-hero-logo {
+    max-width: 240px;
+    transform: scale(1.15);
+  }
+
+  /*
+   * Dialog max-width props are desktop caps. Phones instead use a consistent
+   * safe gutter and let the card scroll internally, preventing double-scroll
+   * traps and action buttons from falling outside the viewport.
+   */
+  .v-dialog > .v-overlay__content {
+    margin: 8px !important;
+    max-height: calc(100dvh - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    width: calc(100vw - 16px) !important;
+  }
+
+  .v-dialog > .v-overlay__content > .v-card {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 16px);
+    min-width: 0;
+    width: 100%;
+  }
+
+  .v-dialog .v-card-text {
+    min-height: 0;
+    overflow-y: auto;
+    padding-inline: 14px !important;
+  }
+
+  .v-dialog .v-card-title {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding-inline: 14px !important;
+    white-space: normal;
+  }
+
+  .v-dialog .v-card-actions {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-inline: 14px !important;
+  }
+
+  .v-dialog .v-card-actions .v-spacer {
+    display: none;
+  }
+
+  .v-dialog .v-card-actions .v-btn {
+    flex: 1 1 auto;
+    min-height: 40px;
+  }
+
+  .v-expansion-panel-text__wrapper {
+    padding: 8px;
+  }
+
+  .v-table > .v-table__wrapper {
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .v-table > .v-table__wrapper > table {
+    min-width: max-content;
+  }
+
+  .v-list-item__append {
+    align-self: center;
+    margin-inline-start: 8px;
+  }
+
+  .v-btn:not(.v-btn--icon) {
+    min-height: 40px;
   }
 }
 

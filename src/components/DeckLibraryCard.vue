@@ -188,13 +188,14 @@
         <v-btn
           v-if="manageable && !selectable"
           v-bind="props"
+          aria-label="Open deck actions"
           class="deck-card-actions-mobile d-flex d-md-none"
           icon
           size="small"
           variant="text"
           @click.stop.prevent="showMobileActions = true"
         >
-          <DeckActionIcon compact name="compare" />
+          <v-icon icon="mdi-dots-vertical" />
         </v-btn>
       </template>
       <v-list density="comfortable">
@@ -518,5 +519,20 @@ function emitMobileAction(
 .deck-summary-art:focus-visible {
   outline: 2px solid rgb(var(--v-theme-primary));
   outline-offset: -2px;
+}
+
+.deck-card-actions-mobile {
+  background: rgba(var(--v-theme-surface), 0.92);
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 3;
+}
+
+@media (max-width: 599px) {
+  .deck-card-content-header,
+  .deck-library-card :deep(.v-card-text) {
+    padding-inline: 12px;
+  }
 }
 </style>
